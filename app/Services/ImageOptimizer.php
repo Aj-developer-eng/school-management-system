@@ -35,7 +35,6 @@ class ImageOptimizer
     $tempPath = sys_get_temp_dir() . '/' . uniqid('optimized_') . '.webp';
 
     $currentQuality = $quality;
-
     while ($currentQuality >= 10) {
         //$image->toWebp(quality: $currentQuality)->save($tempPath);
         $image->encodeUsingFileExtension('webp', quality: $currentQuality)->save($tempPath);
