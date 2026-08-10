@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Teacher extends Model implements HasMedia
 {
@@ -69,19 +68,10 @@ class Teacher extends Model implements HasMedia
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
     }
 
-    public function registerMediaConversions(Media $media = null): void
-    {
-        $this->addMediaConversion('thumb')
-            ->width(200)
-            ->height(200)
-            ->sharpen(10)
-            ->nonQueued();
-    }
-
     public function profileImageUrl(): ?string
     {
         $media = $this->getFirstMedia(self::PROFILE_IMAGE_COLLECTION);
 
-        return $media?->getUrl('thumb');
+        return $media?->getUrl();
     }
 }
