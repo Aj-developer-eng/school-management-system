@@ -22,6 +22,7 @@ class StoreRequest extends FormRequest
             'payment_method' => ['required', Rule::enum(PaymentMethodEnum::class)],
             'transaction_reference' => ['nullable', 'string', 'max:120'],
             'remarks' => ['nullable', 'string', 'max:500'],
+            'evidence' => ['nullable', 'image', 'mimes:jpeg,png,webp,jpg', 'max:4096'],
         ];
     }
 }

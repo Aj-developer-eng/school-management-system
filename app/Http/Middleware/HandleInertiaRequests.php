@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use App\Models\Student;
 use App\Models\Teacher;
+use App\Services\NotificationService;
+use App\Services\SchoolSettingsService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -33,8 +35,14 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
+        $school = app(SchoolSettingsService::class)->get();
+
         return [
             ...parent::share($request),
+            'school' => [
+                'name' => $school->school_name,
+                'logo_url' => $school->logoUrl(),
+            ],
             'auth' => [
                 'user' => $user ? [
                     'id' => $user->id,
@@ -49,6 +57,17 @@ class HandleInertiaRequests extends Middleware
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
             ],
+            'notifications' => $user
+                ? NotificationService::recentFor($user)->map(fn ($n) => [
+                    'id' => $n->id,
+                    'type' => $n->type,
+                    'title' => $n->title,
+                    'message' => $n->message,
+                    'link' => $n->link,
+                    'read_at' => $n->read_at,
+                    'created_at' => $n->created_at?->diffForHumans(),
+                ])->values()
+                : [],
         ];
     }
 

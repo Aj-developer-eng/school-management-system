@@ -41,4 +41,53 @@ class RoleController extends Controller
         return redirect()->route('roles.index')
             ->with('success', "Permissions for {$role->name} updated successfully.");
     }
+
+    public function storeRole(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        $this->authorize('update', Role::class);
+
+        $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
+        ]);
+
+        $role = Role::create(['name' => $request->input('name'), 'guard_name' => 'web']);
+
+        ActivityLogService::custom('Roles & Permissions', 'created', "Created role: {$role->name}");
+
+        return redirect()->route('roles.index')
+            ->with('success', "Role {$role->name} created successfully.");
+    }
+
+    public function storePermission(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        $this->authorize('update', Role::class);
+
+        $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:permissions,name'],
+        ]);
+
+        $permission = Permission::create(['name' => $request->input('name'), 'guard_name' => 'web']);
+
+        ActivityLogService::custom('Roles & Permissions', 'created', "Created permission: {$permission->name}");
+
+        return redirect()->route('roles.index')
+            ->with('success', "Permission {$permission->name} created successfully.");
+    }
+
+    public function destroyRole(Role $role): \Illuminate\Http\RedirectResponse
+    {
+        $this->authorize('update', Role::class);
+
+        if ($role->name === 'Super Admin') {
+            return redirect()->route('roles.index')
+                ->with('error', 'Cannot delete the Super Admin role.');
+        }
+
+        $role->delete();
+
+        ActivityLogService::custom('Roles & Permissions', 'deleted', "Deleted role: {$role->name}");
+
+        return redirect()->route('roles.index')
+            ->with('success', "Role {$role->name} deleted successfully.");
+    }
 }

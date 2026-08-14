@@ -11,6 +11,7 @@ import {
     MapPin,
     Mail,
     Phone,
+    MessageCircle,
     Users,
     Building2,
     Calendar,
@@ -36,21 +37,12 @@ export default function Landing({ school, cms, activeSession, stats, featuredTea
     const heroTitle = c.hero_title || "Nurturing Tomorrow's";
     const heroHighlight = c.hero_title_highlight || 'Leaders Today';
     const heroSubtitle = c.hero_subtitle || `Welcome to ${schoolName}, where excellence meets opportunity. We provide quality education with a focus on character building, critical thinking, and holistic development.`;
-    const heroBtnText = c.hero_button_text || 'Apply for Admission';
-    const heroBtnLink = c.hero_button_link || '#admissions';
-    const heroSecBtnText = c.hero_secondary_button_text || 'Learn More';
-    const heroSecBtnLink = c.hero_secondary_button_link || '#about';
     const bannerImage = c.banner_image_url || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1920&q=80';
 
     const aboutLabel = c.about_label || 'About Our School';
     const aboutTitle = c.about_title || 'A Legacy of Excellence in Education';
     const aboutDesc = c.about_description || `At ${schoolName}, we believe every child has unique potential. Our dedicated faculty, modern facilities, and comprehensive curriculum ensure that each student receives the guidance and resources they need to excel academically and personally.`;
-    const aboutFeatures = c.about_features?.length ? c.about_features : [
-        { icon: 'BookOpen', title: 'Comprehensive Curriculum', description: 'Modern education aligned with national standards, designed to foster critical thinking and creativity.' },
-        { icon: 'Award', title: 'Award-Winning Faculty', description: 'Experienced teachers committed to student success, with ongoing professional development.' },
-        { icon: 'Users', title: 'Small Class Sizes', description: 'Personalized attention for every student, ensuring no child is left behind.' },
-    ];
-
+    const aboutImage = c.about_image_url || 'https://img.magnific.com/free-photo/closeup-shot-beautiful-butterfly-with-interesting-textures-orange-petaled-flower_181624-7640.jpg?semt=ais_test_b&w=740&q=80';
     const values = c.values?.length ? c.values : [
         { icon: 'Target', title: 'Our Mission', description: 'To provide a nurturing environment where students discover their passions and develop the skills needed for a rapidly changing world.' },
         { icon: 'Lightbulb', title: 'Our Vision', description: 'To be a center of educational excellence, empowering students to become confident, compassionate, and responsible global citizens.' },
@@ -63,13 +55,15 @@ export default function Landing({ school, cms, activeSession, stats, featuredTea
     const founderName = c.founder_name || 'Dr. Muhammad Abdullah';
     const founderQualification = c.founder_qualification || 'PhD in Education, Founder & Principal';
     const founderBio = c.founder_bio || 'With over 25 years of experience in education, Dr. Abdullah founded this institution with a vision to provide accessible, high-quality education to all.';
+    const founderImage = c.founder_image_url;
 
     const admissionsTitle = c.admissions_title || 'Admissions Are Now Open';
     const admissionsDesc = c.admissions_description || "Secure your child's future with quality education. Limited seats available for the upcoming academic session. Apply early to avoid disappointment.";
-    const admissionsBtnText = c.admissions_button_text || 'Contact Us';
-    const admissionsBtnLink = c.admissions_button_link || `tel:${phone}`;
-    const admissionsSecBtnText = c.admissions_secondary_button_text || 'Email Us';
-    const admissionsSecBtnLink = c.admissions_secondary_button_link || `mailto:${email}`;
+    const admissionsBtnText = c.admissions_button_text || 'Chat on WhatsApp';
+    const rawAdmissionsBtnLink = c.admissions_button_link || `https://wa.me/${phone.replace(/[^0-9]/g, '')}`;
+    const admissionsBtnLink = rawAdmissionsBtnLink.startsWith('http') || rawAdmissionsBtnLink.startsWith('mailto')
+        ? rawAdmissionsBtnLink
+        : `https://wa.me/${rawAdmissionsBtnLink.replace(/[^0-9]/g, '')}`;
 
     const footerDesc = c.footer_description || 'Providing quality education and building character since our founding. We are committed to nurturing the leaders of tomorrow.';
 
@@ -82,7 +76,11 @@ export default function Landing({ school, cms, activeSession, stats, featuredTea
                     <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
                         <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm transition-transform duration-300 hover:scale-110">
-                                <GraduationCap className="h-6 w-6 text-white" />
+                                {school?.logo_url ? (
+                                    <img src={school.logo_url} alt={schoolName} className="h-full w-full rounded-xl object-contain" />
+                                ) : (
+                                    <GraduationCap className="h-6 w-6 text-white" />
+                                )}
                             </div>
                             <span className="text-lg font-bold text-white">{schoolName}</span>
                         </div>
@@ -102,15 +100,11 @@ export default function Landing({ school, cms, activeSession, stats, featuredTea
                 </nav>
 
                 {/* Hero Banner */}
-                <section className="relative flex min-h-[680px] items-center overflow-hidden">
-                    <div className="absolute inset-0">
-                        <div className="h-full w-full" />
-                        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${bannerImage})` }} />
-                        <div className="absolute -left-20 top-1/4 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl animate-pulse" />
-                        <div className="absolute right-0 bottom-1/4 h-96 w-96 rounded-full bg-purple-500/15 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-                    </div>
-                    <div className="relative z-10 mx-auto max-w-7xl px-6 py-32">
-                        <div className="max-w-3xl">
+                <section className="relative min-h-[680px] overflow-hidden bg-gray-950">
+                    <div className="absolute -left-20 top-1/4 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl animate-pulse" />
+                    <div className="absolute right-0 bottom-1/4 h-96 w-96 rounded-full bg-purple-500/15 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+                    <div className="relative z-10 mx-auto flex max-w-7xl items-center gap-12 px-6 py-32">
+                        <div className="flex-1 max-w-3xl">
                             {heroBadge && (
                                 <div
                                     className="mb-8 inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-white backdrop-blur-md transition-all duration-500 hover:bg-white/15"
@@ -139,19 +133,12 @@ export default function Landing({ school, cms, activeSession, stats, featuredTea
                                 className="mt-10 flex flex-wrap gap-4"
                                 style={{ animation: 'fadeInUp 0.8s ease-out 0.6s both' }}
                             >
-                                <a
-                                    href="#admissions"
-                                    className="group inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-semibold text-indigo-700 shadow-xl transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/30"
-                                >
-                                    {heroBtnText}
-                                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                                </a>
-                                <a
-                                    href={heroSecBtnLink}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur-md transition-all duration-300 hover:bg-white/10"
-                                >
-                                    {heroSecBtnText}
-                                </a>
+                              
+                            </div>
+                        </div>
+                        <div className="hidden flex-1 lg:block" style={{ animation: 'fadeInRight 1s ease-out 0.3s both, float 6s ease-in-out infinite 1.3s' }}>
+                            <div className="overflow-hidden rounded-3xl shadow-2xl transition-transform duration-500 hover:scale-[1.02]">
+                                <img src={bannerImage} alt="School campus" className="h-[480px] w-full object-cover" style={{ animation: 'slowZoom 20s ease-in-out infinite alternate' }} />
                             </div>
                         </div>
                     </div>
@@ -193,17 +180,11 @@ export default function Landing({ school, cms, activeSession, stats, featuredTea
                                 <p className="mt-6 text-lg leading-relaxed text-gray-600">
                                     {aboutDesc}
                                 </p>
-                                <div className="mt-10 space-y-6">
-                                    {aboutFeatures.map((f, i) => {
-                                        const Icon = iconMap[f.icon] ?? BookOpen;
-                                        return <FeatureItem key={i} icon={<Icon className="h-5 w-5" />} title={f.title} description={f.description} />;
-                                    })}
-                                </div>
                             </div>
                             <div className="relative">
                                 <div className="overflow-hidden rounded-3xl shadow-2xl transition-transform duration-500 hover:scale-[1.02]">
                                     <img
-                                        src="https://img.magnific.com/free-photo/closeup-shot-beautiful-butterfly-with-interesting-textures-orange-petaled-flower_181624-7640.jpg?semt=ais_test_b&w=740&q=80"
+                                        src={aboutImage}
                                         alt="School campus"
                                         className="h-[440px] w-full object-cover"
                                     />
@@ -258,6 +239,7 @@ export default function Landing({ school, cms, activeSession, stats, featuredTea
                             founderName={founderName}
                             founderQualification={founderQualification}
                             founderBio={founderBio}
+                            founderImage={founderImage}
                         />
                     </div>
                 </section>
@@ -284,18 +266,13 @@ export default function Landing({ school, cms, activeSession, stats, featuredTea
                         <div className="mt-12 flex flex-wrap justify-center gap-4">
                             <a
                                 href={admissionsBtnLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="group inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-indigo-700 shadow-xl transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/30"
                             >
-                                <Phone className="h-5 w-5" />
+                                <MessageCircle className="h-5 w-5" />
                                 {admissionsBtnText}
                                 <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
-                            </a>
-                            <a
-                                href={admissionsSecBtnLink}
-                                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all duration-300 hover:bg-white/10"
-                            >
-                                <Mail className="h-5 w-5" />
-                                {admissionsSecBtnText}
                             </a>
                         </div>
                     </div>
@@ -308,7 +285,11 @@ export default function Landing({ school, cms, activeSession, stats, featuredTea
                             <div>
                                 <div className="flex items-center gap-3">
                                     <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600">
-                                        <GraduationCap className="h-6 w-6 text-white" />
+                                        {school?.logo_url ? (
+                                            <img src={school.logo_url} alt={schoolName} className="h-full w-full rounded-xl object-contain" />
+                                        ) : (
+                                            <GraduationCap className="h-6 w-6 text-white" />
+                                        )}
                                     </div>
                                     <span className="text-lg font-bold text-white">{schoolName}</span>
                                 </div>
@@ -370,6 +351,18 @@ export default function Landing({ school, cms, activeSession, stats, featuredTea
                     from { opacity: 0; transform: scale(0.95); }
                     to { opacity: 1; transform: scale(1); }
                 }
+                @keyframes fadeInRight {
+                    from { opacity: 0; transform: translateX(40px); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+                @keyframes float {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-12px); }
+                }
+                @keyframes slowZoom {
+                    from { transform: scale(1); }
+                    to { transform: scale(1.08); }
+                }
             `}</style>
         </>
     );
@@ -397,20 +390,6 @@ function StatCard({ icon, value, label, color, delay }) {
     );
 }
 
-function FeatureItem({ icon, title, description }) {
-    return (
-        <div className="group flex items-start gap-5">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 transition-all duration-300 group-hover:bg-indigo-600 group-hover:text-white">
-                {icon}
-            </div>
-            <div>
-                <h4 className="text-base font-semibold text-gray-900">{title}</h4>
-                <p className="mt-1.5 text-sm leading-relaxed text-gray-600">{description}</p>
-            </div>
-        </div>
-    );
-}
-
 function ValueCard({ icon, title, description }) {
     return (
         <div
@@ -426,7 +405,7 @@ function ValueCard({ icon, title, description }) {
     );
 }
 
-function TeacherSlider({ teachers, founderName, founderQualification, founderBio }) {
+function TeacherSlider({ teachers, founderName, founderQualification, founderBio, founderImage }) {
     const [index, setIndex] = useState(0);
     const [paused, setPaused] = useState(false);
     const trackRef = useRef(null);
@@ -437,6 +416,7 @@ function TeacherSlider({ teachers, founderName, founderQualification, founderBio
             name: founderName,
             qualification: founderQualification,
             bio: founderBio,
+            photo_url: founderImage,
             isFounder: true,
         },
         ...teachers,

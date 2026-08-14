@@ -9,12 +9,27 @@ import SearchInput from '@/Components/Ui/SearchInput';
 import StatusBadge from '@/Components/Ui/StatusBadge';
 import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
-import { Link } from '@inertiajs/react';
-import { Eye } from 'lucide-react';
+import { confirmAction } from '@/utils/swal';
+import { Link, router } from '@inertiajs/react';
+import { Download, Eye, Power } from 'lucide-react';
 
 export default function Index({ students, filters }) {
-    const { can } = useAuth();
+    const { can, isSuperAdmin } = useAuth();
     const handleSearch = useFilter('students.index');
+
+    const toggleActive = async (row) => {
+        const action = row.is_active ? 'deactivate' : 'activate';
+        const confirmed = await confirmAction({
+            title: `${action === 'deactivate' ? 'Deactivate' : 'Activate'} Student`,
+            text: `Are you sure you want to ${action} "${row.user?.name}"?`,
+            confirmButtonText: `Yes, ${action}`,
+            confirmColor: action === 'deactivate' ? '#d97706' : '#059669',
+        });
+
+        if (confirmed) {
+            router.patch(route('students.toggle-active', row.id), {}, { preserveScroll: true });
+        }
+    };
 
     const columns = [
         { key: 'admission_number', label: 'Admission #' },
@@ -36,17 +51,40 @@ export default function Index({ students, filters }) {
         {
             key: 'actions',
             label: 'Actions',
-            width: '150px',
+            width: '200px',
             render: (row) => (
                 <div className="flex items-center gap-3">
                     <Link
                         href={route('students.show', row.id)}
                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
-                        title="View Parent"
+                        title="View"
                     >
                         <Eye className="h-4 w-4" />
                     </Link>
                     {can('students.update') && <EditLink routeName="students.edit" params={row.id} />}
+                    {isSuperAdmin && (
+                        <a
+                            href={route('students.pdf', row.id)}
+                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-500/10"
+                            title="Download Full Record (PDF)"
+                        >
+                            <Download className="h-4 w-4" />
+                        </a>
+                    )}
+                    {can('students.update') && (
+                        <button
+                            type="button"
+                            onClick={() => toggleActive(row)}
+                            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${
+                                row.is_active
+                                    ? 'text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-500/10'
+                                    : 'text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10'
+                            }`}
+                            title={row.is_active ? 'Deactivate' : 'Activate'}
+                        >
+                            <Power className="h-4 w-4" />
+                        </button>
+                    )}
                     {can('students.delete') && <DeleteButton routeName="students.destroy" params={row.id} />}
                 </div>
             ),

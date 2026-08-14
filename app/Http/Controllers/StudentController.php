@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Student\StoreRequest;
 use App\Http\Requests\Student\UpdateRequest;
 use App\Models\AcademicSession;
+use App\Models\FeeInvoice;
 use App\Models\SchoolClass;
 use App\Models\Section;
 use App\Models\Student;
 use App\Services\ActivityLogService;
+use App\Services\SchoolSettingsService;
 use App\Services\StudentService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -46,7 +49,6 @@ class StudentController extends Controller
     public function create(): Response
     {
         $this->authorize('create', Student::class);
-
         return $this->renderForm();
     }
 
@@ -133,6 +135,79 @@ class StudentController extends Controller
 
         return redirect()->route('students.index')
             ->with('success', 'Student deleted successfully.');
+    }
+
+    public function toggleActive(Student $student): \Illuminate\Http\RedirectResponse
+    {
+        $this->authorize('update', $student);
+
+        $student->update(['is_active' => ! $student->is_active]);
+        $student->user->update(['is_active' => $student->is_active]);
+
+        $this->syncParentActiveStatus($student);
+
+        $status = $student->is_active ? 'activated' : 'deactivated';
+        ActivityLogService::custom('Students', 'updated', "{$status} student: {$student->user->name} ({$student->admission_number})");
+
+        return redirect()->back()
+            ->with('success', "Student {$status} successfully.");
+    }
+
+    /**
+     * Sync parent active status based on their children's active status.
+     * - When a student is deactivated, deactivate the parent only if ALL their students are inactive.
+     * - When a student is activated, re-activate the parent.
+     */
+    private function syncParentActiveStatus(Student $student): void
+    {
+        $student->load('parents.user');
+
+        foreach ($student->parents as $parent) {
+            if (! $parent->user) {
+                continue;
+            }
+
+            $allStudentsInactive = $parent->students()
+                ->whereNull('students.deleted_at')
+                ->where('is_active', true)
+                ->doesntExist();
+
+            $parent->update(['is_active' => ! $allStudentsInactive]);
+            $parent->user->update(['is_active' => ! $allStudentsInactive]);
+        }
+    }
+
+    public function downloadPdf(Student $student, SchoolSettingsService $settingsService): \Illuminate\Http\Response
+    {
+        $this->authorize('view', $student);
+
+        $student->load([
+            'user',
+            'enrollments.academicSession',
+            'enrollments.schoolClass',
+            'enrollments.section',
+            'parents.user:id,name,email,phone',
+            'invoices.academicSession:id,name',
+            'invoices.schoolClass:id,name',
+            'invoices.feeStructure:id,name',
+            'invoices.payments',
+        ]);
+
+        $school = $settingsService->get();
+
+        $logoBase64 = null;
+        $media = $school->getFirstMedia($school::LOGO_COLLECTION);
+        if ($media && file_exists($media->getPath())) {
+            $logoBase64 = 'data:' . $media->mime_type . ';base64,' . base64_encode(file_get_contents($media->getPath()));
+        }
+
+        $pdf = Pdf::loadView('pdf.student-record', [
+            'student' => $student,
+            'school' => $school,
+            'logoBase64' => $logoBase64,
+        ]);
+
+        return $pdf->download("student-{$student->admission_number}-{$student->user->name}.pdf");
     }
 
     private function renderForm(?Student $student = null): Response

@@ -9,7 +9,9 @@ use App\Models\SchoolSetting;
 use App\Models\Student;
 use App\Models\StudentParent;
 use App\Models\Teacher;
+use App\Services\ImageOptimizer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -49,6 +51,7 @@ class LandingPageController extends Controller
                 'phone' => $school->phone,
                 'email' => $school->email,
                 'footer_text' => $school->footer_text,
+                'logo_url' => $school->logoUrl(),
             ] : null,
             'cms' => $cms,
             'activeSession' => $activeSession ? [
@@ -83,18 +86,11 @@ class LandingPageController extends Controller
             'hero_title' => ['nullable', 'string', 'max:200'],
             'hero_title_highlight' => ['nullable', 'string', 'max:200'],
             'hero_subtitle' => ['nullable', 'string', 'max:500'],
-            'hero_button_text' => ['nullable', 'string', 'max:50'],
-            'hero_button_link' => ['nullable', 'string', 'max:200'],
-            'hero_secondary_button_text' => ['nullable', 'string', 'max:50'],
-            'hero_secondary_button_link' => ['nullable', 'string', 'max:200'],
-            'banner_image_url' => ['nullable', 'string', 'max:500'],
+            'banner_image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:4096'],
             'about_label' => ['nullable', 'string', 'max:100'],
             'about_title' => ['nullable', 'string', 'max:200'],
             'about_description' => ['nullable', 'string', 'max:1000'],
-            'about_features' => ['nullable', 'array'],
-            'about_features.*.icon' => ['nullable', 'string', 'max:50'],
-            'about_features.*.title' => ['nullable', 'string', 'max:100'],
-            'about_features.*.description' => ['nullable', 'string', 'max:300'],
+            'about_image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:4096'],
             'values' => ['nullable', 'array'],
             'values.*.icon' => ['nullable', 'string', 'max:50'],
             'values.*.title' => ['nullable', 'string', 'max:100'],
@@ -105,6 +101,7 @@ class LandingPageController extends Controller
             'founder_name' => ['nullable', 'string', 'max:100'],
             'founder_qualification' => ['nullable', 'string', 'max:200'],
             'founder_bio' => ['nullable', 'string', 'max:500'],
+            'founder_image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:4096'],
             'admissions_title' => ['nullable', 'string', 'max:200'],
             'admissions_description' => ['nullable', 'string', 'max:500'],
             'admissions_button_text' => ['nullable', 'string', 'max:50'],
@@ -114,7 +111,56 @@ class LandingPageController extends Controller
             'footer_description' => ['nullable', 'string', 'max:500'],
         ]);
 
-        LandingPageSetting::current()->update($validated);
+        $settings = LandingPageSetting::current();
+
+        if ($request->hasFile('banner_image')) {
+            if ($settings->banner_image_url) {
+                $oldPath = str_replace('/storage/', '', $settings->banner_image_url);
+                Storage::disk('public')->delete($oldPath);
+            }
+
+            $optimizedPath = ImageOptimizer::optimize($request->file('banner_image'), 1920, 70, 500);
+            $filename = 'banners/' . uniqid('banner_') . '.webp';
+            Storage::disk('public')->put($filename, file_get_contents($optimizedPath));
+            @unlink($optimizedPath);
+
+            $validated['banner_image_url'] = '/storage/' . $filename;
+        }
+
+        unset($validated['banner_image']);
+
+        if ($request->hasFile('about_image')) {
+            if ($settings->about_image_url) {
+                $oldPath = str_replace('/storage/', '', $settings->about_image_url);
+                Storage::disk('public')->delete($oldPath);
+            }
+
+            $optimizedPath = ImageOptimizer::optimize($request->file('about_image'), 740, 70, 500);
+            $filename = 'about/' . uniqid('about_') . '.webp';
+            Storage::disk('public')->put($filename, file_get_contents($optimizedPath));
+            @unlink($optimizedPath);
+
+            $validated['about_image_url'] = '/storage/' . $filename;
+        }
+
+        unset($validated['about_image']);
+
+        if ($request->hasFile('founder_image')) {
+            if ($settings->founder_image_url) {
+                $oldPath = str_replace('/storage/', '', $settings->founder_image_url);
+                Storage::disk('public')->delete($oldPath);
+            }
+
+            $optimizedPath = ImageOptimizer::optimize($request->file('founder_image'), 224, 70, 500);
+            $filename = 'founders/' . uniqid('founder_') . '.webp';
+            Storage::disk('public')->put($filename, file_get_contents($optimizedPath));
+            @unlink($optimizedPath);
+
+            $validated['founder_image_url'] = '/storage/' . $filename;
+        }
+
+        unset($validated['founder_image']);
+        $settings->update($validated);
 
         return redirect()->back()->with('success', 'Landing page content updated successfully.');
     }

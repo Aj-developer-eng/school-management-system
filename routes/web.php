@@ -10,6 +10,7 @@ use App\Http\Controllers\FeePaymentController;
 use App\Http\Controllers\FeeReportController;
 use App\Http\Controllers\FeeStructureController;
 use App\Http\Controllers\LandingPageController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SchoolClassController;
@@ -74,10 +75,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->parameters(['teacher-assignments' => 'teacher_assignment'])
         ->names('teacher-assignments');
 
-    Route::get('students/{student}', [StudentController::class, 'show'])->name('students.show');
     Route::resource('students', StudentController::class)
-        ->except(['show'])
-        ->names('students');
+       ->names('students');
+
+    Route::patch('students/{student}/toggle-active', [StudentController::class, 'toggleActive'])
+        ->name('students.toggle-active');
+    Route::get('students/{student}/pdf', [StudentController::class, 'downloadPdf'])
+        ->name('students.pdf');
 
     Route::resource('parents', StudentParentController::class)
         ->except(['show'])
@@ -88,7 +92,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->names('users');
 
     Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
+    Route::post('roles', [RoleController::class, 'storeRole'])->name('roles.store');
     Route::put('roles/{role}', [RoleController::class, 'update'])->name('roles.update');
+    Route::delete('roles/{role}', [RoleController::class, 'destroyRole'])->name('roles.destroy');
+    Route::post('permissions', [RoleController::class, 'storePermission'])->name('permissions.store');
 
     Route::get('school-settings', [SchoolSettingController::class, 'edit'])
         ->name('school-settings.edit');
@@ -117,6 +124,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('fee-invoices.bulk-generate');
     Route::patch('fee-invoices/{fee_invoice}/cancel', [FeeInvoiceController::class, 'cancel'])
         ->name('fee-invoices.cancel');
+    Route::get('fee-invoices/{fee_invoice}/pdf', [FeeInvoiceController::class, 'downloadPdf'])
+        ->name('fee-invoices.pdf');
     Route::resource('fee-invoices', FeeInvoiceController::class)
         ->parameters(['fee-invoices' => 'fee_invoice'])
         ->names('fee-invoices');
@@ -157,6 +166,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('activity-logs', [ActivityLogController::class, 'index'])
         ->name('activity-logs.index');
+
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
+        ->name('notifications.read');
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])
+        ->name('notifications.read-all');
 });
 
 require __DIR__.'/auth.php';

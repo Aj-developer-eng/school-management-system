@@ -23,6 +23,7 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
-        "lucide-react": "^1.29.0"
+        "lucide-react": "^1.29.0",
+        "sweetalert2": "^11.26.25"
     }
 }

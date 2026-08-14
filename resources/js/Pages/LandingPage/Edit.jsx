@@ -1,7 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
 import { router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { Upload, X } from 'lucide-react';
 
 const iconOptions = [
     { value: 'BookOpen', label: 'Book Open' },
@@ -22,19 +23,13 @@ export default function Edit({ settings, teachers }) {
         hero_title: settings.hero_title ?? '',
         hero_title_highlight: settings.hero_title_highlight ?? '',
         hero_subtitle: settings.hero_subtitle ?? '',
-        hero_button_text: settings.hero_button_text ?? '',
-        hero_button_link: settings.hero_button_link ?? '',
-        hero_secondary_button_text: settings.hero_secondary_button_text ?? '',
-        hero_secondary_button_link: settings.hero_secondary_button_link ?? '',
         banner_image_url: settings.banner_image_url ?? '',
+        banner_image: null,
         about_label: settings.about_label ?? '',
         about_title: settings.about_title ?? '',
         about_description: settings.about_description ?? '',
-        about_features: settings.about_features ?? [
-            { icon: 'BookOpen', title: '', description: '' },
-            { icon: 'Award', title: '', description: '' },
-            { icon: 'Users', title: '', description: '' },
-        ],
+        about_image_url: settings.about_image_url ?? '',
+        about_image: null,
         values: settings.values ?? [
             { icon: 'Target', title: '', description: '' },
             { icon: 'Lightbulb', title: '', description: '' },
@@ -46,6 +41,8 @@ export default function Edit({ settings, teachers }) {
         founder_name: settings.founder_name ?? '',
         founder_qualification: settings.founder_qualification ?? '',
         founder_bio: settings.founder_bio ?? '',
+        founder_image_url: settings.founder_image_url ?? '',
+        founder_image: null,
         admissions_title: settings.admissions_title ?? '',
         admissions_description: settings.admissions_description ?? '',
         admissions_button_text: settings.admissions_button_text ?? '',
@@ -57,13 +54,6 @@ export default function Edit({ settings, teachers }) {
 
     const update = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
-    const updateFeature = (index, field, value) => {
-        setForm((prev) => ({
-            ...prev,
-            about_features: prev.about_features.map((f, i) => i === index ? { ...f, [field]: value } : f),
-        }));
-    };
-
     const updateValue = (index, field, value) => {
         setForm((prev) => ({
             ...prev,
@@ -71,10 +61,68 @@ export default function Edit({ settings, teachers }) {
         }));
     };
 
+    const bannerInputRef = useRef(null);
+    const [bannerPreview, setBannerPreview] = useState(settings.banner_image_url ?? null);
+
+    const handleBannerChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setForm((prev) => ({ ...prev, banner_image: file }));
+            setBannerPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleBannerRemove = () => {
+        setForm((prev) => ({ ...prev, banner_image: null }));
+        setBannerPreview(null);
+        if (bannerInputRef.current) {
+            bannerInputRef.current.value = '';
+        }
+    };
+
+    const aboutInputRef = useRef(null);
+    const [aboutPreview, setAboutPreview] = useState(settings.about_image_url ?? null);
+
+    const handleAboutChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setForm((prev) => ({ ...prev, about_image: file }));
+            setAboutPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleAboutRemove = () => {
+        setForm((prev) => ({ ...prev, about_image: null }));
+        setAboutPreview(null);
+        if (aboutInputRef.current) {
+            aboutInputRef.current.value = '';
+        }
+    };
+
+    const founderInputRef = useRef(null);
+    const [founderPreview, setFounderPreview] = useState(settings.founder_image_url ?? null);
+
+    const handleFounderChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setForm((prev) => ({ ...prev, founder_image: file }));
+            setFounderPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleFounderRemove = () => {
+        setForm((prev) => ({ ...prev, founder_image: null }));
+        setFounderPreview(null);
+        if (founderInputRef.current) {
+            founderInputRef.current.value = '';
+        }
+    };
+
     const submit = (e) => {
         e.preventDefault();
         router.post(route('landing-page.update'), form, {
             preserveScroll: true,
+            forceFormData: true,
         });
     };
 
@@ -91,14 +139,51 @@ export default function Edit({ settings, teachers }) {
                     </div>
                     <div className="grid grid-cols-1 gap-5 p-6 sm:grid-cols-2">
                         <Field label="Badge Text" value={form.hero_badge_text} onChange={(v) => update('hero_badge_text', v)} placeholder="Admissions Open for 2026-2027" />
-                        <Field label="Banner Image URL" value={form.banner_image_url} onChange={(v) => update('banner_image_url', v)} placeholder="https://images.unsplash.com/..." />
+                        <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700">Banner Image</label>
+                            <div className="mt-2 flex items-start gap-5">
+                                <div className="relative h-32 w-48 flex-shrink-0 overflow-hidden rounded-lg border-2 border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
+                                    {bannerPreview ? (
+                                        <img src={bannerPreview} alt="Banner preview" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center text-gray-300">
+                                            <Upload className="h-8 w-8" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <input
+                                        ref={bannerInputRef}
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        onChange={handleBannerChange}
+                                        className="hidden"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => bannerInputRef.current?.click()}
+                                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                                    >
+                                        <Upload className="h-4 w-4" />
+                                        Upload Banner
+                                    </button>
+                                    {bannerPreview && (
+                                        <button
+                                            type="button"
+                                            onClick={handleBannerRemove}
+                                            className="inline-flex items-center gap-2 text-sm font-medium text-red-600 transition-colors hover:text-red-700"
+                                        >
+                                            <X className="h-4 w-4" />
+                                            Remove
+                                        </button>
+                                    )}
+                                    <p className="text-xs text-gray-500">JPG, PNG, or WebP. Max 4MB. Recommended: 1920px wide.</p>
+                                </div>
+                            </div>
+                        </div>
                         <Field label="Hero Title" value={form.hero_title} onChange={(v) => update('hero_title', v)} placeholder="Nurturing Tomorrow's" full />
                         <Field label="Hero Title Highlight (second line)" value={form.hero_title_highlight} onChange={(v) => update('hero_title_highlight', v)} placeholder="Leaders Today" full />
                         <TextArea label="Hero Subtitle" value={form.hero_subtitle} onChange={(v) => update('hero_subtitle', v)} placeholder="Welcome to our school..." full />
-                        <Field label="Primary Button Text" value={form.hero_button_text} onChange={(v) => update('hero_button_text', v)} placeholder="Apply for Admission" />
-                        <Field label="Primary Button Link" value={form.hero_button_link} onChange={(v) => update('hero_button_link', v)} placeholder="#admissions" />
-                        <Field label="Secondary Button Text" value={form.hero_secondary_button_text} onChange={(v) => update('hero_secondary_button_text', v)} placeholder="Learn More" />
-                        <Field label="Secondary Button Link" value={form.hero_secondary_button_link} onChange={(v) => update('hero_secondary_button_link', v)} placeholder="#about" />
                     </div>
                 </Card>
 
@@ -114,24 +199,46 @@ export default function Edit({ settings, teachers }) {
                             <Field label="About Title" value={form.about_title} onChange={(v) => update('about_title', v)} placeholder="A Legacy of Excellence in Education" full />
                         </div>
                         <TextArea label="About Description" value={form.about_description} onChange={(v) => update('about_description', v)} placeholder="At our school, we believe..." full />
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">About Features</label>
-                            <div className="mt-3 space-y-4">
-                                {form.about_features.map((feature, i) => (
-                                    <div key={i} className="rounded-lg border border-gray-200 p-4">
-                                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                            <SelectField
-                                                label="Icon"
-                                                value={feature.icon}
-                                                onChange={(v) => updateFeature(i, 'icon', v)}
-                                                options={iconOptions}
-                                            />
-                                            <Field label="Title" value={feature.title} onChange={(v) => updateFeature(i, 'title', v)} placeholder="Comprehensive Curriculum" />
-                                            <Field label="Description" value={feature.description} onChange={(v) => updateFeature(i, 'description', v)} placeholder="Modern education..." />
+                        <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700">About Image</label>
+                            <div className="mt-2 flex items-start gap-5">
+                                <div className="relative h-32 w-48 flex-shrink-0 overflow-hidden rounded-lg border-2 border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
+                                    {aboutPreview ? (
+                                        <img src={aboutPreview} alt="About preview" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center text-gray-300">
+                                            <Upload className="h-8 w-8" />
                                         </div>
-                                    </div>
-                                ))}
+                                    )}
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <input
+                                        ref={aboutInputRef}
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        onChange={handleAboutChange}
+                                        className="hidden"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => aboutInputRef.current?.click()}
+                                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                                    >
+                                        <Upload className="h-4 w-4" />
+                                        Upload Image
+                                    </button>
+                                    {aboutPreview && (
+                                        <button
+                                            type="button"
+                                            onClick={handleAboutRemove}
+                                            className="inline-flex items-center gap-2 text-sm font-medium text-red-600 transition-colors hover:text-red-700"
+                                        >
+                                            <X className="h-4 w-4" />
+                                            Remove
+                                        </button>
+                                    )}
+                                    <p className="text-xs text-gray-500">JPG, PNG, or WebP. Max 4MB. Recommended: 740px wide.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -186,6 +293,48 @@ export default function Edit({ settings, teachers }) {
                             <div className="mt-4">
                                 <TextArea label="Founder Bio" value={form.founder_bio} onChange={(v) => update('founder_bio', v)} placeholder="With over 25 years of experience..." full />
                             </div>
+                            <div className="mt-4">
+                                <label className="block text-sm font-medium text-gray-700">Founder Photo</label>
+                                <div className="mt-2 flex items-start gap-5">
+                                    <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-full border-2 border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
+                                        {founderPreview ? (
+                                            <img src={founderPreview} alt="Founder preview" className="h-full w-full object-cover" />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center text-gray-300">
+                                                <Upload className="h-6 w-6" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <input
+                                            ref={founderInputRef}
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/webp"
+                                            onChange={handleFounderChange}
+                                            className="hidden"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => founderInputRef.current?.click()}
+                                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                                        >
+                                            <Upload className="h-4 w-4" />
+                                            Upload Photo
+                                        </button>
+                                        {founderPreview && (
+                                            <button
+                                                type="button"
+                                                onClick={handleFounderRemove}
+                                                className="inline-flex items-center gap-2 text-sm font-medium text-red-600 transition-colors hover:text-red-700"
+                                            >
+                                                <X className="h-4 w-4" />
+                                                Remove
+                                            </button>
+                                        )}
+                                        <p className="text-xs text-gray-500">JPG, PNG, or WebP. Max 4MB. Recommended: square, 224px+.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
@@ -206,10 +355,8 @@ export default function Edit({ settings, teachers }) {
                         <Field label="Admissions Title" value={form.admissions_title} onChange={(v) => update('admissions_title', v)} placeholder="Admissions Are Now Open" full />
                         <TextArea label="Admissions Description" value={form.admissions_description} onChange={(v) => update('admissions_description', v)} placeholder="Secure your child's future..." full />
                         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                            <Field label="Primary Button Text" value={form.admissions_button_text} onChange={(v) => update('admissions_button_text', v)} placeholder="Contact Us" />
-                            <Field label="Primary Button Link" value={form.admissions_button_link} onChange={(v) => update('admissions_button_link', v)} placeholder="tel:+1234567890" />
-                            <Field label="Secondary Button Text" value={form.admissions_secondary_button_text} onChange={(v) => update('admissions_secondary_button_text', v)} placeholder="Email Us" />
-                            <Field label="Secondary Button Link" value={form.admissions_secondary_button_link} onChange={(v) => update('admissions_secondary_button_link', v)} placeholder="mailto:info@school.com" />
+                            <Field label="Primary Button Text" value={form.admissions_button_text} onChange={(v) => update('admissions_button_text', v)} placeholder="Chat on WhatsApp" />
+                            <Field label="Primary Button Link" value={form.admissions_button_link} onChange={(v) => update('admissions_button_link', v)} placeholder="https://wa.me/1234567890" />
                         </div>
                     </div>
                 </Card>

@@ -40,6 +40,14 @@ export default function Form({ student, sessions, classes, sections, default_ses
                 String(section.academic_session_id) === String(data.academic_session_id) &&
                 String(section.school_class_id) === String(data.school_class_id),
         );
+        console.log('DEBUG filter:', {
+            sectionsIsArray: Array.isArray(sections),
+            sectionsCount: sections?.length,
+            sessionId: data.academic_session_id,
+            classId: data.school_class_id,
+            filteredCount: filtered.length,
+            sampleSection: sections?.[0],
+        });
         setFilteredSections(filtered);
 
         const stillValid = filtered.some((s) => String(s.id) === String(data.section_id));
@@ -58,7 +66,7 @@ export default function Form({ student, sessions, classes, sections, default_ses
             post(route('students.store'));
         }
     };
-
+console.log(filteredSections);
     const selectClass =
         'mt-1 block w-full rounded-md border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200';
 

@@ -3,6 +3,7 @@ import Card from '@/Components/Ui/Card';
 import DeleteButton from '@/Components/Ui/DeleteButton';
 import { useAuth } from '@/utils/authorization';
 import { Link, router } from '@inertiajs/react';
+import { Download } from 'lucide-react';
 
 const statusColors = {
     unpaid: 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
@@ -46,6 +47,13 @@ export default function Show({ invoice }) {
                             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                                 Issued: {invoice.issue_date} · Due: {invoice.due_date}
                             </p>
+                            <a
+                                href={route('fee-invoices.pdf', invoice.id)}
+                                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+                            >
+                                <Download size={16} />
+                                Download PDF
+                            </a>
                         </div>
                     </div>
                 </Card>
@@ -102,6 +110,7 @@ export default function Show({ invoice }) {
                                         <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Amount</th>
                                         <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Method</th>
                                         <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Reference</th>
+                                        <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Evidence</th>
                                         <th className="py-2 text-right font-medium text-gray-500 dark:text-gray-400">Actions</th>
                                     </tr>
                                 </thead>
@@ -112,6 +121,15 @@ export default function Show({ invoice }) {
                                             <td className="py-3 font-medium text-gray-900 dark:text-gray-100">Rs {Number(p.amount).toLocaleString()}</td>
                                             <td className="py-3 text-gray-700 dark:text-gray-300">{p.payment_method}</td>
                                             <td className="py-3 text-gray-500 dark:text-gray-400">{p.transaction_reference ?? '—'}</td>
+                                            <td className="py-3">
+                                                {p.evidence_url ? (
+                                                    <a href={p.evidence_url} target="_blank" rel="noopener noreferrer">
+                                                        <img src={p.evidence_url} alt="Payment evidence" className="h-12 w-12 rounded-lg border border-gray-200 object-cover dark:border-gray-700" />
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-gray-400">—</span>
+                                                )}
+                                            </td>
                                             <td className="py-3 text-right">
                                                 {can('fee-payments.delete') && (
                                                     <DeleteButton routeName="fee-payments.destroy" params={p.id} />

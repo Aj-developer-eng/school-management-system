@@ -123,7 +123,7 @@ export default function Form({ assignment, teachers, sessions, classes }) {
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
-                            <InputLabel htmlFor="section_id" value="Section" />
+                            <InputLabel htmlFor="section_id" value="Section (Optional)" />
                             <select
                                 id="section_id"
                                 value={data.section_id}

@@ -86,7 +86,7 @@ class DashboardController extends Controller
         ];
 
         $quickActions = $this->quickActions($user);
-
+// dd('default dashboard');
         return Inertia::render('Dashboard', [
             'stats' => $stats,
             'enrollmentsByClass' => $enrollmentsByClass,

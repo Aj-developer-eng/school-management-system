@@ -21,7 +21,7 @@ class UpdateRequest extends FormRequest
             'academic_session_id' => ['required', 'exists:academic_sessions,id'],
             'school_class_id' => ['required', 'exists:school_classes,id'],
             'section_id' => [
-                'required',
+                'nullable',
                 'exists:sections,id',
                 Rule::exists('sections', 'id')->where(function ($query) {
                     $query->where('academic_session_id', $this->input('academic_session_id'))

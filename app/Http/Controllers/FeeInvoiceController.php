@@ -11,6 +11,8 @@ use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Services\ActivityLogService;
 use App\Services\FeeInvoiceService;
+use App\Services\SchoolSettingsService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -110,5 +112,30 @@ class FeeInvoiceController extends Controller
 
         return redirect()->route('fee-invoices.index')
             ->with('success', 'Invoice deleted successfully.');
+    }
+
+    public function downloadPdf(FeeInvoice $feeInvoice, SchoolSettingsService $settingsService): \Illuminate\Http\Response
+    {
+        $this->authorize('view', $feeInvoice);
+
+        $feeInvoice->load(['student.user', 'academicSession', 'schoolClass', 'feeStructure', 'payments' => function ($q): void {
+            $q->latest();
+        }]);
+
+        $school = $settingsService->get();
+
+        $logoBase64 = null;
+        $media = $school->getFirstMedia($school::LOGO_COLLECTION);
+        if ($media && file_exists($media->getPath())) {
+            $logoBase64 = 'data:' . $media->mime_type . ';base64,' . base64_encode(file_get_contents($media->getPath()));
+        }
+
+        $pdf = Pdf::loadView('pdf.fee-invoice', [
+            'invoice' => $feeInvoice,
+            'school' => $school,
+            'logoBase64' => $logoBase64,
+        ]);
+
+        return $pdf->download("invoice-{$feeInvoice->invoice_number}.pdf");
     }
 }

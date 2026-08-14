@@ -1,9 +1,16 @@
 import { router } from '@inertiajs/react';
 import { Trash2 } from 'lucide-react';
+import { confirmAction } from '@/utils/swal';
 
-export default function DeleteButton({ routeName, params, confirmMessage = 'Are you sure?' }) {
-    const handleClick = () => {
-        if (window.confirm(confirmMessage)) {
+export default function DeleteButton({ routeName, params, confirmMessage = 'Are you sure?', confirmTitle = 'Delete' }) {
+    const handleClick = async () => {
+        const confirmed = await confirmAction({
+            title: confirmTitle,
+            text: confirmMessage,
+            confirmButtonText: 'Yes, delete it',
+        });
+
+        if (confirmed) {
             router.delete(route(routeName, params));
         }
     };

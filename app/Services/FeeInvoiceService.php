@@ -8,6 +8,7 @@ use App\Models\FeeInvoice;
 use App\Models\FeeStructure;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Models\StudentParent;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -41,8 +42,34 @@ class FeeInvoiceService
 
             $invoice->recalculate();
 
+            $this->notifyInvoiceCreated($invoice, $student);
+
             return $invoice;
         });
+    }
+
+    /**
+     * Send notifications about a new invoice to admins and the student's parents.
+     */
+    private function notifyInvoiceCreated(FeeInvoice $invoice, Student $student): void
+    {
+        NotificationService::sendToAdmins([
+            'type' => 'invoice_created',
+            'title' => "Invoice {$invoice->invoice_number} created",
+            'message' => "For student {$student->user->name} — Rs " . number_format((float) $invoice->total_amount, 2),
+            'link' => '/fee-invoices/' . $invoice->id,
+        ]);
+
+        foreach ($student->parents as $parent) {
+            if ($parent->user) {
+                NotificationService::send($parent->user, [
+                    'type' => 'invoice_created',
+                    'title' => "New invoice {$invoice->invoice_number}",
+                    'message' => "Amount: Rs " . number_format((float) $invoice->total_amount, 2) . " · Due: {$invoice->due_date}",
+                    'link' => '/fee-invoices/' . $invoice->id,
+                ]);
+            }
+        }
     }
 
     public function bulkGenerate(int $feeStructureId, string $issueDate, string $dueDate): int

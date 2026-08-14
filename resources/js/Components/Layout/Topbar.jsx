@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import { ChevronDown, LogOut, Menu, Moon, Sun, User } from 'lucide-react';
 import Dropdown from '@/Components/Dropdown';
 import GlobalSearch from '@/Components/Layout/GlobalSearch';
+import NotificationBell from '@/Components/Layout/NotificationBell';
 import useDarkMode from '@/hooks/useDarkMode';
 import { useAuth } from '@/utils/authorization';
 
@@ -31,6 +32,8 @@ export default function Topbar({ onOpenSidebar }) {
                 >
                     {isDark ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
+
+                <NotificationBell />
 
                 <Dropdown>
                     <Dropdown.Trigger>

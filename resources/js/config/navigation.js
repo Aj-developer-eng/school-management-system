@@ -180,18 +180,20 @@ export const navigation = [
                 routeName: 'activity-logs.index',
                 icon: ScrollText,
                 permission: null,
+                roles: ['Super Admin'],
             },
         ],
     },
 ];
 
-export function visibleNavigation(can) {
+export function visibleNavigation(can, roles = []) {
     return navigation
         .map((group) => ({
             ...group,
             items: group.items.filter(
                 (item) =>
                     (item.permission === null || can(item.permission)) &&
+                    (!item.roles || item.roles.some((r) => roles.includes(r))) &&
                     route().has(item.routeName),
             ),
         }))

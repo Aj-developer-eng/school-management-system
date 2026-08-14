@@ -5,7 +5,7 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 const paymentMethods = ['cash', 'cheque', 'bank_transfer', 'card', 'other'];
 
@@ -17,9 +17,28 @@ export default function Form({ invoice, invoices }) {
         payment_method: 'cash',
         transaction_reference: '',
         remarks: '',
+        evidence: null,
     });
 
     const [selectedInvoice, setSelectedInvoice] = useState(invoice ?? null);
+    const [evidencePreview, setEvidencePreview] = useState(null);
+    const evidenceInputRef = useRef(null);
+
+    const handleEvidenceChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setData('evidence', file);
+            setEvidencePreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleEvidenceRemove = () => {
+        setData('evidence', null);
+        setEvidencePreview(null);
+        if (evidenceInputRef.current) {
+            evidenceInputRef.current.value = '';
+        }
+    };
 
     const handleInvoiceChange = (e) => {
         const id = e.target.value;
@@ -30,7 +49,9 @@ export default function Form({ invoice, invoices }) {
 
     const submit = (event) => {
         event.preventDefault();
-        post(route('fee-payments.store'));
+        post(route('fee-payments.store'), {
+            forceFormData: true,
+        });
     };
 
     return (
@@ -148,6 +169,34 @@ export default function Form({ invoice, invoices }) {
                             className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
                         />
                         <InputError message={errors.remarks} className="mt-2" />
+                    </div>
+
+                    <div>
+                        <InputLabel htmlFor="evidence" value="Payment Evidence (optional)" />
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Upload a screenshot or photo of the payment receipt (JPG, PNG, WebP — max 4MB).
+                        </p>
+                        <input
+                            ref={evidenceInputRef}
+                            id="evidence"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={handleEvidenceChange}
+                            className="mt-2 block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-300 dark:file:bg-indigo-500/10 dark:file:text-indigo-300"
+                        />
+                        <InputError message={errors.evidence} className="mt-2" />
+                        {evidencePreview && (
+                            <div className="mt-3">
+                                <img src={evidencePreview} alt="Evidence preview" className="max-h-48 rounded-lg border border-gray-200 dark:border-gray-700" />
+                                <button
+                                    type="button"
+                                    onClick={handleEvidenceRemove}
+                                    className="mt-2 text-sm text-rose-600 hover:text-rose-700 dark:text-rose-400"
+                                >
+                                    Remove image
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex justify-end">

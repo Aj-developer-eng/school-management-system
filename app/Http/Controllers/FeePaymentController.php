@@ -7,7 +7,9 @@ use App\Models\FeeInvoice;
 use App\Models\FeePayment;
 use App\Services\ActivityLogService;
 use App\Services\FeePaymentService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -49,7 +51,23 @@ class FeePaymentController extends Controller
 
     public function store(StoreRequest $request, FeePaymentService $service): \Illuminate\Http\RedirectResponse
     {
-        $payment = $service->recordPayment($request->validated());
+        $validated = $request->validated();
+
+        if ($request->hasFile('evidence')) {
+            $path = $request->file('evidence')->store('payment-evidence', 'public');
+            $validated['evidence_url'] = '/storage/' . $path;
+        }
+
+        unset($validated['evidence']);
+
+        $payment = $service->recordPayment($validated);
+
+        NotificationService::sendToAdmins([
+            'type' => 'payment_recorded',
+            'title' => "Payment recorded for invoice #{$payment->fee_invoice_id}",
+            'message' => "Rs " . number_format((float) $payment->amount, 2) . " via {$payment->payment_method->value}",
+            'link' => '/fee-invoices/' . $payment->fee_invoice_id,
+        ]);
 
         ActivityLogService::custom('Fee Payments', 'recorded', "Recorded payment of Rs. {$payment->amount} for invoice #{$payment->fee_invoice_id}");
 

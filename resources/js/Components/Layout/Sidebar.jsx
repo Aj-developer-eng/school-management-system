@@ -4,9 +4,11 @@ import { visibleNavigation } from '@/config/navigation';
 import { useAuth } from '@/utils/authorization';
 
 export default function Sidebar({ open, onClose }) {
-    const { can } = useAuth();
-    const { url } = usePage();
-    const groups = visibleNavigation(can);
+    const { can, roles } = useAuth();
+    const { url, props } = usePage();
+    const groups = visibleNavigation(can, roles);
+    const school = props.school ?? {};
+    const logoUrl = school.logo_url;
 
     const isActive = (routeName) => {
         const href = route(routeName, undefined, false);
@@ -30,11 +32,19 @@ export default function Sidebar({ open, onClose }) {
             >
                 <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
                     <Link href={route('dashboard')} className="flex items-center gap-2">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white">
-                            <GraduationCap size={20} />
-                        </span>
+                        {logoUrl ? (
+                            <img
+                                src={logoUrl}
+                                alt={school.name ?? 'School Logo'}
+                                className="h-9 w-9 rounded-lg object-contain"
+                            />
+                        ) : (
+                            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white">
+                                <GraduationCap size={20} />
+                            </span>
+                        )}
                         <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                            School Management
+                            {school.name ?? 'School Management'}
                         </span>
                     </Link>
                     <button

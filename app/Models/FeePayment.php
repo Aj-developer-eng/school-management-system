@@ -22,6 +22,7 @@ class FeePayment extends Model
         'payment_method',
         'transaction_reference',
         'remarks',
+        'evidence_url',
     ];
 
     protected function casts(): array
