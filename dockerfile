@@ -5,6 +5,8 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     libpng-dev \
+    libjpeg62-turbo-dev \
+    libwebp-dev \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
@@ -22,8 +24,15 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl
+# Install PHP extensions. gd needs to be explicitly configured with WebP
+# support (--with-webp) — without it, docker-php-ext-install builds GD
+# against libgd but omits imagewebp(), which is what ImageOptimizer
+# (app/Services/ImageOptimizer.php) calls on every photo upload via
+# Intervention Image's WebP encoder. Plain `docker-php-ext-install gd`
+# silently succeeds either way, so this only surfaces at upload time as
+# "Call to undefined function ... imagewebp()".
+RUN docker-php-ext-configure gd --with-jpeg --with-webp \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
