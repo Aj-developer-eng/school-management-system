@@ -64,6 +64,14 @@ ENVFILE
 
 echo "==> .env written successfully"
 
+# spatie/laravel-medialibrary writes uploaded images into storage/app/public
+# via the 'public' disk — if this directory (or a Coolify persistent-storage
+# volume mounted over it) isn't owned by www-data, uploads fail with
+# "Permission denied" even though the container itself boots fine. Ensure
+# every subdirectory storage actually needs at runtime exists and is owned
+# by the php-fpm/nginx user, every deploy (not just at image build time,
+# since a mounted volume can reset ownership back to root).
+mkdir -p /var/www/storage/app/public /var/www/storage/app/private /var/www/storage/framework/{cache,sessions,testing,views} /var/www/storage/logs
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
@@ -90,7 +98,10 @@ php artisan route:cache
 php artisan view:cache
 
 echo "==> Creating storage symlink..."
-php artisan storage:link 2>/dev/null || true
+# --force so a redeploy always re-links correctly even if `public/storage`
+# already exists as a stale/broken symlink from a previous container.
+php artisan storage:link --force
+chown -h www-data:www-data /var/www/public/storage 2>/dev/null || true
 
 # Frontend assets are already built into the image at `docker build` time
 # (see dockerfile: `RUN npm run build`) — re-running it here on every
