@@ -8,7 +8,7 @@ cd /var/www
 echo "==> Writing .env file..."
 
 cat > /var/www/.env << ENVFILE
-APP_NAME=${APP_NAME:-Laravel}
+APP_NAME="${APP_NAME:-Laravel}"
 APP_ENV=${APP_ENV:-production}
 APP_KEY=${APP_KEY}
 APP_DEBUG=${APP_DEBUG:-false}
@@ -51,7 +51,7 @@ MAIL_USERNAME=${MAIL_USERNAME}
 MAIL_PASSWORD=${MAIL_PASSWORD}
 MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
 MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
-MAIL_FROM_NAME=${MAIL_FROM_NAME}
+MAIL_FROM_NAME="${MAIL_FROM_NAME:-${APP_NAME:-Laravel}}"
 
 AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
 AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
@@ -59,14 +59,8 @@ AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
 AWS_BUCKET=${AWS_BUCKET}
 AWS_USE_PATH_STYLE_ENDPOINT=${AWS_USE_PATH_STYLE_ENDPOINT:-false}
 
-VITE_APP_NAME=${APP_NAME:-Laravel}
+VITE_APP_NAME="${APP_NAME:-Laravel}"
 ENVFILE
-
-# Handle values with spaces (APP_NAME / MAIL_FROM_NAME) via sed, since
-# heredoc above already substituted them but multi-word values need quoting.
-sed -i "s|^APP_NAME=.*|APP_NAME=${APP_NAME:-Laravel}|" /var/www/.env
-sed -i "s|^MAIL_FROM_NAME=.*|MAIL_FROM_NAME=${MAIL_FROM_NAME}|" /var/www/.env
-sed -i "s|^VITE_APP_NAME=.*|VITE_APP_NAME=${APP_NAME:-Laravel}|" /var/www/.env
 
 echo "==> .env written successfully"
 
