@@ -256,7 +256,7 @@ export default function Form({ teacher }) {
 
                     <div className="flex justify-end">
                         <PrimaryButton disabled={processing}>
-                            {isEdit ? 'Update Teacher' : 'Create Teacher'}
+                            {isEdit ? 'Update Teacher1' : 'Create Teacher'}
                         </PrimaryButton>
                     </div>
                 </form>
