@@ -100,7 +100,7 @@ class StudentParentController extends Controller
                 'students' => $existingStudents,
             ] : null,
             'students' => Student::with('user')->where('is_active', true)->orderBy('admission_number')->get()
-                ->map(fn (Student $student) => ['id' => $student->id, 'label' => $student->admission_number.' — '.$student->user->name]),
+                ->map(fn (Student $student) => ['id' => $student->id, 'label' => $student->admission_number.' — '.($student->user?->name ?? '')]),
         ]);
     }
 }
