@@ -4,11 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicSession;
 use App\Models\LandingPageSetting;
-use App\Models\SchoolClass;
 use App\Models\SchoolSetting;
-use App\Models\Student;
-use App\Models\StudentParent;
-use App\Models\Teacher;
 use App\Services\ImageOptimizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -22,25 +18,6 @@ class LandingPageController extends Controller
         $school = SchoolSetting::first();
         $cms = LandingPageSetting::current();
         $activeSession = AcademicSession::active()->first();
-
-        $stats = [
-            'students' => Student::where('is_active', true)->count(),
-            'teachers' => Teacher::where('is_active', true)->count(),
-            'parents' => StudentParent::where('is_active', true)->count(),
-            'classes' => SchoolClass::where('is_active', true)->count(),
-        ];
-
-        $featuredTeachers = Teacher::where('is_active', true)
-            ->with('user:id,name')
-            ->limit(4)
-            ->get()
-            ->map(fn ($t) => [
-                'name' => $t->user?->name,
-                'qualification' => $t->qualification,
-                'bio' => $t->bio,
-                'employee_code' => $t->employee_code,
-                'photo_url' => $t->profileImageUrl(),
-            ]);
 
         return Inertia::render('Landing', [
             'school' => $school ? [
@@ -59,8 +36,6 @@ class LandingPageController extends Controller
                 'start_date' => $activeSession->start_date?->format('M Y'),
                 'end_date' => $activeSession->end_date?->format('M Y'),
             ] : null,
-            'stats' => $stats,
-            'featuredTeachers' => $featuredTeachers,
         ]);
     }
 
@@ -68,14 +43,8 @@ class LandingPageController extends Controller
     {
         $settings = LandingPageSetting::current();
 
-        $teachers = Teacher::where('is_active', true)
-            ->with('user:id,name')
-            ->get()
-            ->map(fn ($t) => ['id' => $t->id, 'name' => $t->user?->name]);
-
         return Inertia::render('LandingPage/Edit', [
             'settings' => $settings,
-            'teachers' => $teachers,
         ]);
     }
 
@@ -85,30 +54,91 @@ class LandingPageController extends Controller
             'hero_badge_text' => ['nullable', 'string', 'max:100'],
             'hero_title' => ['nullable', 'string', 'max:200'],
             'hero_title_highlight' => ['nullable', 'string', 'max:200'],
+            'hero_title_suffix' => ['nullable', 'string', 'max:100'],
             'hero_subtitle' => ['nullable', 'string', 'max:500'],
+            'hero_button_text' => ['nullable', 'string', 'max:50'],
+            'hero_button_link' => ['nullable', 'string', 'max:200'],
+            'hero_secondary_button_text' => ['nullable', 'string', 'max:50'],
+            'hero_secondary_button_link' => ['nullable', 'string', 'max:200'],
+            'hero_stats' => ['nullable', 'array'],
+            'hero_stats.*.label' => ['nullable', 'string', 'max:100'],
+            'hero_stats.*.value' => ['nullable', 'string', 'max:100'],
+            'hero_float_label' => ['nullable', 'string', 'max:100'],
+            'hero_float_value' => ['nullable', 'string', 'max:100'],
+            'hero_float_sub' => ['nullable', 'string', 'max:100'],
             'banner_image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:4096'],
-            'about_label' => ['nullable', 'string', 'max:100'],
-            'about_title' => ['nullable', 'string', 'max:200'],
-            'about_description' => ['nullable', 'string', 'max:1000'],
-            'about_image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:4096'],
-            'values' => ['nullable', 'array'],
-            'values.*.icon' => ['nullable', 'string', 'max:50'],
-            'values.*.title' => ['nullable', 'string', 'max:100'],
-            'values.*.description' => ['nullable', 'string', 'max:300'],
-            'teachers_label' => ['nullable', 'string', 'max:100'],
-            'teachers_title' => ['nullable', 'string', 'max:200'],
-            'teachers_subtitle' => ['nullable', 'string', 'max:300'],
-            'founder_name' => ['nullable', 'string', 'max:100'],
-            'founder_qualification' => ['nullable', 'string', 'max:200'],
-            'founder_bio' => ['nullable', 'string', 'max:500'],
-            'founder_image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:4096'],
-            'admissions_title' => ['nullable', 'string', 'max:200'],
-            'admissions_description' => ['nullable', 'string', 'max:500'],
-            'admissions_button_text' => ['nullable', 'string', 'max:50'],
-            'admissions_button_link' => ['nullable', 'string', 'max:200'],
-            'admissions_secondary_button_text' => ['nullable', 'string', 'max:50'],
-            'admissions_secondary_button_link' => ['nullable', 'string', 'max:200'],
+            'programs_label' => ['nullable', 'string', 'max:100'],
+            'programs_title' => ['nullable', 'string', 'max:200'],
+            'programs_title_highlight' => ['nullable', 'string', 'max:100'],
+            'programs_link_text' => ['nullable', 'string', 'max:100'],
+            'programs' => ['nullable', 'array'],
+            'programs.*.icon' => ['nullable', 'string', 'max:50'],
+            'programs.*.title' => ['nullable', 'string', 'max:100'],
+            'programs.*.description' => ['nullable', 'string', 'max:300'],
+            'programs.*.badge' => ['nullable', 'string', 'max:100'],
+            'locations_label' => ['nullable', 'string', 'max:100'],
+            'locations_title' => ['nullable', 'string', 'max:200'],
+            'locations_title_highlight' => ['nullable', 'string', 'max:100'],
+            'locations_description' => ['nullable', 'string', 'max:500'],
+            'locations' => ['nullable', 'array'],
+            'locations.*.title' => ['nullable', 'string', 'max:100'],
+            'locations.*.description' => ['nullable', 'string', 'max:300'],
+            'locations.*.icon' => ['nullable', 'string', 'max:50'],
+            'dashboard_label' => ['nullable', 'string', 'max:100'],
+            'dashboard_title' => ['nullable', 'string', 'max:200'],
+            'dashboard_title_highlight' => ['nullable', 'string', 'max:100'],
+            'dashboard_description' => ['nullable', 'string', 'max:500'],
+            'dashboard_features' => ['nullable', 'array'],
+            'dashboard_features.*' => ['nullable', 'string', 'max:300'],
+            'dashboard_button_text' => ['nullable', 'string', 'max:50'],
+            'dashboard_button_link' => ['nullable', 'string', 'max:200'],
+            'dashboard_preview' => ['nullable', 'array'],
+            'dashboard_preview.course' => ['nullable', 'string', 'max:100'],
+            'dashboard_preview.units' => ['nullable', 'string', 'max:50'],
+            'dashboard_preview.units_pct' => ['nullable', 'string', 'max:50'],
+            'dashboard_preview.attendance' => ['nullable', 'string', 'max:50'],
+            'dashboard_preview.attendance_pct' => ['nullable', 'string', 'max:50'],
+            'dashboard_preview.ielts' => ['nullable', 'string', 'max:50'],
+            'dashboard_preview.ielts_pct' => ['nullable', 'string', 'max:50'],
+            'dashboard_preview.mentor_note' => ['nullable', 'string', 'max:500'],
+            'dashboard_preview_label' => ['nullable', 'string', 'max:100'],
+            'dashboard_preview_status' => ['nullable', 'string', 'max:50'],
+            'dashboard_preview_units_label' => ['nullable', 'string', 'max:50'],
+            'dashboard_preview_attendance_label' => ['nullable', 'string', 'max:50'],
+            'dashboard_preview_ielts_label' => ['nullable', 'string', 'max:50'],
+            'dashboard_preview_mentor_label' => ['nullable', 'string', 'max:50'],
+            'why_us_label' => ['nullable', 'string', 'max:100'],
+            'why_us_title' => ['nullable', 'string', 'max:200'],
+            'why_us_title_highlight' => ['nullable', 'string', 'max:100'],
+            'why_us' => ['nullable', 'array'],
+            'why_us.*.title' => ['nullable', 'string', 'max:100'],
+            'why_us.*.description' => ['nullable', 'string', 'max:300'],
+            'why_us.*.icon' => ['nullable', 'string', 'max:50'],
+            'testimonials_label' => ['nullable', 'string', 'max:100'],
+            'testimonials_title' => ['nullable', 'string', 'max:200'],
+            'testimonials_title_highlight' => ['nullable', 'string', 'max:100'],
+            'testimonials' => ['nullable', 'array'],
+            'testimonials.*.name' => ['nullable', 'string', 'max:100'],
+            'testimonials.*.program' => ['nullable', 'string', 'max:100'],
+            'testimonials.*.location' => ['nullable', 'string', 'max:100'],
+            'testimonials.*.quote' => ['nullable', 'string', 'max:500'],
+            'cta_badge_text' => ['nullable', 'string', 'max:100'],
+            'cta_title' => ['nullable', 'string', 'max:200'],
+            'cta_title_highlight' => ['nullable', 'string', 'max:100'],
+            'cta_description' => ['nullable', 'string', 'max:500'],
+            'cta_button_text' => ['nullable', 'string', 'max:50'],
+            'cta_button_link' => ['nullable', 'string', 'max:200'],
+            'cta_secondary_button_text' => ['nullable', 'string', 'max:50'],
+            'cta_secondary_button_link' => ['nullable', 'string', 'max:200'],
             'footer_description' => ['nullable', 'string', 'max:500'],
+            'footer_programs_label' => ['nullable', 'string', 'max:100'],
+            'footer_institute_label' => ['nullable', 'string', 'max:100'],
+            'footer_institute_links' => ['nullable', 'array'],
+            'footer_institute_links.*.label' => ['nullable', 'string', 'max:100'],
+            'footer_institute_links.*.link' => ['nullable', 'string', 'max:200'],
+            'footer_reach_label' => ['nullable', 'string', 'max:100'],
+            'footer_mode_text' => ['nullable', 'string', 'max:100'],
+            'footer_tagline' => ['nullable', 'string', 'max:200'],
         ]);
 
         $settings = LandingPageSetting::current();
@@ -129,37 +159,6 @@ class LandingPageController extends Controller
 
         unset($validated['banner_image']);
 
-        if ($request->hasFile('about_image')) {
-            if ($settings->about_image_url) {
-                $oldPath = str_replace('/storage/', '', $settings->about_image_url);
-                Storage::disk('public')->delete($oldPath);
-            }
-
-            $optimizedPath = ImageOptimizer::optimize($request->file('about_image'), 740, 70, 500);
-            $filename = 'about/' . uniqid('about_') . '.webp';
-            Storage::disk('public')->put($filename, file_get_contents($optimizedPath));
-            @unlink($optimizedPath);
-
-            $validated['about_image_url'] = '/storage/' . $filename;
-        }
-
-        unset($validated['about_image']);
-
-        if ($request->hasFile('founder_image')) {
-            if ($settings->founder_image_url) {
-                $oldPath = str_replace('/storage/', '', $settings->founder_image_url);
-                Storage::disk('public')->delete($oldPath);
-            }
-
-            $optimizedPath = ImageOptimizer::optimize($request->file('founder_image'), 224, 70, 500);
-            $filename = 'founders/' . uniqid('founder_') . '.webp';
-            Storage::disk('public')->put($filename, file_get_contents($optimizedPath));
-            @unlink($optimizedPath);
-
-            $validated['founder_image_url'] = '/storage/' . $filename;
-        }
-
-        unset($validated['founder_image']);
         $settings->update($validated);
 
         return redirect()->back()->with('success', 'Landing page content updated successfully.');

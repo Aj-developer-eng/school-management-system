@@ -18,6 +18,7 @@ class UpdateRequest extends FormRequest
         return [
             'student_id' => ['required', 'exists:students,id'],
             'fee_structure_id' => ['nullable', 'exists:fee_structures,id'],
+            'fee_invoice_id' => ['required', 'exists:fee_invoices,id'],
             'concession_type' => ['required', Rule::enum(ConcessionTypeEnum::class)],
             'percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'flat_amount' => ['nullable', 'numeric', 'min:0'],

@@ -68,6 +68,11 @@ class FeeInvoice extends Model
         return $this->hasMany(FeePayment::class);
     }
 
+    public function concessions(): HasMany
+    {
+        return $this->hasMany(FeeConcession::class);
+    }
+
     public function recalculate(): void
     {
         $this->paid_amount = $this->payments()->sum('amount');

@@ -19,6 +19,7 @@ class AttendanceController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $isSuperAdmin = $user->hasRole(RoleEnum::SuperAdmin->value);
         $teacher = Teacher::where('user_id', $user->id)->first();
         $activeSession = AcademicSession::active()->first();
 
@@ -26,8 +27,11 @@ class AttendanceController extends Controller
             'schoolClass:id,name',
             'section:id,name',
             'subject:id,name',
+            'teacher.user:id,name',
         ])
-            ->where('teacher_id', $teacher?->id)
+            ->when(! $isSuperAdmin, function ($q) use ($teacher): void {
+                $q->where('teacher_id', $teacher?->id);
+            })
             ->whereNull('deleted_at')
             ->when($activeSession, function ($q) use ($activeSession): void {
                 $q->where('academic_session_id', $activeSession->id);
@@ -38,15 +42,17 @@ class AttendanceController extends Controller
         return Inertia::render('Attendance/Index', [
             'assignments' => $assignments,
             'activeSession' => $activeSession?->name,
+            'isSuperAdmin' => $isSuperAdmin,
         ]);
     }
 
     public function show(Request $request, TeacherSubjectAssignment $assignment)
     {
         $user = $request->user();
+        $isSuperAdmin = $user->hasRole(RoleEnum::SuperAdmin->value);
         $teacher = Teacher::where('user_id', $user->id)->first();
 
-        if ($assignment->teacher_id !== $teacher?->id) {
+        if (! $isSuperAdmin && $assignment->teacher_id !== $teacher?->id) {
             abort(403);
         }
 
@@ -92,9 +98,10 @@ class AttendanceController extends Controller
     public function store(Request $request, TeacherSubjectAssignment $assignment)
     {
         $user = $request->user();
+        $isSuperAdmin = $user->hasRole(RoleEnum::SuperAdmin->value);
         $teacher = Teacher::where('user_id', $user->id)->first();
 
-        if ($assignment->teacher_id !== $teacher?->id) {
+        if (! $isSuperAdmin && $assignment->teacher_id !== $teacher?->id) {
             abort(403);
         }
 

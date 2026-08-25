@@ -22,7 +22,7 @@ class FeeInvoiceService
     {
         return DB::transaction(function () use ($data): FeeInvoice {
             $feeStructure = FeeStructure::findOrFail($data['fee_structure_id']);
-            $student = Student::findOrFail($data['student_id']);
+            $student = Student::with(['user', 'parents.user'])->findOrFail($data['student_id']);
 
             $concessionAmount = $this->calculateConcession($student, $feeStructure);
 

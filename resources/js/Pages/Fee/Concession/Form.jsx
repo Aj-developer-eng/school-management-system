@@ -9,17 +9,22 @@ import { useState } from 'react';
 
 const concessionTypes = ['scholarship', 'sibling_discount', 'staff_child', 'financial_aid'];
 
-export default function Form({ concession, students, feeStructures }) {
+export default function Form({ concession, students, feeStructures, feeInvoices }) {
     const isEdit = Boolean(concession);
     const { data, setData, post, put, processing, errors } = useForm({
         student_id: concession?.student_id ?? '',
         fee_structure_id: concession?.fee_structure_id ?? '',
+        fee_invoice_id: concession?.fee_invoice_id ?? '',
         concession_type: concession?.concession_type ?? 'scholarship',
         percentage: concession?.percentage ?? '',
         flat_amount: concession?.flat_amount ?? '',
         reason: concession?.reason ?? '',
         is_active: concession?.is_active ?? true,
     });
+
+    const filteredInvoices = (feeInvoices ?? []).filter(
+        (inv) => !data.student_id || inv.student_id === Number(data.student_id),
+    );
 
     const [discountMode, setDiscountMode] = useState(
         concession?.percentage ? 'percentage' : concession?.flat_amount ? 'flat' : 'percentage',
@@ -72,6 +77,33 @@ export default function Form({ concession, students, feeStructures }) {
                     </div>
 
                     <div>
+                        <InputLabel htmlFor="fee_invoice_id" value="Invoice (required — concession is applied to this invoice)" />
+                        <select
+                            id="fee_invoice_id"
+                            value={data.fee_invoice_id}
+                            onChange={(e) => {
+                                const inv = filteredInvoices.find((i) => i.id === Number(e.target.value));
+                                setData('fee_invoice_id', e.target.value);
+                                if (inv) {
+                                    setData('student_id', String(inv.student_id));
+                                }
+                            }}
+                            className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                        >
+                            <option value="">Select an invoice…</option>
+                            {filteredInvoices.map((inv) => (
+                                <option key={inv.id} value={inv.id}>
+                                    {inv.invoice_number} — {inv.student?.user?.name} — Rs {Number(inv.total_amount).toLocaleString()} ({inv.status})
+                                </option>
+                            ))}
+                        </select>
+                        <InputError message={errors.fee_invoice_id} className="mt-2" />
+                        {data.student_id && filteredInvoices.length === 0 && (
+                            <p className="mt-1 text-xs text-amber-600">No invoices found for this student.</p>
+                        )}
+                    </div>
+
+                    <div>
                         <InputLabel htmlFor="fee_structure_id" value="Fee Structure (leave empty for all)" />
                         <select
                             id="fee_structure_id"
@@ -85,6 +117,9 @@ export default function Form({ concession, students, feeStructures }) {
                             ))}
                         </select>
                         <InputError message={errors.fee_structure_id} className="mt-2" />
+                        {data.fee_invoice_id && (
+                            <p className="mt-1 text-xs text-gray-400">When an invoice is selected, the fee structure filter is ignored for that invoice.</p>
+                        )}
                     </div>
 
                     <div>

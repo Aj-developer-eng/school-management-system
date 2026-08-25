@@ -23,6 +23,7 @@ use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TeacherAssignmentController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\TeacherReportController;
+use App\Http\Controllers\TestController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -163,6 +164,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('special-requests.show');
     Route::patch('special-requests/{special_request}/respond', [SpecialRequestController::class, 'respond'])
         ->name('special-requests.respond');
+
+    Route::patch('tests/{test}/conducted', [TestController::class, 'markConducted'])
+        ->name('tests.conducted');
+    Route::post('tests/{test}/results', [TestController::class, 'saveResults'])
+        ->name('tests.results.store');
+    Route::patch('tests/{test}/publish', [TestController::class, 'publishResults'])
+        ->name('tests.publish');
+    Route::resource('tests', TestController::class)
+        ->names('tests');
 
     Route::get('activity-logs', [ActivityLogController::class, 'index'])
         ->name('activity-logs.index');

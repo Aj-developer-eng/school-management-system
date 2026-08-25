@@ -15,6 +15,7 @@ import {
     UsersRound,
     Wallet,
     ClipboardCheck,
+    FileText,
     MessageSquareText,
     ScrollText,
 } from 'lucide-react';
@@ -69,6 +70,12 @@ export const navigation = [
                 routeName: 'attendance.index',
                 icon: ClipboardCheck,
                 permission: null,
+            },
+            {
+                label: 'Tests',
+                routeName: 'tests.index',
+                icon: FileText,
+                permission: 'tests.view',
             },
             {
                 label: 'Special Requests',

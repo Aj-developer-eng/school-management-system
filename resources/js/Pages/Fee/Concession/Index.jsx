@@ -40,6 +40,11 @@ export default function Index({ concessions, filters }) {
             render: (row) => row.fee_structure?.name ?? 'All',
         },
         {
+            key: 'fee_invoice',
+            label: 'Invoice',
+            render: (row) => row.fee_invoice?.invoice_number ?? '—',
+        },
+        {
             key: 'reason',
             label: 'Reason',
             render: (row) => row.reason ?? '—',

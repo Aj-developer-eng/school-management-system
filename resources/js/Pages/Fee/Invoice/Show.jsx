@@ -88,6 +88,47 @@ export default function Show({ invoice }) {
                     </div>
                 </Card>
 
+                {/* Concession details */}
+                {invoice.concessions?.length > 0 && (
+                    <Card>
+                        <h3 className="p-6 pb-0 text-sm font-semibold text-gray-700 dark:text-gray-200">Concession Details</h3>
+                        <div className="p-6">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                                        <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Type</th>
+                                        <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Discount</th>
+                                        <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Reason</th>
+                                        <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {invoice.concessions.map((c) => (
+                                        <tr key={c.id} className="border-b border-gray-100 dark:border-gray-700/50">
+                                            <td className="py-3 text-gray-700 dark:text-gray-300">
+                                                {c.concession_type?.replace(/_/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase())}
+                                            </td>
+                                            <td className="py-3 font-medium text-amber-600 dark:text-amber-400">
+                                                {c.percentage ? `${c.percentage}%` : `Rs ${Number(c.flat_amount).toLocaleString()}`}
+                                            </td>
+                                            <td className="py-3 text-gray-500 dark:text-gray-400">{c.reason ?? '—'}</td>
+                                            <td className="py-3">
+                                                <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                    c.is_active
+                                                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
+                                                        : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                                                }`}>
+                                                    {c.is_active ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Card>
+                )}
+
                 {/* Payments */}
                 <Card>
                     <div className="flex items-center justify-between p-6 pb-0">

@@ -18,6 +18,7 @@ class FeeConcession extends Model
     protected $fillable = [
         'student_id',
         'fee_structure_id',
+        'fee_invoice_id',
         'concession_type',
         'percentage',
         'flat_amount',
@@ -43,5 +44,10 @@ class FeeConcession extends Model
     public function feeStructure(): BelongsTo
     {
         return $this->belongsTo(FeeStructure::class);
+    }
+
+    public function feeInvoice(): BelongsTo
+    {
+        return $this->belongsTo(FeeInvoice::class);
     }
 }

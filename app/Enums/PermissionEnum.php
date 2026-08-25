@@ -89,6 +89,13 @@ enum PermissionEnum: string
     case UpdateFeeConcessions = 'fee-concessions.update';
     case DeleteFeeConcessions = 'fee-concessions.delete';
 
+    // Tests
+    case ViewTests = 'tests.view';
+    case CreateTests = 'tests.create';
+    case UpdateTests = 'tests.update';
+    case DeleteTests = 'tests.delete';
+    case UploadTestResults = 'tests.upload-results';
+
     /**
      * @return list<string>
      */

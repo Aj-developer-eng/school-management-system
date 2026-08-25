@@ -113,6 +113,38 @@
             </table>
         </div>
 
+        @if ($invoice->concessions->isNotEmpty())
+            <div class="section">
+                <p class="section-title">Concession Details</p>
+                <table class="payments-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Discount</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($invoice->concessions as $concession)
+                            <tr>
+                                <td>{{ ucfirst(str_replace('_', ' ', $concession->concession_type)) }}</td>
+                                <td>
+                                    @if ($concession->percentage)
+                                        {{ $concession->percentage }}%
+                                    @elseif ($concession->flat_amount)
+                                        Rs {{ number_format((float) $concession->flat_amount, 2) }}
+                                    @endif
+                                </td>
+                                <td>{{ $concession->reason ?? '—' }}</td>
+                                <td>{{ $concession->is_active ? 'Active' : 'Inactive' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+
         @if ($invoice->payments->isNotEmpty())
             <div class="section">
                 <p class="section-title">Payment History</p>

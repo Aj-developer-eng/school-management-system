@@ -73,6 +73,8 @@ class FeeInvoiceController extends Controller
     {
         $feeInvoice->load(['student.user', 'academicSession', 'schoolClass', 'feeStructure', 'payments' => function ($q): void {
             $q->latest();
+        }, 'concessions' => function ($q): void {
+            $q->whereNull('deleted_at')->latest();
         }]);
 
         return Inertia::render('Fee/Invoice/Show', [
@@ -120,6 +122,8 @@ class FeeInvoiceController extends Controller
 
         $feeInvoice->load(['student.user', 'academicSession', 'schoolClass', 'feeStructure', 'payments' => function ($q): void {
             $q->latest();
+        }, 'concessions' => function ($q): void {
+            $q->whereNull('deleted_at')->latest();
         }]);
 
         $school = $settingsService->get();
