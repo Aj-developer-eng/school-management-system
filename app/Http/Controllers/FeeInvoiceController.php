@@ -9,11 +9,15 @@ use App\Models\FeeInvoice;
 use App\Models\FeeStructure;
 use App\Models\SchoolClass;
 use App\Models\Student;
+use App\Models\StudentParent;
+use App\Models\User;
+use App\Enums\RoleEnum;
 use App\Services\ActivityLogService;
 use App\Services\FeeInvoiceService;
 use App\Services\SchoolSettingsService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,6 +32,9 @@ class FeeInvoiceController extends Controller
     {
         $invoices = FeeInvoice::query()
             ->with(['student.user', 'academicSession', 'schoolClass', 'feeStructure'])
+            ->when($this->scopedStudentIds($request->user()), function ($query, $studentIds): void {
+                $query->whereIn('student_id', $studentIds);
+            })
             ->when($request->search, function ($query, $search): void {
                 $query->where(function ($q) use ($search): void {
                     $q->where('invoice_number', 'like', "%{$search}%")
@@ -47,6 +54,28 @@ class FeeInvoiceController extends Controller
             'invoices' => $invoices,
             'filters' => $request->only(['search', 'status']),
         ]);
+    }
+
+    /**
+     * Return the student IDs the current user is allowed to view invoices for.
+     * Parents are scoped to their children; students to themselves.
+     * Returns null for staff roles (no scoping — they see everything).
+     */
+    private function scopedStudentIds(User $user): ?Collection
+    {
+        if ($user->hasRole(RoleEnum::Parent->value)) {
+            $parent = StudentParent::where('user_id', $user->id)->first();
+
+            return $parent?->students()->pluck('students.id') ?? collect();
+        }
+
+        if ($user->hasRole(RoleEnum::Student->value)) {
+            $student = Student::where('user_id', $user->id)->first();
+
+            return $student ? collect([$student->id]) : collect();
+        }
+
+        return null;
     }
 
     public function create(): Response

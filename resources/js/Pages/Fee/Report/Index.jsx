@@ -38,6 +38,7 @@ export default function Index({
     filters,
     academicSessions,
     classes,
+    isScoped,
 }) {
     const [sessionId, setSessionId] = useState(filters.academic_session_id ?? '');
     const [classId, setClassId] = useState(filters.school_class_id ?? '');
@@ -56,6 +57,7 @@ export default function Index({
         >
             <div className="space-y-6">
                 {/* Filters */}
+                {!isScoped && (
                 <Card>
                     <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-end">
                         <div className="flex-1">
@@ -92,6 +94,7 @@ export default function Index({
                         </button>
                     </div>
                 </Card>
+                )}
 
                 {/* Summary cards */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -148,6 +151,7 @@ export default function Index({
                 </div>
 
                 {/* Class-wise summary */}
+                {!isScoped && (
                 <Card>
                     <div className="p-6">
                         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Class-wise Summary</h3>
@@ -183,6 +187,7 @@ export default function Index({
                         </div>
                     </div>
                 </Card>
+                )}
 
                 {/* Top outstanding invoices */}
                 <Card>

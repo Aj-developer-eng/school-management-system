@@ -6,6 +6,7 @@ use App\Enums\AssignmentStatusEnum;
 use App\Enums\InvoiceStatusEnum;
 use App\Enums\RoleEnum;
 use App\Models\AcademicSession;
+use App\Models\Attendance;
 use App\Models\FeeInvoice;
 use App\Models\SchoolClass;
 use App\Models\Section;
@@ -46,7 +47,8 @@ class DashboardController extends Controller
 
     private function staffDashboard(User $user): Response
     {
-        $activeSession = AcademicSession::active()->first();
+        $activeSession = AcademicSession::active()->first()
+            ?? AcademicSession::latest('start_date')->first();
 
         $stats = [
             'students' => Student::count(),
@@ -104,6 +106,7 @@ class DashboardController extends Controller
 
         $children = collect();
         $invoices = collect();
+        $todayAttendance = collect();
         $feeSummary = [
             'total_invoiced' => 0,
             'total_paid' => 0,
@@ -144,6 +147,18 @@ class DashboardController extends Controller
                         ->whereNotIn('status', [InvoiceStatusEnum::Paid->value, InvoiceStatusEnum::Cancelled->value])
                         ->count(),
                 ];
+
+                $todayAttendance = Attendance::with([
+                    'student.user:id,name',
+                    'schoolClass:id,name',
+                    'section:id,name',
+                    'subject:id,name',
+                    'assignment.teacher.user:id,name',
+                ])
+                    ->whereIn('student_id', $studentIds)
+                    ->whereDate('attendance_date', today()->toDateString())
+                    ->orderBy('student_id')
+                    ->get();
             }
         }
 
@@ -153,6 +168,7 @@ class DashboardController extends Controller
             'children' => $children,
             'invoices' => $invoices,
             'feeSummary' => $feeSummary,
+            'todayAttendance' => $todayAttendance,
             'activeSession' => $activeSession?->name,
         ]);
     }

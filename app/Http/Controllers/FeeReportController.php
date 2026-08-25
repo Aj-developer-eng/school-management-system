@@ -3,11 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Enums\InvoiceStatusEnum;
+use App\Enums\RoleEnum;
 use App\Models\AcademicSession;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
 use App\Models\SchoolClass;
+use App\Models\Student;
+use App\Models\StudentParent;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,8 +23,12 @@ class FeeReportController extends Controller
     {
         $sessionId = $request->input('academic_session_id');
         $classId = $request->input('school_class_id');
+        $scopedStudentIds = $this->scopedStudentIds($request->user());
 
         $invoiceQuery = FeeInvoice::query()
+            ->when($scopedStudentIds, function ($q, $studentIds): void {
+                $q->whereIn('student_id', $studentIds);
+            })
             ->when($sessionId, function ($q) use ($sessionId): void {
                 $q->where('academic_session_id', $sessionId);
             })
@@ -44,6 +53,9 @@ class FeeReportController extends Controller
 
         $collectionByMethod = FeePayment::query()
             ->join('fee_invoices', 'fee_payments.fee_invoice_id', '=', 'fee_invoices.id')
+            ->when($scopedStudentIds, function ($q, $studentIds): void {
+                $q->whereIn('fee_invoices.student_id', $studentIds);
+            })
             ->when($sessionId, function ($q) use ($sessionId): void {
                 $q->where('fee_invoices.academic_session_id', $sessionId);
             })
@@ -87,6 +99,8 @@ class FeeReportController extends Controller
                 'outstanding' => (float) $row->total_invoiced - (float) $row->total_concession - (float) $row->total_collected,
             ]);
 
+        $isScoped = $scopedStudentIds !== null;
+
         return Inertia::render('Fee/Report/Index', [
             'summary' => [
                 'total_invoiced' => (float) $totalInvoiced,
@@ -102,6 +116,29 @@ class FeeReportController extends Controller
             'filters' => $request->only(['academic_session_id', 'school_class_id']),
             'academicSessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
             'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+            'isScoped' => $isScoped,
         ]);
+    }
+
+    /**
+     * Return the student IDs the current user is allowed to view reports for.
+     * Parents are scoped to their children; students to themselves.
+     * Returns null for staff roles (no scoping — they see everything).
+     */
+    private function scopedStudentIds(User $user): ?Collection
+    {
+        if ($user->hasRole(RoleEnum::Parent->value)) {
+            $parent = StudentParent::where('user_id', $user->id)->first();
+
+            return $parent?->students()->pluck('students.id') ?? collect();
+        }
+
+        if ($user->hasRole(RoleEnum::Student->value)) {
+            $student = Student::where('user_id', $user->id)->first();
+
+            return $student ? collect([$student->id]) : collect();
+        }
+
+        return null;
     }
 }

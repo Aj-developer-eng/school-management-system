@@ -7,10 +7,13 @@ use App\Models\AcademicSession;
 use App\Models\Attendance;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Models\StudentParent;
 use App\Models\Teacher;
 use App\Models\TeacherSubjectAssignment;
+use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -61,8 +64,14 @@ class AttendanceController extends Controller
 
         $assignment->load(['schoolClass:id,name', 'section:id,name', 'subject:id,name']);
 
+        // Use the assignment's own session (falls back to the active session
+        // when set) so attendance still works if no session is marked active.
+        $sessionId = $assignment->academic_session_id ?? $activeSession?->id;
+
         $students = StudentEnrollment::with(['student.user:id,name'])
-            ->where('academic_session_id', $activeSession?->id)
+            ->when($sessionId, function ($q) use ($sessionId): void {
+                $q->where('academic_session_id', $sessionId);
+            })
             ->where('school_class_id', $assignment->school_class_id)
             ->when($assignment->section_id, function ($q) use ($assignment): void {
                 $q->where('section_id', $assignment->section_id);
@@ -106,6 +115,7 @@ class AttendanceController extends Controller
         }
 
         $activeSession = AcademicSession::active()->first();
+        $sessionId = $assignment->academic_session_id ?? $activeSession?->id;
 
         $validated = $request->validate([
             'attendance_date' => ['required', 'date'],
@@ -125,7 +135,7 @@ class AttendanceController extends Controller
                     'attendance_date' => $date,
                 ],
                 [
-                    'academic_session_id' => $activeSession?->id,
+                    'academic_session_id' => $sessionId,
                     'school_class_id' => $assignment->school_class_id,
                     'section_id' => $assignment->section_id,
                     'subject_id' => $assignment->subject_id,
@@ -144,6 +154,7 @@ class AttendanceController extends Controller
     public function report(Request $request): Response
     {
         $activeSession = AcademicSession::active()->first();
+        $scopedStudentIds = $this->scopedStudentIds($request->user());
 
         $classes = \App\Models\SchoolClass::where('is_active', true)
             ->orderBy('level')
@@ -157,6 +168,9 @@ class AttendanceController extends Controller
                 'subject:id,name',
                 'assignment.teacher.user:id,name',
             ])
+            ->when($scopedStudentIds, function ($q) use ($scopedStudentIds): void {
+                $q->whereIn('student_id', $scopedStudentIds);
+            })
             ->when($activeSession, function ($q) use ($activeSession): void {
                 $q->where('academic_session_id', $activeSession->id);
             });
@@ -196,7 +210,30 @@ class AttendanceController extends Controller
             'classes' => $classes,
             'filters' => $request->only(['class_id', 'date_from', 'date_to', 'status']),
             'activeSession' => $activeSession?->name,
+            'isScoped' => $scopedStudentIds !== null,
         ]);
+    }
+
+    /**
+     * Return the student IDs the current user is allowed to view attendance for.
+     * Parents are scoped to their children; students to themselves.
+     * Returns null for staff roles (no scoping — they see everything).
+     */
+    private function scopedStudentIds(User $user): ?Collection
+    {
+        if ($user->hasRole(RoleEnum::Parent->value)) {
+            $parent = StudentParent::where('user_id', $user->id)->first();
+
+            return $parent?->students()->pluck('students.id') ?? collect();
+        }
+
+        if ($user->hasRole(RoleEnum::Student->value)) {
+            $student = Student::where('user_id', $user->id)->first();
+
+            return $student ? collect([$student->id]) : collect();
+        }
+
+        return null;
     }
 
     public function studentDetail(Request $request, Student $student): Response

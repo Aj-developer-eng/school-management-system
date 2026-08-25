@@ -71,7 +71,7 @@ export default function Index({ students, filters }) {
                             <Download className="h-4 w-4" />
                         </a>
                     )}
-                    {can('students.update') && (
+                    {can('students.update') && !isSuperAdmin && (
                         <button
                             type="button"
                             onClick={() => toggleActive(row)}

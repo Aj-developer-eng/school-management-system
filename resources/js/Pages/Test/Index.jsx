@@ -7,6 +7,7 @@ import EditLink from '@/Components/Ui/EditLink';
 import Pagination from '@/Components/Ui/Pagination';
 import SearchInput from '@/Components/Ui/SearchInput';
 import { useAuth } from '@/utils/authorization';
+import { formatDate } from '@/utils/format';
 import { Link } from '@inertiajs/react';
 
 const statusColors = {
@@ -46,7 +47,7 @@ export default function Index({ tests, filters }) {
         {
             key: 'test_date',
             label: 'Date',
-            render: (row) => row.test_date,
+            render: (row) => formatDate(row.test_date),
         },
         {
             key: 'total_marks',

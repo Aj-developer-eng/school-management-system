@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
 import Pagination from '@/Components/Ui/Pagination';
+import { formatDate } from '@/utils/format';
 import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { ClipboardCheck, Filter, Check, X, Clock, FileText, Eye } from 'lucide-react';
@@ -14,7 +15,7 @@ const statusStyles = {
 
 const statusIcons = { present: Check, absent: X, late: Clock, excused: FileText };
 
-export default function Report({ records, summary, classes, filters, activeSession }) {
+export default function Report({ records, summary, classes, filters, activeSession, isScoped }) {
     const [form, setForm] = useState({
         class_id: filters.class_id ?? '',
         date_from: filters.date_from ?? '',
@@ -60,7 +61,8 @@ export default function Report({ records, summary, classes, filters, activeSessi
                                 <select
                                     value={form.class_id}
                                     onChange={(e) => setForm({ ...form, class_id: e.target.value })}
-                                    className="rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                                    disabled={isScoped}
+                                    className="rounded-lg border-gray-300 text-sm disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
                                 >
                                     <option value="">All Classes</option>
                                     {Object.entries(classes).map(([id, name]) => (
@@ -135,7 +137,7 @@ export default function Report({ records, summary, classes, filters, activeSessi
                                     return (
                                         <tr key={r.id} className="border-b border-gray-50 dark:border-gray-700/50">
                                             <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900 dark:text-gray-100">
-                                                {r.attendance_date}
+                                                {formatDate(r.attendance_date)}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <Link

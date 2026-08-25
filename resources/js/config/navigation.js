@@ -70,6 +70,7 @@ export const navigation = [
                 routeName: 'attendance.index',
                 icon: ClipboardCheck,
                 permission: null,
+                excludeRoles: ['Parent', 'Student'],
             },
             {
                 label: 'Tests',
@@ -201,6 +202,7 @@ export function visibleNavigation(can, roles = []) {
                 (item) =>
                     (item.permission === null || can(item.permission)) &&
                     (!item.roles || item.roles.some((r) => roles.includes(r))) &&
+                    (!item.excludeRoles || !item.excludeRoles.some((r) => roles.includes(r))) &&
                     route().has(item.routeName),
             ),
         }))

@@ -8,6 +8,7 @@ import Pagination from '@/Components/Ui/Pagination';
 import SearchInput from '@/Components/Ui/SearchInput';
 import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
+import { formatTimeRange } from '@/utils/format';
 
 export default function Index({ assignments, filters }) {
     const { can } = useAuth();
@@ -19,6 +20,11 @@ export default function Index({ assignments, filters }) {
         { key: 'school_class', label: 'Class', render: (row) => row.school_class?.name },
         { key: 'section', label: 'Section', render: (row) => row.section?.name },
         { key: 'subject', label: 'Subject', render: (row) => row.subject?.name },
+        {
+            key: 'class_time',
+            label: 'Class Time',
+            render: (row) => formatTimeRange(row.start_time, row.end_time),
+        },
         {
             key: 'actions',
             label: 'Actions',

@@ -62,7 +62,8 @@ class FeeConcessionController extends Controller
             $this->recalculateInvoiceConcession($concession->fee_invoice_id);
         }
 
-        ActivityLogService::custom('Fee Concessions', 'created', "Created concession for student: {$concession->student->user->name}");
+        $studentName = $concession->student?->user?->name ?? 'Unknown';
+        ActivityLogService::custom('Fee Concessions', 'created', "Created concession for student: {$studentName}");
 
         return redirect()->route('fee-concessions.index')
             ->with('success', 'Concession created successfully.');
@@ -97,7 +98,8 @@ class FeeConcessionController extends Controller
             $this->recalculateInvoiceConcession($oldInvoiceId);
         }
 
-        ActivityLogService::custom('Fee Concessions', 'updated', "Updated concession for student: {$feeConcession->student->user->name}");
+        $studentName = $feeConcession->student?->user?->name ?? 'Unknown';
+        ActivityLogService::custom('Fee Concessions', 'updated', "Updated concession for student: {$studentName}");
 
         return redirect()->route('fee-concessions.index')
             ->with('success', 'Concession updated successfully.');
@@ -106,7 +108,7 @@ class FeeConcessionController extends Controller
     public function destroy(FeeConcession $feeConcession): \Illuminate\Http\RedirectResponse
     {
         $invoiceId = $feeConcession->fee_invoice_id;
-        $studentName = $feeConcession->student->user->name;
+        $studentName = $feeConcession->student?->user?->name ?? 'Unknown';
 
         $feeConcession->delete();
 

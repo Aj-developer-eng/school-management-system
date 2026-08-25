@@ -3,6 +3,7 @@ import QuickAction from '@/Components/Dashboard/QuickAction';
 import SimpleBarChart from '@/Components/Dashboard/SimpleBarChart';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useAuth } from '@/utils/authorization';
+import { formatDate, formatTimeRange } from '@/utils/format';
 import { Link, router } from '@inertiajs/react';
 
 const statusColors = {
@@ -13,6 +14,10 @@ const statusColors = {
     pending: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
     started: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300',
     completed: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+    present: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+    absent: 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
+    late: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
+    excused: 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400',
 };
 
 function formatRs(value) {
@@ -87,6 +92,7 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                                 <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Class</th>
                                 <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Section</th>
                                 <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Subject</th>
+                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Time</th>
                                 <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Status</th>
                             </tr>
                         </thead>
@@ -105,6 +111,9 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                                         {a.subject?.name ?? '—'}
                                     </td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                        {formatTimeRange(a.start_time, a.end_time)}
+                                    </td>
                                     <td className="px-4 py-3 text-center">
                                         <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[a.status] ?? statusColors.pending}`}>
                                             {a.status}
@@ -113,7 +122,7 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={5} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                                    <td colSpan={6} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
                                         No teacher assignments for this session.
                                     </td>
                                 </tr>
@@ -126,7 +135,7 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
     );
 }
 
-function ParentDashboard({ children, invoices, feeSummary, activeSession }) {
+function ParentDashboard({ children, invoices, feeSummary, activeSession, todayAttendance }) {
     return (
         <>
             {/* Quick action */}
@@ -149,6 +158,67 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession }) {
                     <DashboardCard title="Total Paid" value={formatRs(feeSummary.total_paid)} subtitle="Payments received" color="emerald" />
                     <DashboardCard title="Outstanding" value={formatRs(feeSummary.total_outstanding)} subtitle="Amount due" color="rose" />
                     <DashboardCard title="Pending Invoices" value={feeSummary.unpaid_count} subtitle="Unpaid / partial" color="amber" />
+                </div>
+            </div>
+
+            {/* Today's attendance */}
+            <div>
+                <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        Today&apos;s Attendance
+                    </h3>
+                    <Link
+                        href={route('attendance.report')}
+                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                    >
+                        View Full Report
+                    </Link>
+                </div>
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Child</th>
+                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Class</th>
+                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Subject</th>
+                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Teacher</th>
+                                <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Status</th>
+                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {todayAttendance.length > 0 ? todayAttendance.map((r) => (
+                                <tr key={r.id} className="border-b border-gray-100 dark:border-gray-700/50">
+                                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
+                                        {r.student?.user?.name ?? '—'}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                        {r.school_class?.name ?? '—'}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                        {r.subject?.name ?? '—'}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                        {r.assignment?.teacher?.user?.name ?? '—'}
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[r.status] ?? statusColors.present}`}>
+                                            {r.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                        {r.remarks ?? '—'}
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={6} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                                        No attendance recorded for today ({formatDate(new Date())}).
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -359,6 +429,7 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
                                 <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Class</th>
                                 <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Section</th>
                                 <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Subject</th>
+                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Time</th>
                                 <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Status</th>
                                 <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Action</th>
                             </tr>
@@ -374,6 +445,9 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
                                     </td>
                                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                                         {a.subject?.name ?? '—'}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                        {formatTimeRange(a.start_time, a.end_time)}
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[a.status] ?? statusColors.pending}`}>
@@ -420,7 +494,7 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={5} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                                    <td colSpan={6} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
                                         No class assignments for this session.
                                     </td>
                                 </tr>
@@ -449,6 +523,7 @@ export default function Dashboard(props) {
         assignments,
         assignmentStats,
         teacher,
+        todayAttendance,
     } = props;
 
     const sessionLabel = dashboardType === 'staff'
@@ -477,6 +552,7 @@ export default function Dashboard(props) {
                         invoices={invoices ?? []}
                         feeSummary={feeSummary}
                         activeSession={activeSession}
+                        todayAttendance={todayAttendance ?? []}
                     />
                 )}
 

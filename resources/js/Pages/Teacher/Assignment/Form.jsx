@@ -3,6 +3,7 @@ import Card from '@/Components/Ui/Card';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
+import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
@@ -14,6 +15,8 @@ export default function Form({ assignment, teachers, sessions, classes }) {
         school_class_id: assignment?.school_class_id ?? '',
         section_id: assignment?.section_id ?? '',
         subject_id: assignment?.subject_id ?? '',
+        start_time: assignment?.start_time ?? '',
+        end_time: assignment?.end_time ?? '',
     });
 
     const [sections, setSections] = useState([]);
@@ -156,6 +159,32 @@ export default function Form({ assignment, teachers, sessions, classes }) {
                                 ))}
                             </select>
                             <InputError message={errors.subject_id} className="mt-2" />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div>
+                            <InputLabel htmlFor="start_time" value="Class Start Time" />
+                            <TextInput
+                                id="start_time"
+                                type="time"
+                                value={data.start_time}
+                                onChange={(event) => setData('start_time', event.target.value)}
+                                className="mt-1 block w-full"
+                            />
+                            <InputError message={errors.start_time} className="mt-2" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="end_time" value="Class End Time" />
+                            <TextInput
+                                id="end_time"
+                                type="time"
+                                value={data.end_time}
+                                onChange={(event) => setData('end_time', event.target.value)}
+                                className="mt-1 block w-full"
+                            />
+                            <InputError message={errors.end_time} className="mt-2" />
                         </div>
                     </div>
 

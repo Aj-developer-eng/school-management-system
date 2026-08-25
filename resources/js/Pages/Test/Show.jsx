@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
 import PrimaryButton from '@/Components/PrimaryButton';
 import { useAuth } from '@/utils/authorization';
+import { formatDate, formatDateTime } from '@/utils/format';
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -78,7 +79,7 @@ export default function Show({ test, students }) {
                                 {' · '}{test.test_type?.label ?? test.test_type}
                             </p>
                             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                Date: {test.test_date} · Total Marks: {Number(test.total_marks)} · Passing: {Number(test.passing_marks)}
+                                Date: {formatDate(test.test_date)} · Total Marks: {Number(test.total_marks)} · Passing: {Number(test.passing_marks)}
                             </p>
                             {test.description && (
                                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{test.description}</p>
@@ -90,7 +91,7 @@ export default function Show({ test, students }) {
                             </span>
                             {test.results_published_at && (
                                 <p className="mt-2 text-xs text-gray-400">
-                                    Published: {test.results_published_at}
+                                    Published: {formatDateTime(test.results_published_at)}
                                 </p>
                             )}
                         </div>

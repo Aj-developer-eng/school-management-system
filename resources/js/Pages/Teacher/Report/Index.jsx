@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
+import { formatDate, formatDateTimeTime } from '@/utils/format';
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -129,7 +130,7 @@ export default function Index({ logs, teacherSummary, dateSummary, filters, teac
                             <tbody>
                                 {dateSummary.length > 0 ? dateSummary.map((row) => (
                                     <tr key={row.log_date} className="border-b border-gray-100 dark:border-gray-700/50">
-                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{row.log_date}</td>
+                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{formatDate(row.log_date)}</td>
                                         <td className="px-4 py-3 text-center text-gray-700 dark:text-gray-300">{row.active_teachers}</td>
                                         <td className="px-4 py-3 text-center text-indigo-600 dark:text-indigo-400">{row.started_count}</td>
                                         <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400">{row.completed_count}</td>
@@ -168,9 +169,9 @@ export default function Index({ logs, teacherSummary, dateSummary, filters, teac
                             <tbody>
                                 {logs.length > 0 ? logs.map((log) => (
                                     <tr key={log.id} className="border-b border-gray-100 dark:border-gray-700/50">
-                                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{log.log_date}</td>
+                                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{formatDate(log.log_date)}</td>
                                         <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
-                                            {new Date(log.occurred_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {formatDateTimeTime(log.occurred_at)}
                                         </td>
                                         <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                                             {log.teacher?.user?.name ?? '—'}

@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleEnum;
 use App\Http\Requests\Subject\StoreRequest;
 use App\Http\Requests\Subject\UpdateRequest;
 use App\Models\SchoolClass;
 use App\Models\Subject;
+use App\Models\Teacher;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,6 +24,9 @@ class SubjectController extends Controller
     {
         $subjects = Subject::query()
             ->with('schoolClasses')
+            ->when($this->scopedSubjectIds($request->user()), function ($query, $subjectIds): void {
+                $query->whereIn('subjects.id', $subjectIds);
+            })
             ->when($request->search, function ($query, $search): void {
                 $query->where(function ($q) use ($search): void {
                     $q->where('name', 'like', "%{$search}%")
@@ -35,6 +41,24 @@ class SubjectController extends Controller
             'subjects' => $subjects,
             'filters' => $request->only(['search']),
         ]);
+    }
+
+    /**
+     * Return the subject IDs the current user is allowed to view.
+     * Teachers are scoped to subjects they are assigned to.
+     * Returns null for other roles (no scoping — they see everything).
+     */
+    private function scopedSubjectIds(User $user): ?\Illuminate\Support\Collection
+    {
+        if ($user->hasRole(RoleEnum::Teacher->value)) {
+            $teacher = Teacher::where('user_id', $user->id)->first();
+
+            return $teacher
+                ? $teacher->assignments()->whereNull('teacher_subject_assignments.deleted_at')->pluck('subject_id')
+                : collect();
+        }
+
+        return null;
     }
 
     public function create(): Response

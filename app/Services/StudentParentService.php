@@ -53,6 +53,7 @@ class StudentParentService
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'] ?? null,
+                'is_active' => $data['is_active'] ?? $parent->is_active,
             ]);
 
             if (! empty($data['password'])) {

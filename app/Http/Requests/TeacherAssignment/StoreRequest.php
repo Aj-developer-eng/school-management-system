@@ -33,6 +33,8 @@ class StoreRequest extends FormRequest
                     $query->where('school_class_id', $this->input('school_class_id'));
                 }),
             ],
+            'start_time' => ['nullable', 'date_format:H:i'],
+            'end_time' => ['nullable', 'date_format:H:i', 'after_or_equal:start_time'],
         ];
     }
 }

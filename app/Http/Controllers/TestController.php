@@ -311,7 +311,7 @@ class TestController extends Controller
 
     private function notifyParents(Test $test): void
     {
-        $test->load(['results.student.parents.user', 'subject:id,name', 'schoolClass:id,name']);
+        $test->load(['results.student.user:id,name', 'results.student.parents.user', 'subject:id,name', 'schoolClass:id,name']);
 
         foreach ($test->results as $result) {
             $student = $result->student;

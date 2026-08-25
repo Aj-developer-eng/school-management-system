@@ -48,7 +48,11 @@ class AcademicSessionController extends Controller
     public function edit(AcademicSession $academicSession): Response
     {
         return Inertia::render('Academic/Session/Form', [
-            'session' => $academicSession,
+            'session' => [
+                ...$academicSession->toArray(),
+                'start_date' => $academicSession->start_date?->format('Y-m-d'),
+                'end_date' => $academicSession->end_date?->format('Y-m-d'),
+            ],
         ]);
     }
 
