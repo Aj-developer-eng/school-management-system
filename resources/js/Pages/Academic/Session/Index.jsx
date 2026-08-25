@@ -19,7 +19,14 @@ export default function Index({ sessions, filters }) {
         {
             key: 'start_date',
             label: 'Duration',
-            render: (row) => `${row.start_date} — ${row.end_date}`,
+            render: (row) => {
+                const fmt = (d) => {
+                    if (!d) return '—';
+                    const date = new Date(d);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                };
+                return `${fmt(row.start_date)} — ${fmt(row.end_date)}`;
+            },
         },
         {
             key: 'is_active',
