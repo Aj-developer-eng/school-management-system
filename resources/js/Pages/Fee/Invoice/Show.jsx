@@ -6,6 +6,7 @@ import { formatDate } from '@/utils/format';
 import { Link, router } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 
+
 const statusColors = {
     unpaid: 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
     partial: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
