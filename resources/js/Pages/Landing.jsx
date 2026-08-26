@@ -185,7 +185,7 @@ export default function Landing({ school, cms, activeSession }) {
                                 {school?.logo_url ? (
                                     <img src={school.logo_url} alt={schoolName} className="h-full w-full rounded-xl object-contain" />
                                 ) : (
-                                    <GraduationCap className="h-5 w-5" />
+                                    <GraduationCap className="h-5 w-5" />s
                                 )}
                             </span>
                             <span className="font-serif text-xl font-semibold tracking-tight text-gray-900">
