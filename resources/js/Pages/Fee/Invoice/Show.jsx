@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
 import DeleteButton from '@/Components/Ui/DeleteButton';
 import { useAuth } from '@/utils/authorization';
+import { formatDate } from '@/utils/format';
 import { Link, router } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 
@@ -45,7 +46,7 @@ export default function Show({ invoice }) {
                                 {invoice.status}
                             </span>
                             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                Issued: {invoice.issue_date} · Due: {invoice.due_date}
+                                Issued: {formatDate(invoice.issue_date)} · Due: {formatDate(invoice.due_date)}
                             </p>
                             <a
                                 href={route('fee-invoices.pdf', invoice.id)}
@@ -158,7 +159,7 @@ export default function Show({ invoice }) {
                                 <tbody>
                                     {invoice.payments.map((p) => (
                                         <tr key={p.id} className="border-b border-gray-100 dark:border-gray-700/50">
-                                            <td className="py-3 text-gray-700 dark:text-gray-300">{p.payment_date}</td>
+                                            <td className="py-3 text-gray-700 dark:text-gray-300">{formatDate(p.payment_date)}</td>
                                             <td className="py-3 font-medium text-gray-900 dark:text-gray-100">Rs {Number(p.amount).toLocaleString()}</td>
                                             <td className="py-3 text-gray-700 dark:text-gray-300">{p.payment_method}</td>
                                             <td className="py-3 text-gray-500 dark:text-gray-400">{p.transaction_reference ?? '—'}</td>
