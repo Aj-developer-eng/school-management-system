@@ -124,14 +124,37 @@ class StudentController extends Controller
             ->with('success', 'Student updated successfully.');
     }
 
+    // public function destroy(Student $student): \Illuminate\Http\RedirectResponse
+    // {
+    //     $this->authorize('delete', $student);
+
+    //     ActivityLogService::deleted('Students', $student, "Deleted student: {$student->user->name ?? 'unknown' } ({$student->admission_number})");
+
+    //     $student->delete();
+    //     $student->user->update(['is_active' => false]);
+
+    //     return redirect()->route('students.index')
+    //         ->with('success', 'Student deleted successfully.');
+    // }
+
     public function destroy(Student $student): \Illuminate\Http\RedirectResponse
     {
         $this->authorize('delete', $student);
 
-        ActivityLogService::deleted('Students', $student, "Deleted student: {$student->user->name} ({$student->admission_number})");
+        $user = $student->user;
+        $name = $user?->name ?? 'unknown';
+
+        ActivityLogService::deleted(
+            'Students',
+            $student,
+            "Deleted student: {$name} ({$student->admission_number})"
+        );
 
         $student->delete();
-        $student->user->update(['is_active' => false]);
+
+        if ($user) {
+            $user->update(['is_active' => false]);
+        }
 
         return redirect()->route('students.index')
             ->with('success', 'Student deleted successfully.');
