@@ -43,7 +43,7 @@ COPY composer.json composer.lock ./
 RUN composer install --no-scripts --no-autoloader --no-dev --no-interaction
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install
 
 COPY . .
 
