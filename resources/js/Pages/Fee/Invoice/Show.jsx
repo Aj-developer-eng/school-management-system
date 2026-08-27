@@ -34,7 +34,7 @@ export default function Show({ invoice }) {
                                 {invoice.invoice_number}
                             </h2>
                             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                Student: <span className="font-medium">{invoice.student?.user?.name}</span>
+                                Student12345: <span className="font-medium">{invoice.student?.user?.name}</span>
                                 {' · '}{invoice.school_class?.name}
                                 {' · '}{invoice.academic_session?.name}
                             </p>
