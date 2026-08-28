@@ -9,7 +9,12 @@
 # ---------------------------------------------------------------------------
 FROM php:8.4-fpm AS base
 
-RUN apt-get update && apt-get install -y \
+# -qq keeps this quiet on purpose. Coolify streams every build log line into a
+# JSON column in its own postgres and rewrites the whole blob per line, so a
+# chatty apt run (the "Reading database ... 45%" spam) costs real CPU on the
+# host and slows the build it is reporting on.
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
     git \
     curl \
     libpng-dev \
@@ -49,7 +54,7 @@ FROM base AS vendor
 COPY composer.json composer.lock ./
 RUN --mount=type=cache,target=/tmp/composer-cache \
     COMPOSER_CACHE_DIR=/tmp/composer-cache \
-    composer install --no-scripts --no-autoloader --no-dev --no-interaction --prefer-dist
+    composer install --no-scripts --no-autoloader --no-dev --no-interaction --prefer-dist --quiet
 
 # ---------------------------------------------------------------------------
 # assets — vite/tailwind build. Runs on node (no node in the final image) and
@@ -68,7 +73,7 @@ WORKDIR /app
 # `npm ci` will not add.
 COPY package.json package-lock.jso[n] ./
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --no-audit --no-fund
+    npm install --no-audit --no-fund --loglevel=warn
 
 COPY vite.config.js postcss.config.js tailwind.config.js ./
 COPY resources ./resources
