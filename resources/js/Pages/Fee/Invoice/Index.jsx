@@ -79,6 +79,14 @@ export default function Index({ invoices, filters }) {
             render: (row) => (
                 <div className="flex items-center gap-3">
                     {can('fee-invoices.update') && row.status !== 'cancelled' && (
+                        <Link
+                            href={route('fee-invoices.edit', row.id)}
+                            className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+                        >
+                            Edit
+                        </Link>
+                    )}
+                    {can('fee-invoices.update') && row.status !== 'cancelled' && (
                         <button
                             onClick={() => {
                                 if (confirm('Cancel this invoice?')) {

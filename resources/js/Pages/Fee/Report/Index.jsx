@@ -1,6 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
 import { router } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
+import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 const statusColors = {
@@ -39,6 +41,7 @@ export default function Index({
     academicSessions,
     classes,
     isScoped,
+    isSuperAdmin,
 }) {
     const [sessionId, setSessionId] = useState(filters.academic_session_id ?? '');
     const [classId, setClassId] = useState(filters.school_class_id ?? '');
@@ -54,6 +57,15 @@ export default function Index({
         <AuthenticatedLayout
             title="Fee Reports"
             breadcrumbs={[{ label: 'Fees' }, { label: 'Reports' }]}
+            actions={
+                <Link
+                    href={route('fee-reports.trashed')}
+                    className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                >
+                    <Trash2 size={16} />
+                    Deleted Records
+                </Link>
+            }
         >
             <div className="space-y-6">
                 {/* Filters */}

@@ -111,6 +111,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('fee-reports', [FeeReportController::class, 'index'])
         ->name('fee-reports.index')
         ->middleware('can:fee-invoices.view');
+    Route::get('fee-reports/trashed', [FeeReportController::class, 'trashed'])
+        ->name('fee-reports.trashed');
+    Route::get('fee-reports/trashed/{id}/pdf', [FeeReportController::class, 'trashedPdf'])
+        ->name('fee-reports.trashed.pdf');
 
     Route::get('teacher-reports', [TeacherReportController::class, 'index'])
         ->name('teacher-reports.index')

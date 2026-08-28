@@ -49,13 +49,23 @@ export default function Show({ invoice }) {
                             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                                 Issued: {formatDate(invoice.issue_date)} · Due: {formatDate(invoice.due_date)}
                             </p>
-                            <a
-                                href={route('fee-invoices.pdf', invoice.id)}
-                                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
-                            >
-                                <Download size={16} />
-                                Download PDF
-                            </a>
+                            <div className="mt-3 flex items-center justify-end gap-2">
+                                {can('fee-invoices.update') && invoice.status !== 'cancelled' && (
+                                    <Link
+                                        href={route('fee-invoices.edit', invoice.id)}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                                    >
+                                        Edit
+                                    </Link>
+                                )}
+                                <a
+                                    href={route('fee-invoices.pdf', invoice.id)}
+                                    className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+                                >
+                                    <Download size={16} />
+                                    Download PDF
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </Card>

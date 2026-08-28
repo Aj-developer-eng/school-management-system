@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\FeeInvoice\BulkGenerateRequest;
 use App\Http\Requests\FeeInvoice\StoreRequest;
+use App\Http\Requests\FeeInvoice\UpdateRequest;
 use App\Models\AcademicSession;
 use App\Models\FeeInvoice;
 use App\Models\FeeStructure;
@@ -111,6 +112,25 @@ class FeeInvoiceController extends Controller
         ]);
     }
 
+    public function edit(FeeInvoice $feeInvoice): Response
+    {
+        $feeInvoice->load(['student.user', 'academicSession', 'schoolClass', 'feeStructure']);
+
+        return Inertia::render('Fee/Invoice/Form', [
+            'invoice' => $feeInvoice,
+        ]);
+    }
+
+    public function update(UpdateRequest $request, FeeInvoice $feeInvoice, FeeInvoiceService $service): \Illuminate\Http\RedirectResponse
+    {
+        $service->updateInvoice($feeInvoice, $request->validated());
+
+        ActivityLogService::custom('Fee Invoices', 'updated', "Updated invoice: {$feeInvoice->invoice_number}");
+
+        return redirect()->route('fee-invoices.show', $feeInvoice)
+            ->with('success', 'Invoice updated successfully.');
+    }
+
     public function bulkGenerate(BulkGenerateRequest $request, FeeInvoiceService $service): \Illuminate\Http\RedirectResponse
     {
         $count = $service->bulkGenerate(
@@ -137,6 +157,7 @@ class FeeInvoiceController extends Controller
 
     public function destroy(FeeInvoice $feeInvoice): \Illuminate\Http\RedirectResponse
     {
+        $feeInvoice->payments()->delete();
         $feeInvoice->delete();
 
         ActivityLogService::custom('Fee Invoices', 'deleted', "Deleted invoice: {$feeInvoice->invoice_number}");

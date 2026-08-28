@@ -105,6 +105,33 @@ class FeeInvoiceService
         return $count;
     }
 
+    public function updateInvoice(FeeInvoice $invoice, array $data): FeeInvoice
+    {
+        return DB::transaction(function () use ($invoice, $data): FeeInvoice {
+            $invoice->update([
+                'total_amount' => $data['total_amount'],
+                'concession_amount' => $data['concession_amount'],
+                'paid_amount' => $data['paid_amount'],
+                'issue_date' => $data['issue_date'],
+                'due_date' => $data['due_date'],
+            ]);
+
+            // Recalculate status only (don't re-sum payments, since admin may
+            // manually adjust paid_amount to correct a negative balance).
+            $balance = (float) $invoice->total_amount - (float) $invoice->concession_amount - (float) $invoice->paid_amount;
+            if ($balance <= 0) {
+                $invoice->status = InvoiceStatusEnum::Paid;
+            } elseif ($invoice->paid_amount > 0) {
+                $invoice->status = InvoiceStatusEnum::Partial;
+            } else {
+                $invoice->status = InvoiceStatusEnum::Unpaid;
+            }
+            $invoice->save();
+
+            return $invoice->fresh();
+        });
+    }
+
     public function cancelInvoice(FeeInvoice $invoice): void
     {
         DB::transaction(function () use ($invoice): void {
