@@ -56,15 +56,16 @@ RUN --mount=type=cache,target=/tmp/composer-cache \
 # only copies the files vite and tailwind.config.js actually read, so touching
 # app/, routes/ or database/ does NOT invalidate the frontend build.
 # ---------------------------------------------------------------------------
-FROM node:20-slim AS assets
+FROM node:20-alpine AS assets
 
 WORKDIR /app
 
 # package-lock.jso[n] is a glob, not a typo: it makes the lockfile optional so
 # the build doesn't hard-fail when the repo has none (it was deleted in
 # bb0fc67). `npm install` — not `npm ci` — is deliberate: it re-resolves
-# platform-specific optional deps (e.g. @rollup/rollup-linux-x64-gnu), which a
-# lockfile generated on Windows does not contain and `npm ci` will not add.
+# platform-specific optional deps (e.g. @rollup/rollup-linux-x64-musl for this
+# alpine stage), which a lockfile generated on Windows does not contain and
+# `npm ci` will not add.
 COPY package.json package-lock.jso[n] ./
 RUN --mount=type=cache,target=/root/.npm \
     npm install --no-audit --no-fund
@@ -129,7 +130,14 @@ EXPOSE 80
 # to the new container before it's listening, causing a brief 502 during
 # redeploys. start-period gives the entrypoint room to finish that work
 # before failed checks count against the container.
-HEALTHCHECK --interval=5s --timeout=3s --start-period=60s --retries=5 \
+#
+# interval is 30s, not the 5s you might reach for first: /up boots the whole
+# Laravel framework on every hit, and each check also costs a `docker exec`
+# (process + cgroup setup) on the host. At 5s that was ~17k framework boots a
+# day per container — on this shared box the health probes were costing more
+# CPU than the real traffic. 30s still detects a dead container well inside
+# Coolify's rollout window.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=5 \
     CMD curl -fs http://127.0.0.1/up || exit 1
 
 CMD ["/entrypoint.sh"]
