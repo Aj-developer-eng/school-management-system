@@ -1,6 +1,14 @@
-FROM php:8.4-fpm
+# Multi-stage build. The point of the split is deploy speed: PHP-only pushes
+# (the common case) reuse the cached `vendor` and `assets` stages entirely, so
+# a redeploy only re-runs `COPY . .` + dump-autoload instead of re-installing
+# composer/npm packages and re-running vite on every commit.
 
-# Install system dependencies
+# ---------------------------------------------------------------------------
+# base — OS packages + PHP extensions + composer binary.
+# Shared by the vendor and final stages so apt/docker-php-ext work happens once.
+# ---------------------------------------------------------------------------
+FROM php:8.4-fpm AS base
+
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -18,12 +26,6 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 20
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
 # Install PHP extensions. gd needs to be explicitly configured with WebP
 # support (--with-webp) — without it, docker-php-ext-install builds GD
 # against libgd but omits imagewebp(), which is what ImageOptimizer
@@ -34,31 +36,61 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 RUN docker-php-ext-configure gd --with-jpeg --with-webp \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
+# ---------------------------------------------------------------------------
+# vendor — composer dependencies only. Cache key is composer.json/composer.lock,
+# so this stage is skipped unless one of those two files actually changes.
+# ---------------------------------------------------------------------------
+FROM base AS vendor
+
 COPY composer.json composer.lock ./
-RUN composer install --no-scripts --no-autoloader --no-dev --no-interaction
+RUN --mount=type=cache,target=/tmp/composer-cache \
+    COMPOSER_CACHE_DIR=/tmp/composer-cache \
+    composer install --no-scripts --no-autoloader --no-dev --no-interaction --prefer-dist
 
-COPY package.json package-lock.json ./
-RUN npm install
+# ---------------------------------------------------------------------------
+# assets — vite/tailwind build. Runs on node (no node in the final image) and
+# only copies the files vite and tailwind.config.js actually read, so touching
+# app/, routes/ or database/ does NOT invalidate the frontend build.
+# ---------------------------------------------------------------------------
+FROM node:20-slim AS assets
 
-COPY . .
+WORKDIR /app
 
-RUN composer dump-autoload --optimize --no-dev
+# package-lock.jso[n] is a glob, not a typo: it makes the lockfile optional so
+# the build doesn't hard-fail when the repo has none (it was deleted in
+# bb0fc67). `npm install` — not `npm ci` — is deliberate: it re-resolves
+# platform-specific optional deps (e.g. @rollup/rollup-linux-x64-gnu), which a
+# lockfile generated on Windows does not contain and `npm ci` will not add.
+COPY package.json package-lock.jso[n] ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --no-audit --no-fund
+
+COPY vite.config.js postcss.config.js tailwind.config.js ./
+COPY resources ./resources
+# tailwind.config.js scans Laravel's own pagination blade views for classes.
+COPY --from=vendor /var/www/vendor/laravel/framework/src/Illuminate/Pagination/resources/views \
+    ./vendor/laravel/framework/src/Illuminate/Pagination/resources/views
 
 RUN npm run build
 
+# ---------------------------------------------------------------------------
+# final image
+# ---------------------------------------------------------------------------
+FROM base AS app
+
+# Static config first — these layers never change on an app-code push, so they
+# stay cached below the `COPY . .` invalidation point.
 COPY docker/nginx.conf /etc/nginx/sites-enabled/default
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 
-RUN mkdir -p /var/log/supervisor
-
-RUN { \
+RUN chmod +x /entrypoint.sh \
+    && mkdir -p /var/log/supervisor \
+    && { \
     echo '[www]'; \
     echo 'user = www-data'; \
     echo 'group = www-data'; \
@@ -71,14 +103,21 @@ RUN { \
     echo 'pm.min_spare_servers = 1'; \
     echo 'pm.max_spare_servers = 3'; \
     echo 'clear_env = no'; \
-} > /usr/local/etc/php-fpm.d/www.conf
-
-RUN { \
+    } > /usr/local/etc/php-fpm.d/www.conf \
+    && { \
     echo 'upload_max_filesize = 25M'; \
     echo 'post_max_size = 30M'; \
     echo 'memory_limit = 256M'; \
     echo 'max_execution_time = 120'; \
-} > /usr/local/etc/php/conf.d/uploads.ini
+    } > /usr/local/etc/php/conf.d/uploads.ini
+
+COPY --from=vendor /var/www/vendor ./vendor
+
+COPY . .
+
+RUN composer dump-autoload --optimize --no-dev
+
+COPY --from=assets /app/public/build ./public/build
 
 RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
