@@ -145,4 +145,6 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=5 \
     CMD curl -fs http://127.0.0.1/up || exit 1
 
+# build-cache smoke test (2026-08-29): confirms apt/composer/npm layers stay
+# cached now that Coolify's nightly forced cleanup is off — remove once verified.
 CMD ["/entrypoint.sh"]
