@@ -2,10 +2,60 @@
 # (the common case) reuse the cached `vendor` and `assets` stages entirely, so
 # a redeploy only re-runs `COPY . .` + dump-autoload instead of re-installing
 # composer/npm packages and re-running vite on every commit.
+#
+# `vendor` and `assets` deliberately do NOT depend on the heavy `base` stage
+# below — they build from the lightweight upstream `composer:2` / `node:20-alpine`
+# images directly. That lets BuildKit run composer install, npm ci, and the
+# apt-get/php-extension work in `base` in PARALLEL instead of serially, which
+# is a real wall-clock win on a build host with spare cores.
 
 # ---------------------------------------------------------------------------
-# base — OS packages + PHP extensions + composer binary.
-# Shared by the vendor and final stages so apt/docker-php-ext work happens once.
+# vendor — composer dependencies only. Cache key is composer.json/composer.lock,
+# so this stage is skipped unless one of those two files actually changes.
+# Runs on the standalone composer:2 image (not `base`) so it isn't blocked
+# waiting on apt-get — --ignore-platform-reqs is required here because this
+# image's PHP version/extensions don't necessarily match the final `base`
+# runtime; --no-scripts means no composer scripts run against a mismatched PHP
+# anyway.
+# ---------------------------------------------------------------------------
+FROM composer:2 AS vendor
+
+WORKDIR /var/www
+
+COPY composer.json composer.lock ./
+RUN --mount=type=cache,target=/tmp/composer-cache \
+    COMPOSER_CACHE_DIR=/tmp/composer-cache \
+    composer install --no-scripts --no-autoloader --no-dev --no-interaction --prefer-dist --quiet --ignore-platform-reqs
+
+# ---------------------------------------------------------------------------
+# assets — vite/tailwind build. Runs on node (no node in the final image) and
+# only copies the files vite and tailwind.config.js actually read, so touching
+# app/, routes/ or database/ does NOT invalidate the frontend build.
+# ---------------------------------------------------------------------------
+FROM node:20-alpine AS assets
+
+WORKDIR /app
+
+# package-lock.json is now committed (regenerated inside a linux/musl node:20-alpine
+# container so its optional deps — e.g. @rollup/rollup-linux-x64-musl — actually
+# match this stage's platform). That lets us use `npm ci`, which skips dependency
+# resolution entirely and is noticeably faster than `npm install` on a cold cache.
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund --loglevel=warn
+
+COPY vite.config.js postcss.config.js tailwind.config.js ./
+COPY resources ./resources
+# tailwind.config.js scans Laravel's own pagination blade views for classes.
+COPY --from=vendor /var/www/vendor/laravel/framework/src/Illuminate/Pagination/resources/views \
+    ./vendor/laravel/framework/src/Illuminate/Pagination/resources/views
+
+RUN npm run build
+
+# ---------------------------------------------------------------------------
+# base — OS packages + PHP extensions. Only the final `app` stage depends on
+# this now, so it builds in parallel with `vendor`/`assets` above instead of
+# gating them.
 # ---------------------------------------------------------------------------
 FROM php:8.4-fpm AS base
 
@@ -38,50 +88,16 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq \
 # Intervention Image's WebP encoder. Plain `docker-php-ext-install gd`
 # silently succeeds either way, so this only surfaces at upload time as
 # "Call to undefined function ... imagewebp()".
+#
+# mlocati/install-php-extensions was evaluated as a replacement and rejected:
+# it has no prebuilt intl for php:8.4, so it compiles ICU from source here
+# too (no time saved), and the trial build died mid-compile on this host.
 RUN docker-php-ext-configure gd --with-jpeg --with-webp \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
-
-# ---------------------------------------------------------------------------
-# vendor — composer dependencies only. Cache key is composer.json/composer.lock,
-# so this stage is skipped unless one of those two files actually changes.
-# ---------------------------------------------------------------------------
-FROM base AS vendor
-
-COPY composer.json composer.lock ./
-RUN --mount=type=cache,target=/tmp/composer-cache \
-    COMPOSER_CACHE_DIR=/tmp/composer-cache \
-    composer install --no-scripts --no-autoloader --no-dev --no-interaction --prefer-dist --quiet
-
-# ---------------------------------------------------------------------------
-# assets — vite/tailwind build. Runs on node (no node in the final image) and
-# only copies the files vite and tailwind.config.js actually read, so touching
-# app/, routes/ or database/ does NOT invalidate the frontend build.
-# ---------------------------------------------------------------------------
-FROM node:20-alpine AS assets
-
-WORKDIR /app
-
-# package-lock.jso[n] is a glob, not a typo: it makes the lockfile optional so
-# the build doesn't hard-fail when the repo has none (it was deleted in
-# bb0fc67). `npm install` — not `npm ci` — is deliberate: it re-resolves
-# platform-specific optional deps (e.g. @rollup/rollup-linux-x64-musl for this
-# alpine stage), which a lockfile generated on Windows does not contain and
-# `npm ci` will not add.
-COPY package.json package-lock.jso[n] ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --no-audit --no-fund --loglevel=warn
-
-COPY vite.config.js postcss.config.js tailwind.config.js ./
-COPY resources ./resources
-# tailwind.config.js scans Laravel's own pagination blade views for classes.
-COPY --from=vendor /var/www/vendor/laravel/framework/src/Illuminate/Pagination/resources/views \
-    ./vendor/laravel/framework/src/Illuminate/Pagination/resources/views
-
-RUN npm run build
 
 # ---------------------------------------------------------------------------
 # final image
@@ -145,6 +161,4 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=5 \
     CMD curl -fs http://127.0.0.1/up || exit 1
 
-# build-cache smoke test (2026-08-29): confirms apt/composer/npm layers stay
-# cached now that Coolify's nightly forced cleanup is off — remove once verified.
 CMD ["/entrypoint.sh"]
