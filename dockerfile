@@ -3,59 +3,17 @@
 # a redeploy only re-runs `COPY . .` + dump-autoload instead of re-installing
 # composer/npm packages and re-running vite on every commit.
 #
-# `vendor` and `assets` deliberately do NOT depend on the heavy `base` stage
-# below — they build from the lightweight upstream `composer:2` / `node:20-alpine`
-# images directly. That lets BuildKit run composer install, npm ci, and the
-# apt-get/php-extension work in `base` in PARALLEL instead of serially, which
-# is a real wall-clock win on a build host with spare cores.
+# The stages are deliberately kept SERIAL (vendor FROM base, assets pulling
+# from vendor). Building vendor/assets from the upstream composer:2 and
+# node:20-alpine images instead lets BuildKit run them in parallel with base,
+# which is faster on paper — but it was tried (655dbc1) and the build died with
+# exit 255 partway through compiling the PHP extensions. This host runs ~18
+# containers in 12GB with zero swap, so gcc and vite competing for memory is
+# not survivable. Serial is slower and finishes; do not "optimise" this back.
 
 # ---------------------------------------------------------------------------
-# vendor — composer dependencies only. Cache key is composer.json/composer.lock,
-# so this stage is skipped unless one of those two files actually changes.
-# Runs on the standalone composer:2 image (not `base`) so it isn't blocked
-# waiting on apt-get — --ignore-platform-reqs is required here because this
-# image's PHP version/extensions don't necessarily match the final `base`
-# runtime; --no-scripts means no composer scripts run against a mismatched PHP
-# anyway.
-# ---------------------------------------------------------------------------
-FROM composer:2 AS vendor
-
-WORKDIR /var/www
-
-COPY composer.json composer.lock ./
-RUN --mount=type=cache,target=/tmp/composer-cache \
-    COMPOSER_CACHE_DIR=/tmp/composer-cache \
-    composer install --no-scripts --no-autoloader --no-dev --no-interaction --prefer-dist --quiet --ignore-platform-reqs
-
-# ---------------------------------------------------------------------------
-# assets — vite/tailwind build. Runs on node (no node in the final image) and
-# only copies the files vite and tailwind.config.js actually read, so touching
-# app/, routes/ or database/ does NOT invalidate the frontend build.
-# ---------------------------------------------------------------------------
-FROM node:20-alpine AS assets
-
-WORKDIR /app
-
-# package-lock.json is now committed (regenerated inside a linux/musl node:20-alpine
-# container so its optional deps — e.g. @rollup/rollup-linux-x64-musl — actually
-# match this stage's platform). That lets us use `npm ci`, which skips dependency
-# resolution entirely and is noticeably faster than `npm install` on a cold cache.
-COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --no-audit --no-fund --loglevel=warn
-
-COPY vite.config.js postcss.config.js tailwind.config.js ./
-COPY resources ./resources
-# tailwind.config.js scans Laravel's own pagination blade views for classes.
-COPY --from=vendor /var/www/vendor/laravel/framework/src/Illuminate/Pagination/resources/views \
-    ./vendor/laravel/framework/src/Illuminate/Pagination/resources/views
-
-RUN npm run build
-
-# ---------------------------------------------------------------------------
-# base — OS packages + PHP extensions. Only the final `app` stage depends on
-# this now, so it builds in parallel with `vendor`/`assets` above instead of
-# gating them.
+# base — OS packages + PHP extensions + composer binary.
+# Shared by the vendor and final stages so apt/docker-php-ext work happens once.
 # ---------------------------------------------------------------------------
 FROM php:8.4-fpm AS base
 
@@ -98,6 +56,42 @@ RUN docker-php-ext-configure gd --with-jpeg --with-webp \
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
+
+# ---------------------------------------------------------------------------
+# vendor — composer dependencies only. Cache key is composer.json/composer.lock,
+# so this stage is skipped unless one of those two files actually changes.
+# ---------------------------------------------------------------------------
+FROM base AS vendor
+
+COPY composer.json composer.lock ./
+RUN --mount=type=cache,target=/tmp/composer-cache \
+    COMPOSER_CACHE_DIR=/tmp/composer-cache \
+    composer install --no-scripts --no-autoloader --no-dev --no-interaction --prefer-dist --quiet
+
+# ---------------------------------------------------------------------------
+# assets — vite/tailwind build. Runs on node (no node in the final image) and
+# only copies the files vite and tailwind.config.js actually read, so touching
+# app/, routes/ or database/ does NOT invalidate the frontend build.
+# ---------------------------------------------------------------------------
+FROM node:20-alpine AS assets
+
+WORKDIR /app
+
+# package-lock.json is now committed (regenerated inside a linux/musl node:20-alpine
+# container so its optional deps — e.g. @rollup/rollup-linux-x64-musl — actually
+# match this stage's platform). That lets us use `npm ci`, which skips dependency
+# resolution entirely and is noticeably faster than `npm install` on a cold cache.
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund --loglevel=warn
+
+COPY vite.config.js postcss.config.js tailwind.config.js ./
+COPY resources ./resources
+# tailwind.config.js scans Laravel's own pagination blade views for classes.
+COPY --from=vendor /var/www/vendor/laravel/framework/src/Illuminate/Pagination/resources/views \
+    ./vendor/laravel/framework/src/Illuminate/Pagination/resources/views
+
+RUN npm run build
 
 # ---------------------------------------------------------------------------
 # final image
