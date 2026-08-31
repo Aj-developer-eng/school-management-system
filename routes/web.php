@@ -11,6 +11,7 @@ use App\Http\Controllers\FeeReportController;
 use App\Http\Controllers\FeeStructureController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OnlineClassController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SchoolClassController;
@@ -180,6 +181,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('activity-logs', [ActivityLogController::class, 'index'])
         ->name('activity-logs.index');
+
+    Route::patch('online-classes/{online_class}/toggle', [OnlineClassController::class, 'toggleStatus'])
+        ->name('online-classes.toggle');
+    Route::get('online-classes/{online_class}/attendance', [OnlineClassController::class, 'attendance'])
+        ->name('online-classes.attendance');
+    Route::post('online-classes/{online_class}/attendance', [OnlineClassController::class, 'storeAttendance'])
+        ->name('online-classes.attendance.store');
+    Route::resource('online-classes', OnlineClassController::class)
+        ->except(['show'])
+        ->parameters(['online-classes' => 'online_class'])
+        ->names('online-classes');
 
     Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
         ->name('notifications.read');

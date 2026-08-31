@@ -96,6 +96,12 @@ enum PermissionEnum: string
     case DeleteTests = 'tests.delete';
     case UploadTestResults = 'tests.upload-results';
 
+    // Online Classes
+    case ViewOnlineClasses = 'online-classes.view';
+    case CreateOnlineClasses = 'online-classes.create';
+    case UpdateOnlineClasses = 'online-classes.update';
+    case DeleteOnlineClasses = 'online-classes.delete';
+
     /**
      * @return list<string>
      */

@@ -6,6 +6,7 @@ import {
     Layers,
     LayoutDashboard,
     Library,
+    Video,
     Receipt,
     School,
     Settings,
@@ -77,6 +78,12 @@ export const navigation = [
                 routeName: 'tests.index',
                 icon: FileText,
                 permission: 'tests.view',
+            },
+            {
+                label: 'Online Classes',
+                routeName: 'online-classes.index',
+                icon: Video,
+                permission: 'online-classes.view',
             },
             {
                 label: 'Special Requests',
