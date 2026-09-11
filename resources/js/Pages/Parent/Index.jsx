@@ -7,6 +7,7 @@ import EditLink from '@/Components/Ui/EditLink';
 import Pagination from '@/Components/Ui/Pagination';
 import SearchInput from '@/Components/Ui/SearchInput';
 import StatusBadge from '@/Components/Ui/StatusBadge';
+import WhatsAppButton from '@/Components/Ui/WhatsAppButton';
 import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
 
@@ -28,9 +29,10 @@ export default function Index({ parents, filters }) {
         {
             key: 'actions',
             label: 'Actions',
-            width: '120px',
+            width: '150px',
             render: (row) => (
                 <div className="flex items-center gap-3">
+                    <WhatsAppButton phone={row.user?.phone} name={row.user?.name} />
                     {can('parents.update') && <EditLink routeName="parents.edit" params={row.id} />}
                     {can('parents.delete') && <DeleteButton routeName="parents.destroy" params={row.id} />}
                 </div>
