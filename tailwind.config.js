@@ -39,9 +39,26 @@ export default {
                     '0%, 100%': { transform: 'translateY(0)' },
                     '50%': { transform: 'translateY(-10px)' },
                 },
+                rise: {
+                    '0%': { opacity: '0', transform: 'translateY(12px) scale(0.99)' },
+                    '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+                },
+                'fade-in': {
+                    from: { opacity: '0' },
+                    to: { opacity: '1' },
+                },
+                'scale-in': {
+                    '0%': { opacity: '0', transform: 'scale(0.92)' },
+                    '100%': { opacity: '1', transform: 'scale(1)' },
+                },
             },
             animation: {
                 'float-slow': 'float-slow 5s ease-in-out infinite',
+                // 'backwards' fill-mode: hidden during stagger delay, but releases
+                // transform/opacity afterwards so hover transitions keep working.
+                rise: 'rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards',
+                'fade-in': 'fade-in 0.6s ease-out backwards',
+                'scale-in': 'scale-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards',
             },
         },
     },

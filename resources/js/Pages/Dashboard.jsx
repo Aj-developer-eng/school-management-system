@@ -4,6 +4,7 @@ import SimpleBarChart from '@/Components/Dashboard/SimpleBarChart';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useAuth } from '@/utils/authorization';
 import { formatDate, formatTimeRange } from '@/utils/format';
+import { GraduationCap, Sparkles } from 'lucide-react';
 import { Link, router } from '@inertiajs/react';
 
 const statusColors = {
@@ -24,38 +25,49 @@ function formatRs(value) {
     return `Rs ${Number(value).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+function SectionHeading({ children, action }) {
+    return (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+                <span className="h-5 w-1 rounded-full bg-gradient-to-b from-indigo-500 to-violet-500" aria-hidden="true" />
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    {children}
+                </h3>
+            </div>
+            {action}
+        </div>
+    );
+}
+
 function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOverview, assignmentStats }) {
     return (
         <>
             {quickActions.length > 0 && (
-                <div>
-                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Quick Actions
-                    </h3>
+                <div className="animate-fade-in">
+                    <SectionHeading>Quick Actions</SectionHeading>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
-                        {quickActions.map((action) => (
+                        {quickActions.map((action, index) => (
                             <QuickAction
                                 key={action.label}
                                 label={action.label}
                                 routeName={action.route}
                                 icon={action.icon}
+                                delay={index * 60}
                             />
                         ))}
                     </div>
                 </div>
             )}
 
-            <div>
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    School Overview
-                </h3>
+            <div className="animate-fade-in">
+                <SectionHeading>School Overview</SectionHeading>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <DashboardCard title="Students" value={stats.students} subtitle="Active enrolled" color="indigo" />
-                    <DashboardCard title="Teachers" value={stats.teachers} subtitle="Teaching staff" color="emerald" />
-                    <DashboardCard title="Parents" value={stats.parents} subtitle="Registered guardians" color="amber" />
-                    <DashboardCard title="Classes" value={stats.classes} subtitle="Active classes" color="sky" />
-                    <DashboardCard title="Sections" value={stats.sections} subtitle="Active sections" color="violet" />
-                    <DashboardCard title="Subjects" value={stats.subjects} subtitle="In catalog" color="rose" />
+                    <DashboardCard title="Students" value={stats.students} subtitle="Active enrolled" color="indigo" delay={0} />
+                    <DashboardCard title="Teachers" value={stats.teachers} subtitle="Teaching staff" color="emerald" delay={70} />
+                    <DashboardCard title="Parents" value={stats.parents} subtitle="Registered guardians" color="amber" delay={140} />
+                    <DashboardCard title="Classes" value={stats.classes} subtitle="Active classes" color="sky" delay={210} />
+                    <DashboardCard title="Sections" value={stats.sections} subtitle="Active sections" color="violet" delay={280} />
+                    <DashboardCard title="Subjects" value={stats.subjects} subtitle="In catalog" color="rose" delay={350} />
                 </div>
             </div>
 
@@ -66,39 +78,40 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
             />
 
             {/* Teacher assignment overview */}
-            <div>
-                <div className="mb-3 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Teacher Assignment Overview
-                    </h3>
-                    <Link
-                        href={route('teacher-reports.index')}
-                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                    >
-                        View Full Report
-                    </Link>
-                </div>
+            <div className="animate-fade-in">
+                <SectionHeading
+                    action={
+                        <Link
+                            href={route('teacher-reports.index')}
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300"
+                        >
+                            View Full Report
+                        </Link>
+                    }
+                >
+                    Teacher Assignment Overview
+                </SectionHeading>
                 <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <DashboardCard title="Total" value={assignmentStats.total} subtitle="All assignments" color="indigo" />
-                    <DashboardCard title="Pending" value={assignmentStats.pending} subtitle="Not started" color="amber" />
-                    <DashboardCard title="Started" value={assignmentStats.started} subtitle="In progress" color="sky" />
-                    <DashboardCard title="Completed" value={assignmentStats.completed} subtitle="Finished" color="emerald" />
+                    <DashboardCard title="Total" value={assignmentStats.total} subtitle="All assignments" color="indigo" delay={0} />
+                    <DashboardCard title="Pending" value={assignmentStats.pending} subtitle="Not started" color="amber" delay={70} />
+                    <DashboardCard title="Started" value={assignmentStats.started} subtitle="In progress" color="sky" delay={140} />
+                    <DashboardCard title="Completed" value={assignmentStats.completed} subtitle="Finished" color="emerald" delay={210} />
                 </div>
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-gray-200 dark:border-gray-700">
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Teacher</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Class</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Section</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Subject</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Time</th>
-                                <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Status</th>
+                            <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Teacher</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Class</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Section</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Subject</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Time</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {assignmentOverview.length > 0 ? assignmentOverview.map((a) => (
-                                <tr key={a.id} className="border-b border-gray-100 dark:border-gray-700/50">
+                                <tr key={a.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-indigo-50/40 dark:border-gray-700/50 dark:hover:bg-gray-700/30">
                                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                                         {a.teacher?.user?.name ?? '—'}
                                     </td>
@@ -115,14 +128,14 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                                         {formatTimeRange(a.start_time, a.end_time)}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[a.status] ?? statusColors.pending}`}>
+                                        <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusColors[a.status] ?? statusColors.pending}`}>
                                             {a.status}
                                         </span>
                                     </td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                                         No teacher assignments for this session.
                                     </td>
                                 </tr>
@@ -139,56 +152,55 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
     return (
         <>
             {/* Quick action */}
-            <div className="flex items-center justify-end">
+            <div className="animate-fade-in flex items-center justify-end">
                 <Link
                     href={route('special-requests.create')}
-                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
+                    className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:-translate-y-0.5 hover:from-indigo-500 hover:to-violet-500 hover:shadow-indigo-500/40"
                 >
                     New Special Request
                 </Link>
             </div>
 
             {/* Fee summary cards */}
-            <div>
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Fee Summary
-                </h3>
+            <div className="animate-fade-in">
+                <SectionHeading>Fee Summary</SectionHeading>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <DashboardCard title="Total Invoiced" value={formatRs(feeSummary.total_invoiced)} subtitle="All children" color="indigo" />
-                    <DashboardCard title="Total Paid" value={formatRs(feeSummary.total_paid)} subtitle="Payments received" color="emerald" />
-                    <DashboardCard title="Outstanding" value={formatRs(feeSummary.total_outstanding)} subtitle="Amount due" color="rose" />
-                    <DashboardCard title="Pending Invoices" value={feeSummary.unpaid_count} subtitle="Unpaid / partial" color="amber" />
+                    <DashboardCard title="Total Invoiced" value={formatRs(feeSummary.total_invoiced)} subtitle="All children" color="indigo" delay={0} />
+                    <DashboardCard title="Total Paid" value={formatRs(feeSummary.total_paid)} subtitle="Payments received" color="emerald" delay={70} />
+                    <DashboardCard title="Outstanding" value={formatRs(feeSummary.total_outstanding)} subtitle="Amount due" color="rose" delay={140} />
+                    <DashboardCard title="Pending Invoices" value={feeSummary.unpaid_count} subtitle="Unpaid / partial" color="amber" delay={210} />
                 </div>
             </div>
 
             {/* Today's attendance */}
-            <div>
-                <div className="mb-3 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Today&apos;s Attendance
-                    </h3>
-                    <Link
-                        href={route('attendance.report')}
-                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                    >
-                        View Full Report
-                    </Link>
-                </div>
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="animate-fade-in">
+                <SectionHeading
+                    action={
+                        <Link
+                            href={route('attendance.report')}
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300"
+                        >
+                            View Full Report
+                        </Link>
+                    }
+                >
+                    Today&apos;s Attendance
+                </SectionHeading>
+                <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-gray-200 dark:border-gray-700">
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Child</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Class</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Subject</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Teacher</th>
-                                <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Status</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Remarks</th>
+                            <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Child</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Class</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Subject</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Teacher</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Remarks</th>
                             </tr>
                         </thead>
                         <tbody>
                             {todayAttendance.length > 0 ? todayAttendance.map((r) => (
-                                <tr key={r.id} className="border-b border-gray-100 dark:border-gray-700/50">
+                                <tr key={r.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-indigo-50/40 dark:border-gray-700/50 dark:hover:bg-gray-700/30">
                                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                                         {r.student?.user?.name ?? '—'}
                                     </td>
@@ -202,7 +214,7 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                                         {r.assignment?.teacher?.user?.name ?? '—'}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[r.status] ?? statusColors.present}`}>
+                                        <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusColors[r.status] ?? statusColors.present}`}>
                                             {r.status}
                                         </span>
                                     </td>
@@ -212,7 +224,7 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                                         No attendance recorded for today ({formatDate(new Date())}).
                                     </td>
                                 </tr>
@@ -223,27 +235,29 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
             </div>
 
             {/* Children progress */}
-            <div>
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    My Children
-                </h3>
+            <div className="animate-fade-in">
+                <SectionHeading>My Children</SectionHeading>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {children.length > 0 ? children.map((child) => {
+                    {children.length > 0 ? children.map((child, index) => {
                         const enrollment = child.enrollments?.[0];
                         return (
-                            <div key={child.id} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                            <div
+                                key={child.id}
+                                className="group animate-rise rounded-xl border border-gray-200 bg-white p-5 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+                                style={{ animationDelay: `${index * 80}ms` }}
+                            >
                                 <div className="flex items-center gap-3">
-                                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition-transform duration-300 group-hover:scale-110">
                                         {child.user?.name?.charAt(0)?.toUpperCase()}
                                     </span>
                                     <div>
-                                        <p className="font-medium text-gray-900 dark:text-gray-100">{child.user?.name}</p>
+                                        <p className="font-semibold text-gray-900 dark:text-gray-100">{child.user?.name}</p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400">
                                             Admission #: {child.admission_number}
                                         </p>
                                     </div>
                                 </div>
-                                <div className="mt-4 space-y-2 text-sm">
+                                <div className="mt-4 space-y-2.5 border-t border-gray-100 pt-3 text-sm dark:border-gray-700/60">
                                     <div className="flex justify-between">
                                         <span className="text-gray-500 dark:text-gray-400">Class</span>
                                         <span className="font-medium text-gray-700 dark:text-gray-300">
@@ -264,7 +278,10 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-500 dark:text-gray-400">Status</span>
-                                        <span className="font-medium text-emerald-600 dark:text-emerald-400">Active</span>
+                                        <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                                            Active
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -278,27 +295,25 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
             </div>
 
             {/* Recent invoices */}
-            <div>
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Recent Invoices
-                </h3>
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="animate-fade-in">
+                <SectionHeading>Recent Invoices</SectionHeading>
+                <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-gray-200 dark:border-gray-700">
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Invoice #</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Child</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Fee</th>
-                                <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Total</th>
-                                <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Balance</th>
-                                <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Status</th>
+                            <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Invoice #</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Child</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Fee</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Balance</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {invoices.length > 0 ? invoices.map((inv) => (
-                                <tr key={inv.id} className="border-b border-gray-100 dark:border-gray-700/50">
+                                <tr key={inv.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-indigo-50/40 dark:border-gray-700/50 dark:hover:bg-gray-700/30">
                                     <td className="px-4 py-3">
-                                        <Link href={route('fee-invoices.show', inv.id)} className="font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-300">
+                                        <Link href={route('fee-invoices.show', inv.id)} className="font-medium text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200">
                                             {inv.invoice_number}
                                         </Link>
                                     </td>
@@ -307,14 +322,14 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                                     <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300">{formatRs(inv.total_amount)}</td>
                                     <td className="px-4 py-3 text-right font-semibold text-rose-600 dark:text-rose-400">{formatRs(inv.balance)}</td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[inv.status] ?? statusColors.unpaid}`}>
+                                        <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusColors[inv.status] ?? statusColors.unpaid}`}>
                                             {inv.status}
                                         </span>
                                     </td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                                         No invoices found.
                                     </td>
                                 </tr>
@@ -331,39 +346,35 @@ function StudentDashboard({ enrollment, invoices, activeSession, student }) {
     return (
         <>
             {/* Enrollment info */}
-            <div>
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    My Enrollment
-                </h3>
+            <div className="animate-fade-in">
+                <SectionHeading>My Enrollment</SectionHeading>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <DashboardCard title="Admission #" value={student?.admission_number ?? '—'} subtitle="Your ID" color="indigo" />
-                    <DashboardCard title="Class" value={enrollment?.school_class?.name ?? '—'} subtitle="Current class" color="emerald" />
-                    <DashboardCard title="Section" value={enrollment?.section?.name ?? '—'} subtitle="Assigned section" color="amber" />
-                    <DashboardCard title="Session" value={enrollment?.academic_session?.name ?? activeSession ?? '—'} subtitle="Active session" color="sky" />
+                    <DashboardCard title="Admission #" value={student?.admission_number ?? '—'} subtitle="Your ID" color="indigo" delay={0} />
+                    <DashboardCard title="Class" value={enrollment?.school_class?.name ?? '—'} subtitle="Current class" color="emerald" delay={70} />
+                    <DashboardCard title="Section" value={enrollment?.section?.name ?? '—'} subtitle="Assigned section" color="amber" delay={140} />
+                    <DashboardCard title="Session" value={enrollment?.academic_session?.name ?? activeSession ?? '—'} subtitle="Active session" color="sky" delay={210} />
                 </div>
             </div>
 
             {/* Recent invoices */}
-            <div>
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    My Recent Invoices
-                </h3>
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="animate-fade-in">
+                <SectionHeading>My Recent Invoices</SectionHeading>
+                <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-gray-200 dark:border-gray-700">
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Invoice #</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Fee</th>
-                                <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Total</th>
-                                <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Balance</th>
-                                <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Status</th>
+                            <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Invoice #</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Fee</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Balance</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {invoices.length > 0 ? invoices.map((inv) => (
-                                <tr key={inv.id} className="border-b border-gray-100 dark:border-gray-700/50">
+                                <tr key={inv.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-indigo-50/40 dark:border-gray-700/50 dark:hover:bg-gray-700/30">
                                     <td className="px-4 py-3">
-                                        <Link href={route('fee-invoices.show', inv.id)} className="font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-300">
+                                        <Link href={route('fee-invoices.show', inv.id)} className="font-medium text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200">
                                             {inv.invoice_number}
                                         </Link>
                                     </td>
@@ -371,14 +382,14 @@ function StudentDashboard({ enrollment, invoices, activeSession, student }) {
                                     <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300">{formatRs(inv.total_amount)}</td>
                                     <td className="px-4 py-3 text-right font-semibold text-rose-600 dark:text-rose-400">{formatRs(inv.balance)}</td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[inv.status] ?? statusColors.unpaid}`}>
+                                        <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusColors[inv.status] ?? statusColors.unpaid}`}>
                                             {inv.status}
                                         </span>
                                     </td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={5} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                                         No invoices found.
                                     </td>
                                 </tr>
@@ -395,48 +406,44 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
     return (
         <>
             {/* Quick action */}
-            <div className="flex items-center justify-end">
+            <div className="animate-fade-in flex items-center justify-end">
                 <Link
                     href={route('attendance.index')}
-                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
+                    className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:-translate-y-0.5 hover:from-indigo-500 hover:to-violet-500 hover:shadow-indigo-500/40"
                 >
                     Record Attendance
                 </Link>
             </div>
 
             {/* Assignment stats */}
-            <div>
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    My Assignments
-                </h3>
+            <div className="animate-fade-in">
+                <SectionHeading>My Assignments</SectionHeading>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <DashboardCard title="Total" value={assignmentStats.total_assignments} subtitle="Assigned classes" color="indigo" />
-                    <DashboardCard title="Pending" value={assignmentStats.pending} subtitle="Not started yet" color="amber" />
-                    <DashboardCard title="Started" value={assignmentStats.started} subtitle="In progress" color="sky" />
-                    <DashboardCard title="Completed" value={assignmentStats.completed} subtitle="Finished" color="emerald" />
+                    <DashboardCard title="Total" value={assignmentStats.total_assignments} subtitle="Assigned classes" color="indigo" delay={0} />
+                    <DashboardCard title="Pending" value={assignmentStats.pending} subtitle="Not started yet" color="amber" delay={70} />
+                    <DashboardCard title="Started" value={assignmentStats.started} subtitle="In progress" color="sky" delay={140} />
+                    <DashboardCard title="Completed" value={assignmentStats.completed} subtitle="Finished" color="emerald" delay={210} />
                 </div>
             </div>
 
             {/* Assignments table */}
-            <div>
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Class Assignments
-                </h3>
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="animate-fade-in">
+                <SectionHeading>Class Assignments</SectionHeading>
+                <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-gray-200 dark:border-gray-700">
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Class</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Section</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Subject</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Time</th>
-                                <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Status</th>
-                                <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Action</th>
+                            <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Class</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Section</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Subject</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Time</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {assignments.length > 0 ? assignments.map((a) => (
-                                <tr key={a.id} className="border-b border-gray-100 dark:border-gray-700/50">
+                                <tr key={a.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-indigo-50/40 dark:border-gray-700/50 dark:hover:bg-gray-700/30">
                                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                                         {a.school_class?.name ?? '—'}
                                     </td>
@@ -450,7 +457,7 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
                                         {formatTimeRange(a.start_time, a.end_time)}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[a.status] ?? statusColors.pending}`}>
+                                        <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusColors[a.status] ?? statusColors.pending}`}>
                                             {a.status}
                                         </span>
                                     </td>
@@ -458,7 +465,7 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
                                         {a.status === 'pending' && (
                                             <button
                                                 onClick={() => router.patch(route('dashboard.assignments.start', a.id))}
-                                                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+                                                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-all duration-200 hover:bg-indigo-500 hover:shadow-md hover:shadow-indigo-500/30"
                                             >
                                                 Mark Started
                                             </button>
@@ -467,13 +474,13 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
                                                     onClick={() => router.patch(route('dashboard.assignments.complete', a.id))}
-                                                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+                                                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-all duration-200 hover:bg-emerald-500 hover:shadow-md hover:shadow-emerald-500/30"
                                                 >
                                                     Mark Completed
                                                 </button>
                                                 <button
                                                     onClick={() => router.patch(route('dashboard.assignments.reset', a.id))}
-                                                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors duration-200 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                                                 >
                                                     Reset
                                                 </button>
@@ -484,7 +491,7 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
                                                 <span className="text-xs text-gray-400">Done</span>
                                                 <button
                                                     onClick={() => router.patch(route('dashboard.assignments.reset', a.id))}
-                                                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors duration-200 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                                                 >
                                                     Reset
                                                 </button>
@@ -494,7 +501,7 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                                         No class assignments for this session.
                                     </td>
                                 </tr>
@@ -530,20 +537,64 @@ export default function Dashboard(props) {
         ? stats?.active_session
         : activeSession;
 
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
     return (
         <AuthenticatedLayout title="Dashboard" breadcrumbs={[{ label: 'Dashboard' }]}>
             <div className="space-y-6">
-                {/* Welcome */}
-                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                        Welcome back, {user?.name}
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        You are signed in as {roles.join(', ') || 'a user'}.
+                {/* Welcome banner */}
+                <div className="animate-rise relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy via-indigo-950 to-navy p-6 shadow-hero sm:p-8">
+                    <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl" aria-hidden="true" />
+                    <div className="pointer-events-none absolute -bottom-28 -left-12 h-56 w-56 rounded-full bg-violet-500/20 blur-3xl" aria-hidden="true" />
+                    <div
+                        className="pointer-events-none absolute inset-0 opacity-[0.12]"
+                        style={{ backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.35) 1px, transparent 1px)', backgroundSize: '22px 22px' }}
+                        aria-hidden="true"
+                    />
+                    <GraduationCap
+                        className="pointer-events-none absolute -bottom-5 right-4 h-32 w-32 text-white/[0.05]"
+                        strokeWidth={1.25}
+                        aria-hidden="true"
+                    />
+                    <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-gold via-amber-400/70 to-transparent" aria-hidden="true" />
+
+                    <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <span
+                                className="animate-fade-in inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-gold backdrop-blur-sm"
+                                style={{ animationDelay: '150ms' }}
+                            >
+                                <Sparkles size={12} aria-hidden="true" />
+                                {greeting}
+                            </span>
+                            <h2
+                                className="animate-fade-in mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl"
+                                style={{ animationDelay: '250ms' }}
+                            >
+                                Welcome back,{' '}
+                                <span className="bg-gradient-to-r from-amber-200 via-gold to-amber-200 bg-clip-text text-transparent">
+                                    {user?.name}
+                                </span>
+                            </h2>
+                            <p className="animate-fade-in mt-2 text-sm text-indigo-200/80" style={{ animationDelay: '350ms' }}>
+                                You are signed in as {roles.join(', ') || 'a user'}.
+                            </p>
+                        </div>
+
                         {sessionLabel && (
-                            <> Active academic session: <span className="font-medium text-gray-700 dark:text-gray-300">{sessionLabel}</span></>
+                            <div
+                                className="animate-fade-in inline-flex items-center gap-2 self-start rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-medium text-indigo-100 backdrop-blur-sm lg:self-auto"
+                                style={{ animationDelay: '450ms' }}
+                            >
+                                <span className="relative flex h-2 w-2" aria-hidden="true">
+                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                                </span>
+                                Active session:&nbsp;<span className="font-semibold text-white">{sessionLabel}</span>
+                            </div>
                         )}
-                    </p>
+                    </div>
                 </div>
 
                 {dashboardType === 'parent' && (
