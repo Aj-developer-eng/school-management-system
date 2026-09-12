@@ -1,6 +1,7 @@
 import DashboardCard from '@/Components/Dashboard/DashboardCard';
+import EnrollmentBarChart from '@/Components/Dashboard/EnrollmentBarChart';
 import QuickAction from '@/Components/Dashboard/QuickAction';
-import SimpleBarChart from '@/Components/Dashboard/SimpleBarChart';
+import StatusDonutChart from '@/Components/Dashboard/StatusDonutChart';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useAuth } from '@/utils/authorization';
 import { formatDate, formatTimeRange } from '@/utils/format';
@@ -71,7 +72,7 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                 </div>
             </div>
 
-            <SimpleBarChart
+            <EnrollmentBarChart
                 data={enrollmentsByClass}
                 title="Student Enrollments by Class (Active Session)"
                 emptyMessage="No enrollments found for the active session."
@@ -91,11 +92,16 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                 >
                     Teacher Assignment Overview
                 </SectionHeading>
-                <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <DashboardCard title="Total" value={assignmentStats.total} subtitle="All assignments" color="indigo" delay={0} />
-                    <DashboardCard title="Pending" value={assignmentStats.pending} subtitle="Not started" color="amber" delay={70} />
-                    <DashboardCard title="Started" value={assignmentStats.started} subtitle="In progress" color="sky" delay={140} />
-                    <DashboardCard title="Completed" value={assignmentStats.completed} subtitle="Finished" color="emerald" delay={210} />
+                <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-5">
+                    <div className="lg:col-span-2">
+                        <StatusDonutChart stats={assignmentStats} title="Assignment Status" />
+                    </div>
+                    <div className="grid grid-cols-2 content-center gap-4 lg:col-span-3">
+                        <DashboardCard title="Total" value={assignmentStats.total} subtitle="All assignments" color="indigo" delay={0} />
+                        <DashboardCard title="Pending" value={assignmentStats.pending} subtitle="Not started" color="amber" delay={70} />
+                        <DashboardCard title="Started" value={assignmentStats.started} subtitle="In progress" color="sky" delay={140} />
+                        <DashboardCard title="Completed" value={assignmentStats.completed} subtitle="Finished" color="emerald" delay={210} />
+                    </div>
                 </div>
                 <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
                     <table className="w-full text-sm">
