@@ -45,7 +45,7 @@ export default function Show({ student, parents }) {
                                 <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Current Class</span>
                                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                                     {student.current_class
-                                        ? `${student.current_class.class} ${student.current_class.section} (${student.current_class.session})`
+                                        ? `${[student.current_class.class, student.current_class.section].filter(Boolean).join(' ')} (${student.current_class.session})`
                                         : 'Not enrolled'}
                                 </p>
                             </div>

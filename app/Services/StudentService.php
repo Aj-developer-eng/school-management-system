@@ -51,7 +51,7 @@ class StudentService
                 'student_id' => $student->id,
                 'academic_session_id' => $data['academic_session_id'],
                 'school_class_id' => $data['school_class_id'],
-                'section_id' => $data['section_id'],
+                'section_id' => $data['section_id'] ?? null,
                 'roll_number' => $data['roll_number'] ?? null,
                 'enrolled_on' => $data['enrolled_on'] ?? now()->toDateString(),
                 'status' => 'active',
@@ -87,7 +87,7 @@ class StudentService
                 ['academic_session_id' => $data['academic_session_id']],
                 [
                     'school_class_id' => $data['school_class_id'],
-                    'section_id' => $data['section_id'],
+                    'section_id' => $data['section_id'] ?? null,
                     'roll_number' => $data['roll_number'] ?? null,
                     'enrolled_on' => $data['enrolled_on'] ?? now()->toDateString(),
                     'status' => 'active',
@@ -96,7 +96,7 @@ class StudentService
 
             $enrollment->update([
                 'school_class_id' => $data['school_class_id'],
-                'section_id' => $data['section_id'],
+                'section_id' => $data['section_id'] ?? null,
                 'roll_number' => $data['roll_number'] ?? null,
                 'enrolled_on' => $data['enrolled_on'] ?? $enrollment->enrolled_on,
             ]);

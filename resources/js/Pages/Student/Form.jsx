@@ -40,20 +40,12 @@ export default function Form({ student, sessions, classes, sections, default_ses
                 String(section.academic_session_id) === String(data.academic_session_id) &&
                 String(section.school_class_id) === String(data.school_class_id),
         );
-        console.log('DEBUG filter:', {
-            sectionsIsArray: Array.isArray(sections),
-            sectionsCount: sections?.length,
-            sessionId: data.academic_session_id,
-            classId: data.school_class_id,
-            filteredCount: filtered.length,
-            sampleSection: sections?.[0],
-        });
         setFilteredSections(filtered);
 
+        // Section is optional: clear it when it is no longer valid for the
+        // selected session/class instead of force-selecting the first one.
         const stillValid = filtered.some((s) => String(s.id) === String(data.section_id));
-        if (!stillValid && filtered.length > 0) {
-            setData('section_id', filtered[0].id);
-        } else if (filtered.length === 0) {
+        if (!stillValid) {
             setData('section_id', '');
         }
     }, [data.academic_session_id, data.school_class_id, sections]);
@@ -66,7 +58,7 @@ export default function Form({ student, sessions, classes, sections, default_ses
             post(route('students.store'));
         }
     };
-console.log(filteredSections);
+
     const selectClass =
         'mt-1 block w-full rounded-md border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200';
 
@@ -88,13 +80,14 @@ console.log(filteredSections);
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
-                            <InputLabel htmlFor="name" value="Full Name" />
+                            <InputLabel htmlFor="name" value="Full Name" required />
                             <TextInput
                                 id="name"
                                 value={data.name}
                                 onChange={(event) => setData('name', event.target.value)}
                                 className="mt-1 block w-full"
                                 isFocused
+                                required
                             />
                             <InputError message={errors.name} className="mt-2" />
                         </div>
@@ -112,24 +105,26 @@ console.log(filteredSections);
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="phone" value="Phone" />
+                            <InputLabel htmlFor="phone" value="Phone" required />
                             <TextInput
                                 id="phone"
                                 value={data.phone}
                                 onChange={(event) => setData('phone', event.target.value)}
                                 className="mt-1 block w-full"
+                                required
                             />
                             <InputError message={errors.phone} className="mt-2" />
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="admission_date" value="Admission Date" />
+                            <InputLabel htmlFor="admission_date" value="Admission Date" required />
                             <TextInput
                                 id="admission_date"
                                 type="date"
                                 value={data.admission_date}
                                 onChange={(event) => setData('admission_date', event.target.value)}
                                 className="mt-1 block w-full"
+                                required
                             />
                             <InputError message={errors.admission_date} className="mt-2" />
                         </div>
@@ -137,24 +132,26 @@ console.log(filteredSections);
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                         <div>
-                            <InputLabel htmlFor="date_of_birth" value="Date of Birth" />
+                            <InputLabel htmlFor="date_of_birth" value="Date of Birth" required/>
                             <TextInput
                                 id="date_of_birth"
                                 type="date"
                                 value={data.date_of_birth}
                                 onChange={(event) => setData('date_of_birth', event.target.value)}
                                 className="mt-1 block w-full"
+                                required
                             />
                             <InputError message={errors.date_of_birth} className="mt-2" />
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="gender" value="Gender" />
+                            <InputLabel htmlFor="gender" value="Gender" required/>
                             <select
                                 id="gender"
                                 value={data.gender}
                                 onChange={(event) => setData('gender', event.target.value)}
                                 className={selectClass}
+                                required
                             >
                                 <option value="">—</option>
                                 <option value="male">Male</option>
@@ -200,24 +197,26 @@ console.log(filteredSections);
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="cnic_bform" value="CNIC / B-Form" />
+                            <InputLabel htmlFor="cnic_bform" value="CNIC / B-Form" required/>
                             <TextInput
                                 id="cnic_bform"
                                 value={data.cnic_bform}
                                 onChange={(event) => setData('cnic_bform', event.target.value)}
                                 className="mt-1 block w-full"
+                                required
                             />
                             <InputError message={errors.cnic_bform} className="mt-2" />
                         </div>
                     </div>
 
                     <div>
-                        <InputLabel htmlFor="address" value="Address" />
+                        <InputLabel htmlFor="address" value="Address" required/>
                         <textarea
                             id="address"
                             value={data.address}
                             onChange={(event) => setData('address', event.target.value)}
                             rows={3}
+                            required
                             className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
                         />
                         <InputError message={errors.address} className="mt-2" />
@@ -236,12 +235,13 @@ console.log(filteredSections);
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="medical_notes" value="Medical Notes" />
+                            <InputLabel htmlFor="medical_notes" value="Medical Notes" required/>
                             <TextInput
                                 id="medical_notes"
                                 value={data.medical_notes}
                                 onChange={(event) => setData('medical_notes', event.target.value)}
                                 className="mt-1 block w-full"
+                                required
                             />
                             <InputError message={errors.medical_notes} className="mt-2" />
                         </div>
@@ -253,12 +253,13 @@ console.log(filteredSections);
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
-                            <InputLabel htmlFor="academic_session_id" value="Academic Session" />
+                            <InputLabel htmlFor="academic_session_id" value="Academic Session" required />
                             <select
                                 id="academic_session_id"
                                 value={data.academic_session_id}
                                 onChange={(event) => setData('academic_session_id', event.target.value)}
                                 className={selectClass}
+                                required
                             >
                                 <option value="">Select session</option>
                                 {Object.entries(sessions ?? {}).map(([id, name]) => (
@@ -271,12 +272,13 @@ console.log(filteredSections);
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="school_class_id" value="Class" />
+                            <InputLabel htmlFor="school_class_id" value="Class" required />
                             <select
                                 id="school_class_id"
                                 value={data.school_class_id}
                                 onChange={(event) => setData('school_class_id', event.target.value)}
                                 className={selectClass}
+                                required
                             >
                                 <option value="">Select class</option>
                                 {Object.entries(classes ?? {}).map(([id, name]) => (
@@ -291,7 +293,7 @@ console.log(filteredSections);
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
-                            <InputLabel htmlFor="section_id" value="Section" />
+                            <InputLabel htmlFor="section_id" value="Section (optional)" />
                             <select
                                 id="section_id"
                                 value={data.section_id}
@@ -309,12 +311,13 @@ console.log(filteredSections);
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="roll_number" value="Roll Number" />
+                            <InputLabel htmlFor="roll_number" value="Roll Number" required/>
                             <TextInput
                                 id="roll_number"
                                 value={data.roll_number}
                                 onChange={(event) => setData('roll_number', event.target.value)}
                                 className="mt-1 block w-full"
+                                required
                             />
                             <InputError message={errors.roll_number} className="mt-2" />
                         </div>

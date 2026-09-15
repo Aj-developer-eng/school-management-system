@@ -40,7 +40,9 @@ export default function Index({ students, filters }) {
             label: 'Current Class',
             render: (row) => {
                 const e = row.enrollments?.[0];
-                return e ? `${e.school_class?.name} ${e.section?.name} (${e.academic_session?.name})` : '—';
+                return e
+                    ? `${[e.school_class?.name, e.section?.name].filter(Boolean).join(' ')} (${e.academic_session?.name})`
+                    : '—';
             },
         },
         {
