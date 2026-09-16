@@ -149,15 +149,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->names('fee-concessions');
 
     Route::get('attendance', [AttendanceController::class, 'index'])
-        ->name('attendance.index');
+        ->name('attendance.index')
+        ->middleware('can:attendances.view');
     Route::get('attendance/report', [AttendanceController::class, 'report'])
         ->name('attendance.report');
     Route::get('attendance/student/{student}', [AttendanceController::class, 'studentDetail'])
         ->name('attendance.student');
     Route::get('attendance/{assignment}', [AttendanceController::class, 'show'])
-        ->name('attendance.show');
+        ->name('attendance.show')
+        ->middleware('can:attendances.view');
     Route::post('attendance/{assignment}', [AttendanceController::class, 'store'])
-        ->name('attendance.store');
+        ->name('attendance.store')
+        ->middleware('can:attendances.create');
 
     Route::get('special-requests', [SpecialRequestController::class, 'index'])
         ->name('special-requests.index');

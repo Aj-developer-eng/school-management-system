@@ -9,13 +9,16 @@ use App\Models\AcademicSession;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Models\StudentParent;
 use App\Models\Teacher;
 use App\Models\TeacherSubjectAssignment;
 use App\Models\Test;
 use App\Models\TestResult;
+use App\Models\User;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -109,8 +112,11 @@ class TestController extends Controller
             ->with('success', 'Test announced successfully.');
     }
 
-    public function show(Test $test): Response
+    public function show(Request $request, Test $test): Response
     {
+        $user = $request->user();
+        $this->authorizeTestAccess($user, $test);
+
         $test->load([
             'teacher.user:id,name',
             'schoolClass:id,name',
@@ -125,6 +131,15 @@ class TestController extends Controller
             $students = $this->getEnrolledStudents($test);
         }
 
+        // Parents see only their children's results; students only their own.
+        // Unpublished results stay hidden from them entirely.
+        $scopedStudentIds = $this->scopedStudentIds($user);
+        if ($scopedStudentIds !== null) {
+            $students = $test->status === TestStatusEnum::ResultsPublished
+                ? $students->filter(fn ($s) => $scopedStudentIds->contains($s['id']))->values()
+                : collect();
+        }
+
         return Inertia::render('Test/Show', [
             'test' => $test,
             'students' => $students,
@@ -133,6 +148,8 @@ class TestController extends Controller
 
     public function edit(Test $test): Response
     {
+        $this->authorizeTestAccess(request()->user(), $test);
+
         $user = request()->user();
         $teacher = Teacher::where('user_id', $user->id)->first();
         $activeSession = AcademicSession::active()->first();
@@ -160,6 +177,8 @@ class TestController extends Controller
 
     public function update(Request $request, Test $test): \Illuminate\Http\RedirectResponse
     {
+        $this->authorizeTestAccess($request->user(), $test);
+
         $validated = $this->validateTest($request, $test);
 
         $assignment = TeacherSubjectAssignment::findOrFail($validated['teacher_subject_assignment_id']);
@@ -181,6 +200,8 @@ class TestController extends Controller
 
     public function destroy(Test $test): \Illuminate\Http\RedirectResponse
     {
+        $this->authorizeTestAccess(request()->user(), $test);
+
         ActivityLogService::custom('Tests', 'deleted', "Deleted test: {$test->title}");
 
         $test->delete();
@@ -191,6 +212,8 @@ class TestController extends Controller
 
     public function markConducted(Test $test): \Illuminate\Http\RedirectResponse
     {
+        $this->authorizeTestAccess(request()->user(), $test);
+
         $test->update(['status' => TestStatusEnum::Conducted]);
 
         ActivityLogService::custom('Tests', 'updated', "Marked test as conducted: {$test->title}");
@@ -200,6 +223,8 @@ class TestController extends Controller
 
     public function saveResults(Request $request, Test $test): \Illuminate\Http\RedirectResponse
     {
+        $this->authorizeTestAccess($request->user(), $test);
+
         $request->validate([
             'results' => ['required', 'array'],
             'results.*.student_id' => ['required', 'exists:students,id'],
@@ -232,6 +257,8 @@ class TestController extends Controller
 
     public function publishResults(Test $test): \Illuminate\Http\RedirectResponse
     {
+        $this->authorizeTestAccess(request()->user(), $test);
+
         if ($test->results()->count() === 0) {
             return redirect()->back()->with('error', 'No results to publish. Please save results first.');
         }
@@ -334,5 +361,44 @@ class TestController extends Controller
                 }
             }
         }
+    }
+
+    /**
+     * Teachers may only access their own tests; other permitted staff roles
+     * (Super Admin, Principal, Vice Principal) can access every test.
+     */
+    private function authorizeTestAccess(User $user, Test $test): void
+    {
+        if (! $user->hasRole(RoleEnum::Teacher->value)) {
+            return;
+        }
+
+        $teacher = Teacher::where('user_id', $user->id)->first();
+
+        if (! $teacher || $test->teacher_id !== $teacher->id) {
+            abort(403);
+        }
+    }
+
+    /**
+     * Return the student IDs the current user may view results for.
+     * Parents are scoped to their children; students to themselves.
+     * Returns null for staff roles (no scoping).
+     */
+    private function scopedStudentIds(User $user): ?Collection
+    {
+        if ($user->hasRole(RoleEnum::Parent->value)) {
+            $parent = StudentParent::where('user_id', $user->id)->first();
+
+            return $parent?->students()->pluck('students.id') ?? collect();
+        }
+
+        if ($user->hasRole(RoleEnum::Student->value)) {
+            $student = Student::where('user_id', $user->id)->first();
+
+            return $student ? collect([$student->id]) : collect();
+        }
+
+        return null;
     }
 }

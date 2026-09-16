@@ -24,6 +24,7 @@ import {
 /**
  * Role-aware navigation tree.
  * - `permission`: required permission (null = visible to all authenticated users)
+ * - `includeRoles`: roles that see the item even without `permission`
  * - `routeName`: Ziggy route name; item is hidden if the route is not registered,
  *   so navigation stays valid while modules are rolled out incrementally.
  */
@@ -70,7 +71,7 @@ export const navigation = [
                 label: 'Attendance',
                 routeName: 'attendance.index',
                 icon: ClipboardCheck,
-                permission: null,
+                permission: 'attendances.view',
                 excludeRoles: ['Parent', 'Student'],
             },
             {
@@ -159,7 +160,8 @@ export const navigation = [
                 label: 'Attendance Report',
                 routeName: 'attendance.report',
                 icon: ClipboardCheck,
-                permission: null,
+                permission: 'attendances.view',
+                includeRoles: ['Parent', 'Student'],
             },
         ],
     },
@@ -207,7 +209,9 @@ export function visibleNavigation(can, roles = []) {
             ...group,
             items: group.items.filter(
                 (item) =>
-                    (item.permission === null || can(item.permission)) &&
+                    (item.permission === null ||
+                        can(item.permission) ||
+                        item.includeRoles?.some((r) => roles.includes(r))) &&
                     (!item.roles || item.roles.some((r) => roles.includes(r))) &&
                     (!item.excludeRoles || !item.excludeRoles.some((r) => roles.includes(r))) &&
                     route().has(item.routeName),

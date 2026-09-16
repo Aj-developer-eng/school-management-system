@@ -10,7 +10,7 @@ const actionColors = {
     reset: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
 };
 
-export default function Index({ logs, teacherSummary, dateSummary, filters, teachers }) {
+export default function Index({ logs, teacherSummary, dateSummary, filters, teachers, isScoped }) {
     const [fromDate, setFromDate] = useState(filters.from_date ?? '');
     const [toDate, setToDate] = useState(filters.to_date ?? '');
     const [teacherId, setTeacherId] = useState(filters.teacher_id ?? '');
@@ -50,19 +50,21 @@ export default function Index({ logs, teacherSummary, dateSummary, filters, teac
                                 className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
                             />
                         </div>
-                        <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Teacher</label>
-                            <select
-                                value={teacherId}
-                                onChange={(e) => setTeacherId(e.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
-                            >
-                                <option value="">All teachers</option>
-                                {teachers.map((t) => (
-                                    <option key={t.id} value={t.id}>{t.name}</option>
-                                ))}
-                            </select>
-                        </div>
+                        {!isScoped && (
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Teacher</label>
+                                <select
+                                    value={teacherId}
+                                    onChange={(e) => setTeacherId(e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                                >
+                                    <option value="">All teachers</option>
+                                    {teachers.map((t) => (
+                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         <button
                             onClick={applyFilters}
                             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"

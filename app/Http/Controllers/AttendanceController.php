@@ -13,6 +13,7 @@ use App\Models\TeacherSubjectAssignment;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -61,6 +62,10 @@ class AttendanceController extends Controller
 
         $activeSession = AcademicSession::active()->first();
         $date = $request->input('date', today()->toDateString());
+        // The model's date cast stores full datetimes (Y-m-d H:i:s), so the
+        // lookup must bind the same format — a plain Y-m-d string never
+        // matches existing rows on SQLite.
+        $attendanceDate = Carbon::parse($date)->startOfDay();
 
         $assignment->load(['schoolClass:id,name', 'section:id,name', 'subject:id,name']);
 
@@ -79,10 +84,10 @@ class AttendanceController extends Controller
             ->whereNull('deleted_at')
             ->orderBy('roll_number')
             ->get()
-            ->map(function ($enrollment) use ($assignment, $date) {
+            ->map(function ($enrollment) use ($assignment, $attendanceDate) {
                 $attendance = Attendance::where('student_id', $enrollment->student_id)
                     ->where('teacher_subject_assignment_id', $assignment->id)
-                    ->where('attendance_date', $date)
+                    ->where('attendance_date', $attendanceDate)
                     ->first();
 
                 return [
@@ -126,13 +131,18 @@ class AttendanceController extends Controller
         ]);
 
         $date = $validated['attendance_date'];
+        // The model's date cast stores full datetimes (Y-m-d H:i:s), so the
+        // updateOrCreate lookup must bind the same format — otherwise a
+        // plain Y-m-d string never matches the existing row and a re-save
+        // trips the uniq_attendance_per_day unique constraint.
+        $attendanceDate = Carbon::parse($date)->startOfDay();
 
         foreach ($validated['records'] as $record) {
             Attendance::updateOrCreate(
                 [
                     'student_id' => $record['student_id'],
                     'teacher_subject_assignment_id' => $assignment->id,
-                    'attendance_date' => $date,
+                    'attendance_date' => $attendanceDate,
                 ],
                 [
                     'academic_session_id' => $sessionId,
@@ -153,8 +163,16 @@ class AttendanceController extends Controller
 
     public function report(Request $request): Response
     {
+        $user = $request->user();
+        $scopedStudentIds = $this->scopedStudentIds($user);
+
+        // Staff need the attendance permission; parents/students are scoped
+        // to their own (or their children's) records below instead.
+        if ($scopedStudentIds === null && ! $user->can('attendances.view')) {
+            abort(403);
+        }
+
         $activeSession = AcademicSession::active()->first();
-        $scopedStudentIds = $this->scopedStudentIds($request->user());
 
         $classes = \App\Models\SchoolClass::where('is_active', true)
             ->orderBy('level')
@@ -180,11 +198,11 @@ class AttendanceController extends Controller
         }
 
         if ($request->filled('date_from')) {
-            $query->where('attendance_date', '>=', $request->input('date_from'));
+            $query->whereDate('attendance_date', '>=', $request->input('date_from'));
         }
 
         if ($request->filled('date_to')) {
-            $query->where('attendance_date', '<=', $request->input('date_to'));
+            $query->whereDate('attendance_date', '<=', $request->input('date_to'));
         }
 
         if ($request->filled('status')) {
@@ -238,6 +256,19 @@ class AttendanceController extends Controller
 
     public function studentDetail(Request $request, Student $student): Response
     {
+        $user = $request->user();
+        $scopedStudentIds = $this->scopedStudentIds($user);
+
+        // Staff need the attendance permission; parents/students may only
+        // view themselves or their children.
+        if ($scopedStudentIds === null) {
+            if (! $user->can('attendances.view')) {
+                abort(403);
+            }
+        } elseif (! $scopedStudentIds->contains($student->id)) {
+            abort(403);
+        }
+
         $activeSession = AcademicSession::active()->first();
 
         $student->load('user:id,name');

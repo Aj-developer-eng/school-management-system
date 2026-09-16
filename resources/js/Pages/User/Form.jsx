@@ -126,16 +126,30 @@ export default function Form({ user, roles }) {
                             </div>
                         </div>
                     ) : (
-                        <div>
-                            <InputLabel htmlFor="password" value="New Password (leave blank to keep current)" />
-                            <TextInput
-                                id="password"
-                                type="password"
-                                value={data.password}
-                                onChange={(event) => setData('password', event.target.value)}
-                                className="mt-1 block w-full"
-                            />
-                            <InputError message={errors.password} className="mt-2" />
+                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div>
+                                <InputLabel htmlFor="password" value="New Password (leave blank to keep current)" />
+                                <TextInput
+                                    id="password"
+                                    type="password"
+                                    value={data.password}
+                                    onChange={(event) => setData('password', event.target.value)}
+                                    className="mt-1 block w-full"
+                                />
+                                <InputError message={errors.password} className="mt-2" />
+                            </div>
+
+                            <div>
+                                <InputLabel htmlFor="password_confirmation" value="Confirm New Password" />
+                                <TextInput
+                                    id="password_confirmation"
+                                    type="password"
+                                    value={data.password_confirmation}
+                                    onChange={(event) => setData('password_confirmation', event.target.value)}
+                                    className="mt-1 block w-full"
+                                />
+                                <InputError message={errors.password_confirmation} className="mt-2" />
+                            </div>
                         </div>
                     )}
 

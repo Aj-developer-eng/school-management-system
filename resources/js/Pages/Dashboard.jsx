@@ -409,17 +409,21 @@ function StudentDashboard({ enrollment, invoices, activeSession, student }) {
 }
 
 function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher }) {
+    const { can } = useAuth();
+
     return (
         <>
             {/* Quick action */}
-            <div className="animate-fade-in flex items-center justify-end">
-                <Link
-                    href={route('attendance.index')}
-                    className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:-translate-y-0.5 hover:from-indigo-500 hover:to-violet-500 hover:shadow-indigo-500/40"
-                >
-                    Record Attendance
-                </Link>
-            </div>
+            {can('attendances.view') && (
+                <div className="animate-fade-in flex items-center justify-end">
+                    <Link
+                        href={route('attendance.index')}
+                        className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:-translate-y-0.5 hover:from-indigo-500 hover:to-violet-500 hover:shadow-indigo-500/40"
+                    >
+                        Record Attendance
+                    </Link>
+                </div>
+            )}
 
             {/* Assignment stats */}
             <div className="animate-fade-in">

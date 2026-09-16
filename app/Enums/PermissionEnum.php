@@ -102,6 +102,10 @@ enum PermissionEnum: string
     case UpdateOnlineClasses = 'online-classes.update';
     case DeleteOnlineClasses = 'online-classes.delete';
 
+    // Attendance
+    case ViewAttendances = 'attendances.view';
+    case CreateAttendances = 'attendances.create';
+
     /**
      * @return list<string>
      */

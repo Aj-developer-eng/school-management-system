@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleEnum;
 use App\Models\AcademicSession;
 use App\Models\Teacher;
 use App\Models\TeacherAssignmentLog;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -17,6 +19,13 @@ class TeacherReportController extends Controller
         $fromDate = $request->input('from_date', now()->startOfMonth()->toDateString());
         $toDate = $request->input('to_date', now()->endOfMonth()->toDateString());
         $teacherId = $request->input('teacher_id');
+
+        // Teachers can only view their own assignment logs; other permitted
+        // staff (Super Admin, Principal, Vice Principal) see everyone.
+        $scopedTeacher = $this->scopedTeacher($request->user());
+        if ($scopedTeacher !== null) {
+            $teacherId = $scopedTeacher->id;
+        }
 
         $query = TeacherAssignmentLog::query()
             ->with(['teacher.user:id,name', 'schoolClass:id,name', 'section:id,name', 'subject:id,name'])
@@ -69,10 +78,27 @@ class TeacherReportController extends Controller
                 'to_date' => $toDate,
                 'teacher_id' => $teacherId,
             ],
-            'teachers' => Teacher::where('is_active', true)
-                ->with('user:id,name')
-                ->get()
-                ->map(fn ($t) => ['id' => $t->id, 'name' => $t->user->name]),
+            'teachers' => $scopedTeacher !== null
+                ? [['id' => $scopedTeacher->id, 'name' => $scopedTeacher->user?->name ?? 'Me']]
+                : Teacher::where('is_active', true)
+                    ->with('user:id,name')
+                    ->get()
+                    ->map(fn ($t) => ['id' => $t->id, 'name' => $t->user->name])
+                    ->all(),
+            'isScoped' => $scopedTeacher !== null,
         ]);
+    }
+
+    /**
+     * Return the Teacher record the current user is restricted to.
+     * Teachers only see their own reports; other permitted roles see everything (null).
+     */
+    private function scopedTeacher(User $user): ?Teacher
+    {
+        if (! $user->hasRole(RoleEnum::Teacher->value)) {
+            return null;
+        }
+
+        return Teacher::where('user_id', $user->id)->first();
     }
 }
