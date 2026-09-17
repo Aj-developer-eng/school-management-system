@@ -11,12 +11,17 @@ export default function Form({ student, sessions, classes, sections, default_ses
     const isEdit = Boolean(student);
     const enrollment = student?.enrollments?.[0];
 
+    // Date-cast fields arrive from the backend as ISO-8601 strings
+    // (e.g. "1986-05-13T00:00:00.000000Z"), which native date inputs
+    // reject — normalize them to YYYY-MM-DD so the form pre-fills.
+    const toInputDate = (value) => (value ? String(value).slice(0, 10) : '');
+
     const { data, setData, post, put, processing, errors } = useForm({
         name: student?.user?.name ?? '',
         email: student?.user?.email ?? '',
         phone: student?.user?.phone ?? '',
-        admission_date: student?.admission_date ?? new Date().toISOString().slice(0, 10),
-        date_of_birth: student?.date_of_birth ?? '',
+        admission_date: toInputDate(student?.admission_date) || new Date().toISOString().slice(0, 10),
+        date_of_birth: toInputDate(student?.date_of_birth),
         gender: student?.gender ?? '',
         blood_group: student?.blood_group ?? '',
         religion: student?.religion ?? '',
@@ -29,7 +34,7 @@ export default function Form({ student, sessions, classes, sections, default_ses
         school_class_id: enrollment?.school_class_id ?? '',
         section_id: enrollment?.section_id ?? '',
         roll_number: enrollment?.roll_number ?? '',
-        enrolled_on: enrollment?.enrolled_on ?? new Date().toISOString().slice(0, 10),
+        enrolled_on: toInputDate(enrollment?.enrolled_on) || new Date().toISOString().slice(0, 10),
     });
 
     const [filteredSections, setFilteredSections] = useState([]);
