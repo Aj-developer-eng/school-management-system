@@ -14,13 +14,27 @@ const statusColors = {
 
 export default function Show({ test, students }) {
     const { can } = useAuth();
+
+    // "No mark given" counts as absent: a student without a saved result
+    // record, an explicitly absent one, or one with no marks stored.
+    const computeAbsent = (s) => {
+        const r = s.result;
+        if (!r || r.is_absent) {
+            return true;
+        }
+
+        const hasMarks = r.marks_obtained !== null && r.marks_obtained !== undefined && r.marks_obtained !== '';
+
+        return !hasMarks;
+    };
+
     const [results, setResults] = useState(
         Object.fromEntries(
             (students ?? []).map((s) => [
                 s.id,
                 {
                     marks_obtained: s.result?.marks_obtained ?? '',
-                    is_absent: s.result?.is_absent ?? false,
+                    is_absent: computeAbsent(s),
                     remarks: s.result?.remarks ?? '',
                 },
             ]),
@@ -151,8 +165,13 @@ export default function Show({ test, students }) {
                                                                 min="0"
                                                                 max={Number(test.total_marks)}
                                                                 value={result.marks_obtained}
-                                                                onChange={(e) => updateResult(s.id, 'marks_obtained', e.target.value)}
-                                                                disabled={result.is_absent}
+                                                                onChange={(e) => {
+                                                                    updateResult(s.id, 'marks_obtained', e.target.value);
+                                                                    if (e.target.value !== '' && result.is_absent) {
+                                                                        // Marks given -> the student is present.
+                                                                        updateResult(s.id, 'is_absent', false);
+                                                                    }
+                                                                }}
                                                                 className="w-24 rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
                                                             />
                                                         ) : (
@@ -171,11 +190,17 @@ export default function Show({ test, students }) {
                                                             <input
                                                                 type="checkbox"
                                                                 checked={result.is_absent}
-                                                                onChange={(e) => updateResult(s.id, 'is_absent', e.target.checked)}
+                                                                onChange={(e) => {
+                                                                    updateResult(s.id, 'is_absent', e.target.checked);
+                                                                    if (e.target.checked) {
+                                                                        // Absent students have no marks.
+                                                                        updateResult(s.id, 'marks_obtained', '');
+                                                                    }
+                                                                }}
                                                                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
                                                             />
                                                         ) : (
-                                                            s.result?.is_absent ? 'Yes' : 'No'
+                                                            computeAbsent(s) ? 'Yes' : 'No'
                                                         )}
                                                     </td>
                                                     <td className="py-3">

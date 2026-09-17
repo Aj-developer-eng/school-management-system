@@ -155,6 +155,8 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
 }
 
 function ParentDashboard({ children, invoices, feeSummary, activeSession, todayAttendance }) {
+    const { can } = useAuth();
+
     return (
         <>
             {/* Quick action */}
@@ -179,6 +181,7 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
             </div>
 
             {/* Today's attendance */}
+            {can('attendances.view') && (
             <div className="animate-fade-in">
                 <SectionHeading
                     action={
@@ -239,6 +242,7 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                     </table>
                 </div>
             </div>
+            )}
 
             {/* Children progress */}
             <div className="animate-fade-in">

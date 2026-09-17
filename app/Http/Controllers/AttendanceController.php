@@ -164,13 +164,14 @@ class AttendanceController extends Controller
     public function report(Request $request): Response
     {
         $user = $request->user();
-        $scopedStudentIds = $this->scopedStudentIds($user);
 
-        // Staff need the attendance permission; parents/students are scoped
-        // to their own (or their children's) records below instead.
-        if ($scopedStudentIds === null && ! $user->can('attendances.view')) {
+        // Attendance reporting is permission-gated for every role; parents
+        // and students additionally get a scoped (own/children) view below.
+        if (! $user->can('attendances.view')) {
             abort(403);
         }
+
+        $scopedStudentIds = $this->scopedStudentIds($user);
 
         $activeSession = AcademicSession::active()->first();
 
@@ -257,15 +258,15 @@ class AttendanceController extends Controller
     public function studentDetail(Request $request, Student $student): Response
     {
         $user = $request->user();
-        $scopedStudentIds = $this->scopedStudentIds($user);
 
-        // Staff need the attendance permission; parents/students may only
-        // view themselves or their children.
-        if ($scopedStudentIds === null) {
-            if (! $user->can('attendances.view')) {
-                abort(403);
-            }
-        } elseif (! $scopedStudentIds->contains($student->id)) {
+        // Permission-gated for every role; parents/students may only view
+        // themselves or their children.
+        if (! $user->can('attendances.view')) {
+            abort(403);
+        }
+
+        $scopedStudentIds = $this->scopedStudentIds($user);
+        if ($scopedStudentIds !== null && ! $scopedStudentIds->contains($student->id)) {
             abort(403);
         }
 

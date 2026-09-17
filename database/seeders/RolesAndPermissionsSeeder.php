@@ -137,6 +137,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $this->syncRolePermissions(RoleEnum::Student, [
             PermissionEnum::ViewFeeInvoices->value,
             PermissionEnum::ViewFeePayments->value,
+            PermissionEnum::ViewAttendances->value,
         ]);
 
         $this->syncRolePermissions(RoleEnum::Parent, [
@@ -145,6 +146,7 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::CreateFeePayments->value,
             PermissionEnum::ViewTests->value,
             PermissionEnum::ViewOnlineClasses->value,
+            PermissionEnum::ViewAttendances->value,
         ]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
