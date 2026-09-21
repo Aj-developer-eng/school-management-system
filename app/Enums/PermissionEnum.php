@@ -106,6 +106,11 @@ enum PermissionEnum: string
     case ViewAttendances = 'attendances.view';
     case CreateAttendances = 'attendances.create';
 
+    // Subject Papers (past papers / test PDFs)
+    case UploadSubjectPapers = 'subjects.upload-papers';
+    case DownloadSubjectPapers = 'subjects.download-papers';
+    case DeleteSubjectPapers = 'subjects.delete-papers';
+
     /**
      * @return list<string>
      */

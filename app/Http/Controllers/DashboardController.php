@@ -159,6 +159,26 @@ class DashboardController extends Controller
                     ->whereDate('attendance_date', today()->toDateString())
                     ->orderBy('student_id')
                     ->get();
+
+                // Subjects of the children's current classes, with downloadable papers.
+                $classIds = $children->pluck('enrollments')->flatten(1)->pluck('school_class_id')->unique()->filter();
+
+                $subjectPapers = collect();
+                if ($classIds->isNotEmpty()) {
+                    $subjectPapers = Subject::whereIn('subjects.id', function ($q) use ($classIds): void {
+                        $q->select('class_subject.subject_id')
+                            ->from('class_subject')
+                            ->whereIn('class_subject.school_class_id', $classIds);
+                    })
+                        ->where('subjects.is_active', true)
+                        ->with(['papers' => function ($q): void {
+                            $q->whereNull('deleted_at')->orderByDesc('created_at');
+                        }])
+                        ->orderBy('subjects.name')
+                        ->get(['subjects.id', 'subjects.name', 'subjects.code'])
+                        ->filter(fn ($s) => $s->papers->isNotEmpty())
+                        ->values();
+                }
             }
         }
 
@@ -169,6 +189,7 @@ class DashboardController extends Controller
             'invoices' => $invoices,
             'feeSummary' => $feeSummary,
             'todayAttendance' => $todayAttendance,
+            'subjectPapers' => $subjectPapers,
             'activeSession' => $activeSession?->name,
         ]);
     }

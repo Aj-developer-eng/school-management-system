@@ -5,7 +5,7 @@ import StatusDonutChart from '@/Components/Dashboard/StatusDonutChart';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useAuth } from '@/utils/authorization';
 import { formatDate, formatTimeRange } from '@/utils/format';
-import { GraduationCap, Sparkles } from 'lucide-react';
+import { Download, GraduationCap, Sparkles } from 'lucide-react';
 import { Link, router } from '@inertiajs/react';
 
 const statusColors = {
@@ -154,7 +154,7 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
     );
 }
 
-function ParentDashboard({ children, invoices, feeSummary, activeSession, todayAttendance }) {
+function ParentDashboard({ children, invoices, feeSummary, activeSession, todayAttendance, subjectPapers }) {
     const { can } = useAuth();
 
     return (
@@ -244,6 +244,8 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
             </div>
             )}
 
+            <PapersSection papers={subjectPapers ?? []} />
+
             {/* Children progress */}
             <div className="animate-fade-in">
                 <SectionHeading>My Children</SectionHeading>
@@ -317,6 +319,7 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total</th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Balance</th>
                                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">PDF</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -336,6 +339,16 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                                             {inv.status}
                                         </span>
                                     </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <a
+                                            href={route('fee-invoices.pdf', inv.id)}
+                                            title="Download invoice PDF"
+                                            className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+                                        >
+                                            <Download size={14} />
+                                            PDF
+                                        </a>
+                                    </td>
                                 </tr>
                             )) : (
                                 <tr>
@@ -349,6 +362,61 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                 </div>
             </div>
         </>
+    );
+}
+
+function PapersSection({ papers }) {
+    const { can } = useAuth();
+
+    if (!can('subjects.download-papers') && !can('subjects.upload-papers')) {
+        return null;
+    }
+
+    return (
+        <div className="animate-fade-in">
+            <SectionHeading>Past Papers</SectionHeading>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {papers.length > 0 ? papers.map((subject, index) => (
+                    <div
+                        key={subject.id}
+                        className="animate-rise rounded-xl border border-gray-200 bg-white p-5 shadow-card dark:border-gray-700 dark:bg-gray-800"
+                        style={{ animationDelay: `${index * 60}ms` }}
+                    >
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                                <p className="truncate font-semibold text-gray-900 dark:text-gray-100">{subject.name}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">{subject.code}</p>
+                            </div>
+                            <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+                                {subject.papers.length}
+                            </span>
+                        </div>
+                        <ul className="mt-3 space-y-2 border-t border-gray-100 pt-3 dark:border-gray-700/60">
+                            {subject.papers.map((paper) => (
+                                <li key={paper.id} className="flex items-center justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm text-gray-700 dark:text-gray-300">{paper.title}</p>
+                                        <p className="truncate text-xs text-gray-400">{paper.original_name}</p>
+                                    </div>
+                                    <a
+                                        href={route('subject-papers.download', paper.id)}
+                                        title={`Download ${paper.title}`}
+                                        className="inline-flex shrink-0 items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+                                    >
+                                        <Download size={14} />
+                                        PDF
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )) : (
+                    <p className="col-span-full text-sm text-gray-500 dark:text-gray-400">
+                        No past papers have been uploaded yet for your children&apos;s subjects.
+                    </p>
+                )}
+            </div>
+        </div>
     );
 }
 
@@ -378,6 +446,7 @@ function StudentDashboard({ enrollment, invoices, activeSession, student }) {
                                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total</th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Balance</th>
                                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">PDF</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -396,10 +465,20 @@ function StudentDashboard({ enrollment, invoices, activeSession, student }) {
                                             {inv.status}
                                         </span>
                                     </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <a
+                                            href={route('fee-invoices.pdf', inv.id)}
+                                            title="Download invoice PDF"
+                                            className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+                                        >
+                                            <Download size={14} />
+                                            PDF
+                                        </a>
+                                    </td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                                         No invoices found.
                                     </td>
                                 </tr>
@@ -618,6 +697,7 @@ export default function Dashboard(props) {
                         feeSummary={feeSummary}
                         activeSession={activeSession}
                         todayAttendance={todayAttendance ?? []}
+                        subjectPapers={props.subjectPapers ?? []}
                     />
                 )}
 

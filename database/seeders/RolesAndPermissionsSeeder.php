@@ -84,6 +84,9 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::CreateFeeConcessions->value,
             PermissionEnum::UpdateFeeConcessions->value,
             PermissionEnum::ViewAttendances->value,
+            PermissionEnum::UploadSubjectPapers->value,
+            PermissionEnum::DownloadSubjectPapers->value,
+            PermissionEnum::DeleteSubjectPapers->value,
         ]);
 
         $this->syncRolePermissions(RoleEnum::Teacher, [
@@ -100,6 +103,9 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::ViewOnlineClasses->value,
             PermissionEnum::ViewAttendances->value,
             PermissionEnum::CreateAttendances->value,
+            PermissionEnum::UploadSubjectPapers->value,
+            PermissionEnum::DownloadSubjectPapers->value,
+            PermissionEnum::DeleteSubjectPapers->value,
         ]);
 
         $this->syncRolePermissions(RoleEnum::Accountant, [
@@ -147,6 +153,7 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::ViewTests->value,
             PermissionEnum::ViewOnlineClasses->value,
             PermissionEnum::ViewAttendances->value,
+            PermissionEnum::DownloadSubjectPapers->value,
         ]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

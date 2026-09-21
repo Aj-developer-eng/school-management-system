@@ -12,10 +12,10 @@ class SuperAdminSeeder extends Seeder
     public function run(): void
     {
         $superAdmin = User::query()->firstOrCreate(
-            ['email' => 'superadmin@school.test'],
+            ['email' => 'superadmin@edskill.co.uk'],
             [
                 'name' => 'Super Admin',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('password123'),
                 'email_verified_at' => now(),
                 'is_active' => true,
             ]

@@ -63,6 +63,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->except(['show'])
         ->names('subjects');
 
+    Route::post('subjects/{subject}/papers', [SubjectController::class, 'uploadPaper'])
+        ->name('subjects.papers.store');
+    Route::get('subject-papers/{paper}/download', [SubjectController::class, 'downloadPaper'])
+        ->name('subject-papers.download');
+    Route::delete('subject-papers/{paper}', [SubjectController::class, 'destroyPaper'])
+        ->name('subject-papers.destroy');
+
     Route::resource('teachers', TeacherController::class)
         ->except(['show'])
         ->names('teachers');

@@ -7,9 +7,11 @@ use App\Http\Requests\Subject\StoreRequest;
 use App\Http\Requests\Subject\UpdateRequest;
 use App\Models\SchoolClass;
 use App\Models\Subject;
+use App\Models\SubjectPaper;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,7 +25,7 @@ class SubjectController extends Controller
     public function index(Request $request): Response
     {
         $subjects = Subject::query()
-            ->with('schoolClasses')
+            ->with(['schoolClasses', 'papers'])
             ->when($this->scopedSubjectIds($request->user()), function ($query, $subjectIds): void {
                 $query->whereIn('subjects.id', $subjectIds);
             })
@@ -102,5 +104,49 @@ class SubjectController extends Controller
 
         return redirect()->route('subjects.index')
             ->with('success', 'Subject deleted successfully.');
+    }
+
+    public function uploadPaper(Request $request, Subject $subject): \Illuminate\Http\RedirectResponse
+    {
+        abort_unless($request->user()->can('subjects.upload-papers'), 403);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'file' => ['required', 'file', 'mimes:pdf,doc,docx,png,jpg,jpeg,webp', 'max:10240'],
+        ]);
+
+        $file = $validated['file'];
+
+        $subject->papers()->create([
+            'title' => $validated['title'],
+            'file_path' => $file->store('subject-papers', 'public'),
+            'original_name' => $file->getClientOriginalName(),
+            'mime_type' => $file->getMimeType(),
+            'size' => $file->getSize(),
+        ]);
+
+        return back()->with('success', 'Paper uploaded successfully.');
+    }
+
+    public function downloadPaper(Request $request, SubjectPaper $paper): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        abort_unless(
+            $request->user()->can('subjects.download-papers') || $request->user()->can('subjects.upload-papers'),
+            403,
+        );
+
+        abort_unless(Storage::disk('public')->exists($paper->file_path), 404, 'File not found.');
+
+        return Storage::disk('public')->download($paper->file_path, $paper->original_name);
+    }
+
+    public function destroyPaper(Request $request, SubjectPaper $paper): \Illuminate\Http\RedirectResponse
+    {
+        abort_unless($request->user()->can('subjects.delete-papers'), 403);
+
+        Storage::disk('public')->delete($paper->file_path);
+        $paper->delete();
+
+        return back()->with('success', 'Paper deleted successfully.');
     }
 }
