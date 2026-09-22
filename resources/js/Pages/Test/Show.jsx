@@ -154,9 +154,10 @@ export default function Show({ test, students }) {
                                         {students.map((s) => {
                                             const result = results[s.id] ?? { marks_obtained: '', is_absent: false, remarks: '' };
 
-                                            // In read-only view (e.g. parents), hide students that
-                                            // have no recorded outcome: no marks and not absent.
-                                            if (!canUploadResults && !computeAbsent(s) && !s.result?.marks_obtained) {
+                                            // In read-only view (e.g. parents), only show students
+                                            // with actual marks — hides "no marks" rows, whether
+                                            // absent or not.
+                                            if (!canUploadResults && !s.result?.marks_obtained) {
                                                 return null;
                                             }
 
