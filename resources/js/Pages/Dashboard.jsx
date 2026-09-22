@@ -40,7 +40,14 @@ function SectionHeading({ children, action }) {
     );
 }
 
-function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOverview, assignmentStats }) {
+const invoiceSegments = [
+    { key: 'paid', label: 'Paid', ring: 'stroke-emerald-500', dot: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-300' },
+    { key: 'partial', label: 'Partial', ring: 'stroke-amber-500', dot: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-300' },
+    { key: 'unpaid', label: 'Unpaid', ring: 'stroke-rose-500', dot: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-300' },
+    { key: 'cancelled', label: 'Cancelled', ring: 'stroke-gray-400', dot: 'bg-gray-400', text: 'text-gray-500 dark:text-gray-400' },
+];
+
+function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOverview, assignmentStats, invoiceStats, invoiceReferences }) {
     return (
         <>
             {quickActions.length > 0 && (
@@ -77,6 +84,79 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                 title="Student Enrollments by Class (Active Session)"
                 emptyMessage="No enrollments found for the active session."
             />
+
+            {/* Fee invoice status overview */}
+            <div className="animate-fade-in">
+                <SectionHeading
+                    action={
+                        <Link
+                            href={route('fee-invoices.index')}
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300"
+                        >
+                            View All Invoices
+                        </Link>
+                    }
+                >
+                    Fee Invoices Overview
+                </SectionHeading>
+                <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-5">
+                    <div className="lg:col-span-2">
+                        <StatusDonutChart
+                            stats={invoiceStats}
+                            title="Invoice Status"
+                            segments={invoiceSegments}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 content-center gap-4 lg:col-span-3">
+                        <DashboardCard title="Paid" value={invoiceStats.paid} subtitle="Fully settled" color="emerald" delay={0} />
+                        <DashboardCard title="Partial" value={invoiceStats.partial} subtitle="Partly paid" color="amber" delay={70} />
+                        <DashboardCard title="Unpaid" value={invoiceStats.unpaid} subtitle="Outstanding" color="rose" delay={140} />
+                        <DashboardCard title="Cancelled" value={invoiceStats.cancelled} subtitle="Voided" color="violet" delay={210} />
+                    </div>
+                </div>
+
+                {/* Invoice references */}
+                <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Reference</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Student</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Fee</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Balance</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {invoiceReferences.length > 0 ? invoiceReferences.map((inv) => (
+                                <tr key={inv.id} className="transition-colors hover:bg-indigo-50/40 dark:hover:bg-gray-700/30">
+                                    <td className="px-4 py-3">
+                                        <Link href={route('fee-invoices.show', inv.id)} className="font-medium text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200">
+                                            {inv.invoice_number}
+                                        </Link>
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{inv.student?.user?.name ?? '—'}</td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{inv.fee_structure?.name ?? '—'}</td>
+                                    <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300">{formatRs(inv.total_amount)}</td>
+                                    <td className="px-4 py-3 text-right font-semibold text-rose-600 dark:text-rose-400">{formatRs(inv.balance)}</td>
+                                    <td className="px-4 py-3 text-center">
+                                        <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusColors[inv.status] ?? statusColors.unpaid}`}>
+                                            {inv.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                                        No invoices found.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
             {/* Teacher assignment overview */}
             <div className="animate-fade-in">
@@ -726,6 +806,8 @@ export default function Dashboard(props) {
                         enrollmentsByClass={enrollmentsByClass}
                         assignmentOverview={props.assignmentOverview ?? []}
                         assignmentStats={props.assignmentStats ?? { total: 0, pending: 0, started: 0, completed: 0 }}
+                        invoiceStats={props.invoiceStatusStats ?? { paid: 0, partial: 0, unpaid: 0, cancelled: 0, total: 0 }}
+                        invoiceReferences={props.invoiceReferences ?? []}
                     />
                 )}
             </div>

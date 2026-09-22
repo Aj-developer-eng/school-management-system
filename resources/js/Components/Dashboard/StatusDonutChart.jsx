@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 
-const SEGMENTS = [
+const DEFAULT_SEGMENTS = [
     { key: 'pending', label: 'Pending', ring: 'stroke-amber-500', dot: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-300' },
     { key: 'started', label: 'Started', ring: 'stroke-sky-500', dot: 'bg-sky-500', text: 'text-sky-600 dark:text-sky-300' },
     { key: 'completed', label: 'Completed', ring: 'stroke-emerald-500', dot: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-300' },
 ];
 
-export default function StatusDonutChart({ stats, title = 'Assignment Status' }) {
+export default function StatusDonutChart({ stats, title = 'Assignment Status', segments }) {
+    const SEGMENTS = segments ?? DEFAULT_SEGMENTS;
     const [grown, setGrown] = useState(false);
     const [settled, setSettled] = useState(false);
     const [hovered, setHovered] = useState(null);

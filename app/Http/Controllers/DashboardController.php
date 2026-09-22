@@ -87,6 +87,22 @@ class DashboardController extends Controller
             'completed' => $assignmentOverview->where('status', AssignmentStatusEnum::Completed)->count(),
         ];
 
+        $invoiceQuery = FeeInvoice::query()->whereNull('deleted_at');
+        $invoiceStatusStats = [
+            'paid' => (clone $invoiceQuery)->where('status', InvoiceStatusEnum::Paid->value)->count(),
+            'partial' => (clone $invoiceQuery)->where('status', InvoiceStatusEnum::Partial->value)->count(),
+            'unpaid' => (clone $invoiceQuery)->where('status', InvoiceStatusEnum::Unpaid->value)->count(),
+            'cancelled' => (clone $invoiceQuery)->where('status', InvoiceStatusEnum::Cancelled->value)->count(),
+        ];
+        $invoiceStatusStats['total'] = array_sum($invoiceStatusStats);
+
+        $invoiceReferences = (clone $invoiceQuery)
+            ->with(['student.user:id,name', 'feeStructure:id,name'])
+            ->orderByDesc('issue_date')
+            ->orderByDesc('id')
+            ->limit(8)
+            ->get(['id', 'invoice_number', 'status', 'total_amount', 'balance', 'student_id', 'fee_structure_id']);
+
         $quickActions = $this->quickActions($user);
 // dd('default dashboard');
         return Inertia::render('Dashboard', [
@@ -95,6 +111,8 @@ class DashboardController extends Controller
             'quickActions' => $quickActions,
             'assignmentOverview' => $assignmentOverview,
             'assignmentStats' => $assignmentStats,
+            'invoiceStatusStats' => $invoiceStatusStats,
+            'invoiceReferences' => $invoiceReferences,
             'dashboardType' => 'staff',
         ]);
     }
