@@ -153,6 +153,13 @@ export default function Show({ test, students }) {
                                     <tbody>
                                         {students.map((s) => {
                                             const result = results[s.id] ?? { marks_obtained: '', is_absent: false, remarks: '' };
+
+                                            // In read-only view (e.g. parents), hide students that
+                                            // have no recorded outcome: no marks and not absent.
+                                            if (!canUploadResults && !computeAbsent(s) && !s.result?.marks_obtained) {
+                                                return null;
+                                            }
+
                                             return (
                                                 <tr key={s.id} className="border-b border-gray-100 dark:border-gray-700/50">
                                                     <td className="py-3 text-gray-500 dark:text-gray-400">{s.roll_number ?? '—'}</td>
