@@ -32,7 +32,7 @@ export default function Index({ users, filters, scope, payrollMonth, payrollSumm
                   {
                       key: 'payroll',
                       label: `Payroll — ${payrollMonth}`,
-                      render: (row) => <PayrollCell key={`${row.id}-${payrollMonth}`} user={row} month={payrollMonth} canManage={can('users.update')} />,
+                      render: (row) => <PayrollCell key={`${row.id}-${payrollMonth}`} user={row} month={payrollMonth} canManage={can('hrm.update')} />,
                   },
               ]
             : []),
@@ -69,7 +69,7 @@ export default function Index({ users, filters, scope, payrollMonth, payrollSumm
             actions={
                 <>
                     {can('users.create') && <CreateButton routeName="users.create" />}
-                    {isHrm && can('users.update') && (
+                    {isHrm && can('hrm.update') && (
                         <button
                             type="button"
                             onClick={payAll}

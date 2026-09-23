@@ -170,7 +170,7 @@ export const navigation = [
                 label: 'HRM',
                 routeName: 'hrm.index',
                 icon: Users,
-                permission: 'users.view',
+                permission: 'hrm.view',
             },
             {
                 label: 'Expenses',

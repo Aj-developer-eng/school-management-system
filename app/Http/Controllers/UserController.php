@@ -58,7 +58,7 @@ class UserController extends Controller
      */
     public function hrm(Request $request): Response
     {
-        $this->authorize('viewAny', User::class);
+        $this->authorize('viewAny', \App\Models\Hrm::class);
 
         $month = $this->resolvePayrollMonth($request);
 
@@ -124,7 +124,7 @@ class UserController extends Controller
      */
     public function updatePayroll(Request $request, User $user)
     {
-        $this->authorize('update', $user);
+        $this->authorize('manage', \App\Models\Hrm::class);
 
         $validated = $request->validate([
             'month' => ['required', 'date_format:Y-m'],
@@ -161,7 +161,7 @@ class UserController extends Controller
      */
     public function payAll(Request $request)
     {
-        $this->authorize('viewAny', User::class);
+        $this->authorize('manage', \App\Models\Hrm::class);
 
         $month = $this->resolvePayrollMonth($request);
 
@@ -201,7 +201,7 @@ class UserController extends Controller
      */
     public function exportPayroll(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        $this->authorize('viewAny', User::class);
+        $this->authorize('viewAny', \App\Models\Hrm::class);
 
         $month = $this->resolvePayrollMonth($request);
 

@@ -41,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);
+        Gate::policy(\App\Models\Hrm::class, \App\Policies\HrmPolicy::class);
         Gate::policy(FeeStructure::class, FeeStructurePolicy::class);
         Gate::policy(FeeInvoice::class, FeeInvoicePolicy::class);
         Gate::policy(FeePayment::class, FeePaymentPolicy::class);

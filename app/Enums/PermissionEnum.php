@@ -117,6 +117,10 @@ enum PermissionEnum: string
     case UpdateExpenses = 'expenses.update';
     case DeleteExpenses = 'expenses.delete';
 
+    // HRM (staff payroll)
+    case ViewHrm = 'hrm.view';
+    case UpdateHrm = 'hrm.update';
+
     /**
      * @return list<string>
      */
