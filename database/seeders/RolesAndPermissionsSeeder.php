@@ -87,6 +87,10 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::UploadSubjectPapers->value,
             PermissionEnum::DownloadSubjectPapers->value,
             PermissionEnum::DeleteSubjectPapers->value,
+            PermissionEnum::ViewExpenses->value,
+            PermissionEnum::CreateExpenses->value,
+            PermissionEnum::UpdateExpenses->value,
+            PermissionEnum::DeleteExpenses->value,
         ]);
 
         $this->syncRolePermissions(RoleEnum::Teacher, [
@@ -126,6 +130,10 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::CreateFeeConcessions->value,
             PermissionEnum::UpdateFeeConcessions->value,
             PermissionEnum::ViewAttendances->value,
+            PermissionEnum::ViewExpenses->value,
+            PermissionEnum::CreateExpenses->value,
+            PermissionEnum::UpdateExpenses->value,
+            PermissionEnum::DeleteExpenses->value,
         ]);
 
         $this->syncRolePermissions(RoleEnum::Receptionist, [

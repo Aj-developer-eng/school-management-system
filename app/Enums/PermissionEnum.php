@@ -111,6 +111,12 @@ enum PermissionEnum: string
     case DownloadSubjectPapers = 'subjects.download-papers';
     case DeleteSubjectPapers = 'subjects.delete-papers';
 
+    // Expenses
+    case ViewExpenses = 'expenses.view';
+    case CreateExpenses = 'expenses.create';
+    case UpdateExpenses = 'expenses.update';
+    case DeleteExpenses = 'expenses.delete';
+
     /**
      * @return list<string>
      */

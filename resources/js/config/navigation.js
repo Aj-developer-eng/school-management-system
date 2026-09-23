@@ -164,6 +164,23 @@ export const navigation = [
         ],
     },
     {
+        section: 'HRM',
+        items: [
+            {
+                label: 'HRM',
+                routeName: 'hrm.index',
+                icon: Users,
+                permission: 'users.view',
+            },
+            {
+                label: 'Expenses',
+                routeName: 'expenses.index',
+                icon: Receipt,
+                permission: 'expenses.view',
+            },
+        ],
+    },
+    {
         section: 'Administration',
         items: [
             {

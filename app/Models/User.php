@@ -6,6 +6,7 @@ namespace App\Models;
 use App\Traits\HasAuditFields;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -51,5 +52,19 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function hrmPayrolls(): HasMany
+    {
+        return $this->hasMany(HrmPayroll::class);
+    }
+
+    /**
+     * Payroll records filtered to a specific month via the query.
+     * Usage: User::with(['payrollForMonth' => fn ($q) => $q->whereDate('month', $date)])
+     */
+    public function payrollForMonth(): HasMany
+    {
+        return $this->hrmPayrolls();
     }
 }

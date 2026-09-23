@@ -4,6 +4,7 @@ use App\Http\Controllers\AcademicSessionController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\FeeConcessionController;
 use App\Http\Controllers\FeeInvoiceController;
 use App\Http\Controllers\FeePaymentController;
@@ -99,6 +100,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('users', UserController::class)
         ->except(['show'])
         ->names('users');
+
+    Route::get('hrm', [UserController::class, 'hrm'])
+        ->name('hrm.index');
+    Route::post('hrm/{user}/payroll', [UserController::class, 'updatePayroll'])
+        ->name('hrm.payroll.update');
+    Route::post('hrm/pay-all', [UserController::class, 'payAll'])
+        ->name('hrm.payall');
+    Route::get('hrm/payroll-export', [UserController::class, 'exportPayroll'])
+        ->name('hrm.payroll.export');
+
+    Route::resource('expenses', ExpenseController::class)
+        ->except(['show'])
+        ->names('expenses');
 
     Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
     Route::post('roles', [RoleController::class, 'storeRole'])->name('roles.store');
