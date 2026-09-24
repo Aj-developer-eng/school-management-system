@@ -15,7 +15,7 @@ return new class extends Migration
 
             
             if (! $this->hasDayOfWeekIndex()) {
-                $table->index(['day_of_week', 'academic_session_id']);
+                $table->index(['day_of_week', 'academic_session_id'], 'tsa_day_session_index');
             }
         });
     }
@@ -24,7 +24,7 @@ return new class extends Migration
     {
         Schema::table('teacher_subject_assignments', function (Blueprint $table): void {
             if ($this->hasDayOfWeekIndex()) {
-                $table->dropIndex(['day_of_week', 'academic_session_id']);
+                $table->dropIndex('tsa_day_session_index');
             }
 
             if (Schema::hasColumn('teacher_subject_assignments', 'day_of_week')) {
