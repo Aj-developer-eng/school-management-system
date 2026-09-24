@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
 import CreateButton from '@/Components/Ui/CreateButton';
@@ -16,7 +16,7 @@ import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
 import { confirmAction } from '@/utils/swal';
 import { Link, router, useForm } from '@inertiajs/react';
-import { Download, FileText, Paperclip, Upload, X } from 'lucide-react';
+import { Download, FileText, Paperclip, Search, Upload, X } from 'lucide-react';
 
 const formatSize = (bytes) => {
     if (!bytes) return '—';
@@ -135,9 +135,18 @@ export default function Index({ subjects, filters }) {
 }
 
 function StudentsModal({ subject, onClose }) {
+    const [query, setQuery] = useState('');
+
+    // Reset the search when a different subject is opened.
+    useEffect(() => {
+        setQuery('');
+    }, [subject?.id]);
+
     if (!subject) return null;
 
-    const students = subject.students_list ?? [];
+    const students = (subject.students_list ?? []).filter((s) =>
+        (s.student_name ?? '').toLowerCase().includes(query.trim().toLowerCase()),
+    );
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -147,14 +156,29 @@ function StudentsModal({ subject, onClose }) {
                         <h2 className="text-sm font-semibold uppercase text-gray-500 dark:text-gray-400">
                             Students — {subject.name}
                         </h2>
-                        <p className="text-xs text-gray-400">{students.length} enrolled</p>
+                        <p className="text-xs text-gray-400">
+                            {students.length} of {(subject.students_list ?? []).length} enrolled
+                        </p>
                     </div>
                     <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">
                         <X className="h-5 w-5" />
                     </button>
                 </div>
 
-                <div className="max-h-80 overflow-y-auto p-4">
+                <div className="p-3">
+                    <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder="Search student by name…"
+                            className="w-full rounded-lg border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                        />
+                    </div>
+                </div>
+
+                <div className="max-h-80 overflow-y-auto p-4 pt-0">
                     {students.length > 0 ? (
                         <ul className="divide-y divide-gray-100 dark:divide-gray-700">
                             {students.map((s) => (
@@ -180,7 +204,9 @@ function StudentsModal({ subject, onClose }) {
                         </ul>
                     ) : (
                         <p className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                            No students enrolled for this subject.
+                            {(subject.students_list ?? []).length === 0
+                                ? 'No students enrolled for this subject.'
+                                : `No students match "${query}".`}
                         </p>
                     )}
                 </div>
