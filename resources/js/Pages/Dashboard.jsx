@@ -258,9 +258,13 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
 function TimetableSection({ timetable }) {
     const byDay = {};
     (timetable ?? []).forEach((entry) => {
-        (byDay[entry.day] ??= []).push(entry);
+        const dayValue = entry.day ?? 0;
+        (byDay[dayValue] ??= []).push(entry);
     });
-    const days = WEEK_DAYS.filter((d) => byDay[d.value]?.length);
+    const days = [
+        { value: 0, label: 'Unscheduled' },
+        ...WEEK_DAYS,
+    ].filter((d) => byDay[d.value]?.length);
 
     return (
         <div className="animate-fade-in">
@@ -269,7 +273,7 @@ function TimetableSection({ timetable }) {
                 <div className="rounded-xl border border-dashed border-gray-300 bg-white px-4 py-10 text-center dark:border-gray-700 dark:bg-gray-800">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-300">No timetable scheduled yet.</p>
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Set the day of week and start/end time on teacher assignments to build the weekly timetable.
+                        Create teacher assignments to build the weekly timetable.
                     </p>
                 </div>
             ) : (
@@ -291,10 +295,10 @@ function TimetableSection({ timetable }) {
                                 <li key={entry.id} className="flex items-start gap-3 px-4 py-3">
                                     <div className="w-16 shrink-0 rounded-md bg-gray-50 px-1.5 py-1 text-center dark:bg-gray-700/50">
                                         <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200">
-                                            {formatTime12(entry.start_time)}
+                                            {entry.start_time ? formatTime12(entry.start_time) : '—'}
                                         </p>
                                         <p className="text-[10px] text-gray-400 dark:text-gray-500">
-                                            {formatTime12(entry.end_time)}
+                                            {entry.end_time ? formatTime12(entry.end_time) : ''}
                                         </p>
                                     </div>
                                     <div className="min-w-0">

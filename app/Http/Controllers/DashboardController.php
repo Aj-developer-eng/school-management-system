@@ -383,11 +383,6 @@ class DashboardController extends Controller
         $query = TeacherSubjectAssignment::query()
             ->with(['teacher.user:id,name', 'schoolClass:id,name', 'section:id,name', 'subject:id,name'])
             ->whereNull('deleted_at')
-            ->whereNotNull('day_of_week')
-            ->when($activeSession, function ($q) use ($activeSession): void {
-                $q->where('academic_session_id', $activeSession->id);
-            })
-            ->whereNotNull('start_time')
             ->orderBy('day_of_week')
             ->orderBy('start_time');
 
@@ -411,7 +406,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $assignment->id,
                     'day' => $assignment->day_of_week,
-                    'day_label' => $timetableDays[$assignment->day_of_week] ?? '—',
+                    'day_label' => $timetableDays[$assignment->day_of_week] ?? 'Unscheduled',
                     'start_time' => $assignment->start_time?->format('H:i'),
                     'end_time' => $assignment->end_time?->format('H:i'),
                     'teacher' => $assignment->teacher?->user?->name,
