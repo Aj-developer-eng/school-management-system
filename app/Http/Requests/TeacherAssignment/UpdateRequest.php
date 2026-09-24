@@ -37,6 +37,7 @@ class UpdateRequest extends FormRequest
             ],
             'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i', 'after_or_equal:start_time'],
+            'day_of_week' => ['nullable', 'integer', 'between:1,7'],
         ];
     }
 }

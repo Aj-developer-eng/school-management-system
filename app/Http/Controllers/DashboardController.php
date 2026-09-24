@@ -103,6 +103,9 @@ class DashboardController extends Controller
             ->limit(8)
             ->get(['id', 'invoice_number', 'status', 'total_amount', 'balance', 'student_id', 'fee_structure_id']);
 
+        // Weekly timetable from class (teacher) assignments.
+        $timetable = $this->buildTimetable($activeSession);
+
         $quickActions = $this->quickActions($user);
 // dd('default dashboard');
         return Inertia::render('Dashboard', [
@@ -113,6 +116,7 @@ class DashboardController extends Controller
             'assignmentStats' => $assignmentStats,
             'invoiceStatusStats' => $invoiceStatusStats,
             'invoiceReferences' => $invoiceReferences,
+            'timetable' => $timetable,
             'dashboardType' => 'staff',
         ]);
     }
@@ -200,6 +204,14 @@ class DashboardController extends Controller
             }
         }
 
+        $classSectionPairs = $children
+            ->flatMap(fn ($child) => $child->enrollments)
+            ->filter(fn ($enrollment) => $enrollment->school_class_id && $enrollment->section_id)
+            ->map(fn ($enrollment) => ['class_id' => $enrollment->school_class_id, 'section_id' => $enrollment->section_id])
+            ->unique(fn ($pair) => $pair['class_id'].'-'.$pair['section_id'])
+            ->values()
+            ->all();
+
         return Inertia::render('Dashboard', [
             'dashboardType' => 'parent',
             'parent' => $parent ? ['id' => $parent->id, 'occupation' => $parent->occupation] : null,
@@ -209,6 +221,7 @@ class DashboardController extends Controller
             'todayAttendance' => $todayAttendance,
             'subjectPapers' => $subjectPapers,
             'activeSession' => $activeSession?->name,
+            'timetable' => $this->buildTimetable($activeSession, null, $classSectionPairs),
         ]);
     }
 
@@ -236,12 +249,17 @@ class DashboardController extends Controller
                 ->get();
         }
 
+        $classSectionPairs = $enrollment
+            ? [['class_id' => $enrollment->school_class_id, 'section_id' => $enrollment->section_id]]
+            : [];
+
         return Inertia::render('Dashboard', [
             'dashboardType' => 'student',
             'student' => $student ? ['id' => $student->id, 'admission_number' => $student->admission_number] : null,
             'enrollment' => $enrollment,
             'invoices' => $invoices,
             'activeSession' => $activeSession?->name,
+            'timetable' => $this->buildTimetable($activeSession, null, $classSectionPairs),
         ]);
     }
 
@@ -282,12 +300,17 @@ class DashboardController extends Controller
             ];
         }
 
+        $timetable = $teacher
+            ? $this->buildTimetable($activeSession, $teacher->id)
+            : [];
+
         return Inertia::render('Dashboard', [
             'dashboardType' => 'teacher',
             'teacher' => $teacher ? ['id' => $teacher->id, 'employee_code' => $teacher->employee_code] : null,
             'assignments' => $assignments,
             'assignmentStats' => $stats,
             'activeSession' => $activeSession?->name,
+            'timetable' => $timetable,
         ]);
     }
 
@@ -348,6 +371,57 @@ class DashboardController extends Controller
             'occurred_at' => now(),
             'created_by' => $user->id,
         ]);
+    }
+
+    private function buildTimetable(?AcademicSession $activeSession, ?int $teacherId = null, array $classSectionPairs = []): array
+    {
+        $timetableDays = [
+            1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday',
+            4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday',
+        ];
+
+        $query = TeacherSubjectAssignment::query()
+            ->with(['teacher.user:id,name', 'schoolClass:id,name', 'section:id,name', 'subject:id,name'])
+            ->whereNull('deleted_at')
+            ->whereNotNull('day_of_week')
+            ->when($activeSession, function ($q) use ($activeSession): void {
+                $q->where('academic_session_id', $activeSession->id);
+            })
+            ->whereNotNull('start_time')
+            ->orderBy('day_of_week')
+            ->orderBy('start_time');
+
+        if ($teacherId !== null) {
+            $query->where('teacher_id', $teacherId);
+        }
+
+        if ($classSectionPairs !== []) {
+            $query->where(function ($q) use ($classSectionPairs): void {
+                foreach ($classSectionPairs as $pair) {
+                    $q->orWhere(function ($sub) use ($pair): void {
+                        $sub->where('school_class_id', $pair['class_id'])
+                            ->where('section_id', $pair['section_id']);
+                    });
+                }
+            });
+        }
+
+        return $query->get()
+            ->map(function (TeacherSubjectAssignment $assignment) use ($timetableDays): array {
+                return [
+                    'id' => $assignment->id,
+                    'day' => $assignment->day_of_week,
+                    'day_label' => $timetableDays[$assignment->day_of_week] ?? '—',
+                    'start_time' => $assignment->start_time?->format('H:i'),
+                    'end_time' => $assignment->end_time?->format('H:i'),
+                    'teacher' => $assignment->teacher?->user?->name,
+                    'class' => $assignment->schoolClass?->name,
+                    'section' => $assignment->section?->name,
+                    'subject' => $assignment->subject?->name,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function quickActions(User $user): array

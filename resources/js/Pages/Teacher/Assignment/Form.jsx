@@ -17,7 +17,19 @@ export default function Form({ assignment, teachers, sessions, classes }) {
         subject_id: assignment?.subject_id ?? '',
         start_time: assignment?.start_time ?? '',
         end_time: assignment?.end_time ?? '',
+        day_of_week: assignment?.day_of_week ?? '',
     });
+
+    const dayOptions = [
+        { value: '', label: 'No fixed day' },
+        { value: 1, label: 'Monday' },
+        { value: 2, label: 'Tuesday' },
+        { value: 3, label: 'Wednesday' },
+        { value: 4, label: 'Thursday' },
+        { value: 5, label: 'Friday' },
+        { value: 6, label: 'Saturday' },
+        { value: 7, label: 'Sunday' },
+    ];
 
     const [sections, setSections] = useState([]);
     const [subjects, setSubjects] = useState([]);
@@ -185,6 +197,21 @@ export default function Form({ assignment, teachers, sessions, classes }) {
                                 className="mt-1 block w-full"
                             />
                             <InputError message={errors.end_time} className="mt-2" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="day_of_week" value="Day of Week" />
+                            <select
+                                id="day_of_week"
+                                value={data.day_of_week}
+                                onChange={(event) => setData('day_of_week', event.target.value)}
+                                className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                            >
+                                {dayOptions.map((day) => (
+                                    <option key={day.value} value={day.value}>{day.label}</option>
+                                ))}
+                            </select>
+                            <InputError message={errors.day_of_week} className="mt-2" />
                         </div>
                     </div>
 

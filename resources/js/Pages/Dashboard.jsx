@@ -47,7 +47,25 @@ const invoiceSegments = [
     { key: 'cancelled', label: 'Cancelled', ring: 'stroke-gray-400', dot: 'bg-gray-400', text: 'text-gray-500 dark:text-gray-400' },
 ];
 
-function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOverview, assignmentStats, invoiceStats, invoiceReferences }) {
+const WEEK_DAYS = [
+    { value: 1, label: 'Monday', short: 'Mon' },
+    { value: 2, label: 'Tuesday', short: 'Tue' },
+    { value: 3, label: 'Wednesday', short: 'Wed' },
+    { value: 4, label: 'Thursday', short: 'Thu' },
+    { value: 5, label: 'Friday', short: 'Fri' },
+    { value: 6, label: 'Saturday', short: 'Sat' },
+    { value: 7, label: 'Sunday', short: 'Sun' },
+];
+
+const formatTime12 = (time) => {
+    if (!time) return '';
+    const [h, m] = time.split(':').map(Number);
+    const suffix = h >= 12 ? 'PM' : 'AM';
+    const hour = h % 12 || 12;
+    return `${hour}:${String(m).padStart(2, '0')} ${suffix}`;
+};
+
+function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOverview, assignmentStats, invoiceStats, invoiceReferences, timetable }) {
     return (
         <>
             {quickActions.length > 0 && (
@@ -230,11 +248,73 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                     </table>
                 </div>
             </div>
+
+            {/* Weekly timetable */}
+            <TimetableSection timetable={timetable} />
         </>
     );
 }
 
-function ParentDashboard({ children, invoices, feeSummary, activeSession, todayAttendance, subjectPapers }) {
+function TimetableSection({ timetable }) {
+    const byDay = {};
+    (timetable ?? []).forEach((entry) => {
+        (byDay[entry.day] ??= []).push(entry);
+    });
+    const days = WEEK_DAYS.filter((d) => byDay[d.value]?.length);
+
+    if (days.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="animate-fade-in">
+            <SectionHeading>Weekly Timetable</SectionHeading>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {days.map((day, dayIndex) => (
+                    <div
+                        key={day.value}
+                        className="animate-rise overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800"
+                        style={{ animationDelay: `${dayIndex * 60}ms` }}
+                    >
+                        <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/80 px-4 py-2.5 dark:border-gray-700/60 dark:bg-gray-700/40">
+                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{day.label}</span>
+                            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+                                {byDay[day.value].length} class{byDay[day.value].length !== 1 ? 'es' : ''}
+                            </span>
+                        </div>
+                        <ul className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                            {byDay[day.value].map((entry) => (
+                                <li key={entry.id} className="flex items-start gap-3 px-4 py-3">
+                                    <div className="w-16 shrink-0 rounded-md bg-gray-50 px-1.5 py-1 text-center dark:bg-gray-700/50">
+                                        <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200">
+                                            {formatTime12(entry.start_time)}
+                                        </p>
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                                            {formatTime12(entry.end_time)}
+                                        </p>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {entry.subject?.name ?? entry.subject ?? '—'}
+                                        </p>
+                                        <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                                            {entry.school_class?.name ?? entry.class ?? '—'}
+                                            {entry.section?.name ?? entry.section ? ` · ${entry.section?.name ?? entry.section}` : ''}
+                                            {' · '}
+                                            {entry.teacher?.user?.name ?? entry.teacher ?? '—'}
+                                        </p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function ParentDashboard({ children, invoices, feeSummary, activeSession, todayAttendance, subjectPapers, timetable }) {
     const { can } = useAuth();
 
     return (
@@ -441,6 +521,8 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                     </table>
                 </div>
             </div>
+
+            <TimetableSection timetable={timetable} />
         </>
     );
 }
@@ -500,7 +582,7 @@ function PapersSection({ papers }) {
     );
 }
 
-function StudentDashboard({ enrollment, invoices, activeSession, student }) {
+function StudentDashboard({ enrollment, invoices, activeSession, student, timetable }) {
     return (
         <>
             {/* Enrollment info */}
@@ -567,11 +649,13 @@ function StudentDashboard({ enrollment, invoices, activeSession, student }) {
                     </table>
                 </div>
             </div>
+
+            <TimetableSection timetable={timetable} />
         </>
     );
 }
 
-function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher }) {
+function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher, timetable }) {
     const { can } = useAuth();
 
     return (
@@ -683,6 +767,8 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
                     </table>
                 </div>
             </div>
+
+            <TimetableSection timetable={timetable} />
         </>
     );
 }
@@ -778,6 +864,7 @@ export default function Dashboard(props) {
                         activeSession={activeSession}
                         todayAttendance={todayAttendance ?? []}
                         subjectPapers={props.subjectPapers ?? []}
+                        timetable={props.timetable ?? []}
                     />
                 )}
 
@@ -787,6 +874,7 @@ export default function Dashboard(props) {
                         invoices={invoices ?? []}
                         activeSession={activeSession}
                         student={student}
+                        timetable={props.timetable ?? []}
                     />
                 )}
 
@@ -796,6 +884,7 @@ export default function Dashboard(props) {
                         assignmentStats={assignmentStats}
                         activeSession={activeSession}
                         teacher={teacher}
+                        timetable={props.timetable ?? []}
                     />
                 )}
 
@@ -808,6 +897,7 @@ export default function Dashboard(props) {
                         assignmentStats={props.assignmentStats ?? { total: 0, pending: 0, started: 0, completed: 0 }}
                         invoiceStats={props.invoiceStatusStats ?? { paid: 0, partial: 0, unpaid: 0, cancelled: 0, total: 0 }}
                         invoiceReferences={props.invoiceReferences ?? []}
+                        timetable={props.timetable ?? []}
                     />
                 )}
             </div>
