@@ -17,7 +17,7 @@ class ActivityLogController extends Controller
         if (!$user->hasRole(RoleEnum::SuperAdmin->value)) {
             abort(403);
         }
-
+ 
         $query = ActivityLog::with('user:id,name,email')
             ->when($request->filled('module'), function ($q) use ($request): void {
                 $q->where('module', $request->input('module'));
