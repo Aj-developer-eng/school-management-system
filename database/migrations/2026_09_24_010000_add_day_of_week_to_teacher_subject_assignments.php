@@ -9,16 +9,37 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('teacher_subject_assignments', function (Blueprint $table): void {
-            $table->unsignedTinyInteger('day_of_week')->nullable()->after('end_time')->comment('1=Monday ... 7=Sunday');
-            $table->index(['day_of_week', 'academic_session_id']);
+            if (! Schema::hasColumn('teacher_subject_assignments', 'day_of_week')) {
+                $table->unsignedTinyInteger('day_of_week')->nullable()->after('end_time')->comment('1=Monday ... 7=Sunday');
+            }
+
+            if (! $this->hasDayOfWeekIndex()) {
+                $table->index(['day_of_week', 'academic_session_id']);
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('teacher_subject_assignments', function (Blueprint $table): void {
-            $table->dropIndex(['day_of_week', 'academic_session_id']);
-            $table->dropColumn('day_of_week');
+            if ($this->hasDayOfWeekIndex()) {
+                $table->dropIndex(['day_of_week', 'academic_session_id']);
+            }
+
+            if (Schema::hasColumn('teacher_subject_assignments', 'day_of_week')) {
+                $table->dropColumn('day_of_week');
+            }
         });
+    }
+
+    private function hasDayOfWeekIndex(): bool
+    {
+        foreach (Schema::getIndexes('teacher_subject_assignments') as $index) {
+            if ($index['columns'] === ['day_of_week', 'academic_session_id']) {
+                return true;
+            }
+        }
+
+        return false;
     }
 };
