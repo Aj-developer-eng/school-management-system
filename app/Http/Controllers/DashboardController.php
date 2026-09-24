@@ -383,7 +383,6 @@ class DashboardController extends Controller
         $query = TeacherSubjectAssignment::query()
             ->with(['teacher.user:id,name', 'schoolClass:id,name', 'section:id,name', 'subject:id,name'])
             ->whereNull('deleted_at')
-            ->orderBy('day_of_week')
             ->orderBy('start_time');
 
         if ($teacherId !== null) {
@@ -402,19 +401,32 @@ class DashboardController extends Controller
         }
 
         return $query->get()
-            ->map(function (TeacherSubjectAssignment $assignment) use ($timetableDays): array {
-                return [
+            ->flatMap(function (TeacherSubjectAssignment $assignment) use ($timetableDays): array {
+                // One timetable entry per selected day; assignments without days become "Unscheduled".
+                $days = collect($assignment->days_of_week ?? [])
+                    ->filter(fn ($day) => is_numeric($day) && $day >= 1 && $day <= 7)
+                    ->map(fn ($day) => (int) $day)
+                    ->unique()
+                    ->values();
+
+                if ($days->isEmpty()) {
+                    $days = collect([0]);
+                }
+
+                return $days->map(fn (int $day): array => [
                     'id' => $assignment->id,
-                    'day' => $assignment->day_of_week,
-                    'day_label' => $timetableDays[$assignment->day_of_week] ?? 'Unscheduled',
+                    'key' => $assignment->id.'-'.$day,
+                    'day' => $day,
+                    'day_label' => $timetableDays[$day] ?? 'Unscheduled',
                     'start_time' => $assignment->start_time?->format('H:i'),
                     'end_time' => $assignment->end_time?->format('H:i'),
                     'teacher' => $assignment->teacher?->user?->name,
                     'class' => $assignment->schoolClass?->name,
                     'section' => $assignment->section?->name,
                     'subject' => $assignment->subject?->name,
-                ];
+                ])->all();
             })
+            ->sortBy(fn (array $entry): int => $entry['day'])
             ->values()
             ->all();
     }

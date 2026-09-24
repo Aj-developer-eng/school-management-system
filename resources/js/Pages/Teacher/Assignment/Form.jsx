@@ -17,11 +17,10 @@ export default function Form({ assignment, teachers, sessions, classes }) {
         subject_id: assignment?.subject_id ?? '',
         start_time: assignment?.start_time ?? '',
         end_time: assignment?.end_time ?? '',
-        day_of_week: assignment?.day_of_week ?? '',
+        days_of_week: assignment?.days_of_week ?? [],
     });
 
     const dayOptions = [
-        { value: '', label: 'No fixed day' },
         { value: 1, label: 'Monday' },
         { value: 2, label: 'Tuesday' },
         { value: 3, label: 'Wednesday' },
@@ -30,6 +29,16 @@ export default function Form({ assignment, teachers, sessions, classes }) {
         { value: 6, label: 'Saturday' },
         { value: 7, label: 'Sunday' },
     ];
+
+    const toggleDay = (value) => {
+        const current = data.days_of_week ?? [];
+        setData(
+            'days_of_week',
+            current.includes(value)
+                ? current.filter((d) => d !== value)
+                : [...current, value],
+        );
+    };
 
     const [sections, setSections] = useState([]);
     const [subjects, setSubjects] = useState([]);
@@ -199,19 +208,31 @@ export default function Form({ assignment, teachers, sessions, classes }) {
                             <InputError message={errors.end_time} className="mt-2" />
                         </div>
 
-                        <div>
-                            <InputLabel htmlFor="day_of_week" value="Day of Week" />
-                            <select
-                                id="day_of_week"
-                                value={data.day_of_week}
-                                onChange={(event) => setData('day_of_week', event.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
-                            >
-                                {dayOptions.map((day) => (
-                                    <option key={day.value} value={day.value}>{day.label}</option>
-                                ))}
-                            </select>
-                            <InputError message={errors.day_of_week} className="mt-2" />
+                        <div className="sm:col-span-2">
+                            <InputLabel value="Days of Week" />
+                            <div className="mt-1 flex flex-wrap gap-2">
+                                {dayOptions.map((day) => {
+                                    const selected = (data.days_of_week ?? []).includes(day.value);
+                                    return (
+                                        <button
+                                            key={day.value}
+                                            type="button"
+                                            onClick={() => toggleDay(day.value)}
+                                            className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                                                selected
+                                                    ? 'border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-700'
+                                                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800'
+                                            }`}
+                                        >
+                                            {day.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                Select all days this subject takes place (leave empty for no fixed days).
+                            </p>
+                            <InputError message={errors.days_of_week} className="mt-2" />
                         </div>
                     </div>
 

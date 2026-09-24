@@ -292,7 +292,7 @@ function TimetableSection({ timetable }) {
                         </div>
                         <ul className="divide-y divide-gray-100 dark:divide-gray-700/60">
                             {byDay[day.value].map((entry) => (
-                                <li key={entry.id} className="flex items-start gap-3 px-4 py-3">
+                                <li key={entry.key ?? entry.id} className="flex items-start gap-3 px-4 py-3">
                                     <div className="w-16 shrink-0 rounded-md bg-gray-50 px-1.5 py-1 text-center dark:bg-gray-700/50">
                                         <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200">
                                             {entry.start_time ? formatTime12(entry.start_time) : '—'}

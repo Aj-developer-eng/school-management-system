@@ -26,6 +26,15 @@ export default function Index({ assignments, filters }) {
             render: (row) => formatTimeRange(row.start_time, row.end_time),
         },
         {
+            key: 'days_of_week',
+            label: 'Days',
+            render: (row) => {
+                const labels = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun' };
+                const days = row.days_of_week ?? [];
+                return days.length > 0 ? days.map((d) => labels[d] ?? d).join(', ') : '—';
+            },
+        },
+        {
             key: 'actions',
             label: 'Actions',
             width: '120px',

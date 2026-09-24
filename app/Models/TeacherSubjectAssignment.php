@@ -23,7 +23,7 @@ class TeacherSubjectAssignment extends Model
         'subject_id',
         'start_time',
         'end_time',
-        'day_of_week',
+        'days_of_week',
         'status',
         'started_at',
         'completed_at',
@@ -35,6 +35,7 @@ class TeacherSubjectAssignment extends Model
             'status' => AssignmentStatusEnum::class,
             'start_time' => 'datetime:H:i',
             'end_time' => 'datetime:H:i',
+            'days_of_week' => 'array',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
         ];

@@ -24,17 +24,13 @@ return new class extends Migration
                 ->each(function ($row): void {
                     DB::table('teacher_subject_assignments')
                         ->where('id', $row->id)
-                        ->update(['days_of_week' => json_encode([$row->day_of_week])]);
+                        ->update(['days_of_week' => json_encode([(int) $row->day_of_week])]);
                 });
         }
     }
 
     public function down(): void
     {
-        if (Schema::hasColumn('teacher_subject_assignments', 'day_of_week')) {
-            DB::table('teacher_subject_assignments')->update(['day_of_week' => null]);
-        }
-
         Schema::table('teacher_subject_assignments', function (Blueprint $table): void {
             if (Schema::hasColumn('teacher_subject_assignments', 'days_of_week')) {
                 $table->dropColumn('days_of_week');
