@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Enums\RoleEnum;
 use App\Http\Requests\Subject\StoreRequest;
 use App\Http\Requests\Subject\UpdateRequest;
+use App\Models\AcademicSession;
 use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\SubjectPaper;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,8 +26,18 @@ class SubjectController extends Controller
 
     public function index(Request $request): Response
     {
+        $activeSessionId = AcademicSession::active()->value('id');
+
         $subjects = Subject::query()
             ->with(['schoolClasses', 'papers'])
+            ->select('subjects.*')
+            ->selectRaw('(select count(distinct se.student_id)
+                from student_enrollments se
+                inner join class_subject cs on cs.school_class_id = se.school_class_id
+                where cs.subject_id = subjects.id
+                    and se.deleted_at is null'
+                    .($activeSessionId ? ' and se.academic_session_id = '.(int) $activeSessionId : '')
+                    .') as students_count')
             ->when($this->scopedSubjectIds($request->user()), function ($query, $subjectIds): void {
                 $query->whereIn('subjects.id', $subjectIds);
             })
@@ -38,6 +50,38 @@ class SubjectController extends Controller
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
+
+        // Load the actual student lists for the subjects on this page so the
+        // Students badge can open a detail modal.
+        $pageSubjectIds = $subjects->getCollection()->pluck('id');
+
+        $studentsBySubject = $pageSubjectIds->isNotEmpty()
+            ? DB::table('class_subject as cs')
+                ->join('student_enrollments as se', 'se.school_class_id', '=', 'cs.school_class_id')
+                ->join('students as st', 'st.id', '=', 'se.student_id')
+                ->join('users as u', 'u.id', '=', 'st.user_id')
+                ->leftJoin('school_classes as sc', 'sc.id', '=', 'se.school_class_id')
+                ->whereIn('cs.subject_id', $pageSubjectIds)
+                ->whereNull('se.deleted_at')
+                ->whereNull('st.deleted_at')
+                ->when($activeSessionId, function ($q) use ($activeSessionId): void {
+                    $q->where('se.academic_session_id', $activeSessionId);
+                })
+                ->groupBy('cs.subject_id', 'st.id', 'u.name', 'st.admission_number', 'sc.name')
+                ->orderBy('u.name')
+                ->get([
+                    'cs.subject_id',
+                    'st.id as student_id',
+                    'u.name as student_name',
+                    'st.admission_number',
+                    'sc.name as class_name',
+                ])
+                ->groupBy('subject_id')
+            : collect();
+
+        $subjects->getCollection()->each(function (Subject $subject) use ($studentsBySubject): void {
+            $subject->students_list = $studentsBySubject->get($subject->id, collect())->values();
+        });
 
         return Inertia::render('Academic/Subject/Index', [
             'subjects' => $subjects,

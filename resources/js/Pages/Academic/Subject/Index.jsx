@@ -15,7 +15,7 @@ import TextInput from '@/Components/TextInput';
 import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
 import { confirmAction } from '@/utils/swal';
-import { router, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import { Download, FileText, Paperclip, Upload, X } from 'lucide-react';
 
 const formatSize = (bytes) => {
@@ -30,6 +30,7 @@ export default function Index({ subjects, filters }) {
     const handleSearch = useFilter('subjects.index');
 
     const [paperSubject, setPaperSubject] = useState(null);
+    const [studentsSubject, setStudentsSubject] = useState(null);
 
     const canUpload = can('subjects.upload-papers');
     const canDownload = can('subjects.download-papers') || can('subjects.upload-papers');
@@ -45,6 +46,20 @@ export default function Index({ subjects, filters }) {
                 row.school_classes?.length
                     ? row.school_classes.map((c) => c.name).join(', ')
                     : '—',
+        },
+        {
+            key: 'students_count',
+            label: 'Students',
+            render: (row) => (
+                <button
+                    type="button"
+                    onClick={() => setStudentsSubject(row)}
+                    title="View students"
+                    className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 transition-colors hover:bg-indigo-100 hover:text-indigo-700 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-300"
+                >
+                    {row.students_count ?? 0}
+                </button>
+            ),
         },
         {
             key: 'papers',
@@ -113,7 +128,64 @@ export default function Index({ subjects, filters }) {
                 canDownload={canDownload}
                 canDelete={canDeletePapers}
             />
+
+            <StudentsModal subject={studentsSubject} onClose={() => setStudentsSubject(null)} />
         </AuthenticatedLayout>
+    );
+}
+
+function StudentsModal({ subject, onClose }) {
+    if (!subject) return null;
+
+    const students = subject.students_list ?? [];
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-gray-900">
+                <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
+                    <div>
+                        <h2 className="text-sm font-semibold uppercase text-gray-500 dark:text-gray-400">
+                            Students — {subject.name}
+                        </h2>
+                        <p className="text-xs text-gray-400">{students.length} enrolled</p>
+                    </div>
+                    <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+
+                <div className="max-h-80 overflow-y-auto p-4">
+                    {students.length > 0 ? (
+                        <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {students.map((s) => (
+                                <li key={s.student_id} className="py-2">
+                                    <Link
+                                        href={route('students.show', s.student_id)}
+                                        className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-indigo-50 dark:hover:bg-gray-800"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+                                                {s.student_name}
+                                            </p>
+                                            <p className="truncate text-xs text-gray-400">
+                                                {s.admission_number ?? 'No admission #'}
+                                            </p>
+                                        </div>
+                                        <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+                                            {s.class_name ?? '—'}
+                                        </span>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                            No students enrolled for this subject.
+                        </p>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 }
 
