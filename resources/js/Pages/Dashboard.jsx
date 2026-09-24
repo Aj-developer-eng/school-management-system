@@ -262,13 +262,17 @@ function TimetableSection({ timetable }) {
     });
     const days = WEEK_DAYS.filter((d) => byDay[d.value]?.length);
 
-    if (days.length === 0) {
-        return null;
-    }
-
     return (
         <div className="animate-fade-in">
             <SectionHeading>Weekly Timetable</SectionHeading>
+            {days.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-gray-300 bg-white px-4 py-10 text-center dark:border-gray-700 dark:bg-gray-800">
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">No timetable scheduled yet.</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Set the day of week and start/end time on teacher assignments to build the weekly timetable.
+                    </p>
+                </div>
+            ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {days.map((day, dayIndex) => (
                     <div
@@ -309,7 +313,8 @@ function TimetableSection({ timetable }) {
                         </ul>
                     </div>
                 ))}
-            </div>
+                </div>
+            )}
         </div>
     );
 }
