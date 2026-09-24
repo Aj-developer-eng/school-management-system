@@ -6,6 +6,7 @@ use App\Enums\RoleEnum;
 use App\Models\Expense;
 use App\Models\HrmPayroll;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -88,7 +89,9 @@ class ExpenseController extends Controller
     {
         $data = $this->validated($request);
 
-        Expense::create($data);
+        $expense = Expense::create($data);
+
+        ActivityLogService::custom('Expenses', 'created', "Recorded expense: {$expense->title} (Rs. {$expense->amount}, {$expense->category})");
 
         return redirect()->route('expenses.index')
             ->with('success', 'Expense recorded successfully.');
@@ -106,6 +109,8 @@ class ExpenseController extends Controller
     {
         $expense->update($this->validated($request));
 
+        ActivityLogService::custom('Expenses', 'updated', "Updated expense: {$expense->title} (Rs. {$expense->amount}, {$expense->category})");
+
         return redirect()->route('expenses.index')
             ->with('success', 'Expense updated successfully.');
     }
@@ -113,6 +118,8 @@ class ExpenseController extends Controller
     public function destroy(Expense $expense): \Illuminate\Http\RedirectResponse
     {
         $expense->delete();
+
+        ActivityLogService::custom('Expenses', 'deleted', "Deleted expense: {$expense->title} (Rs. {$expense->amount}, {$expense->category})");
 
         return redirect()->route('expenses.index')
             ->with('success', 'Expense deleted successfully.');
