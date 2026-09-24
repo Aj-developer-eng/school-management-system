@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
 import Pagination from '@/Components/Ui/Pagination';
 import { Link, router } from '@inertiajs/react';
+import { formatDateTime } from '@/utils/format';
 import { useState } from 'react';
 import { ScrollText, Search, Filter, X, User, Calendar, Activity, Users, Clock } from 'lucide-react';
 
@@ -194,7 +195,7 @@ export default function Index({ logs, stats, modules, actions, filters }) {
                                                     {log.ip_address ?? '—'}
                                                 </td>
                                                 <td className="px-4 py-3 text-xs text-gray-400">
-                                                    {log.created_at}
+                                                    {formatDateTime(log.created_at)}
                                                 </td>
                                             </tr>
                                         );
