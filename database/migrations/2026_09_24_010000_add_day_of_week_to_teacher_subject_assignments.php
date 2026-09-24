@@ -13,6 +13,7 @@ return new class extends Migration
                 $table->unsignedTinyInteger('day_of_week')->nullable()->after('end_time')->comment('1=Monday ... 7=Sunday');
             }
 
+            
             if (! $this->hasDayOfWeekIndex()) {
                 $table->index(['day_of_week', 'academic_session_id']);
             }
