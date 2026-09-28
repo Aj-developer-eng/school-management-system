@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\RoleEnum;
 use App\Models\AcademicSession;
 use App\Models\Attendance;
+use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudentParent;
@@ -165,17 +166,33 @@ class AttendanceController extends Controller
     {
         $user = $request->user();
 
-        // Attendance reporting is permission-gated for every role; parents
-        // and students additionally get a scoped (own/children) view below.
+        // Attendance reporting is permission-gated for every role; parents and
+        // students get a scoped (own/children) view, while teachers only see
+        // attendance tied to their own assignments.
         if (! $user->can('attendances.view')) {
             abort(403);
         }
 
         $scopedStudentIds = $this->scopedStudentIds($user);
+        $scopedAssignments = $this->scopedAssignments($user);
+
+        // Teachers are scoped to the assignments they own (soft-deleted ones
+        // included so historical attendance is not lost); the class filter is
+        // limited to the classes they are currently assigned to.
+        $scopedAssignmentIds = null;
+        $scopedClassIds = null;
+
+        if ($scopedAssignments !== null) {
+            $scopedAssignmentIds = $scopedAssignments->pluck('id');
+            $scopedClassIds = $scopedAssignments->reject->trashed()->pluck('school_class_id')->unique()->values();
+        }
 
         $activeSession = AcademicSession::active()->first();
 
-        $classes = \App\Models\SchoolClass::where('is_active', true)
+        $classes = SchoolClass::where('is_active', true)
+            ->when($scopedClassIds, function ($q) use ($scopedClassIds): void {
+                $q->whereIn('id', $scopedClassIds);
+            })
             ->orderBy('level')
             ->pluck('name', 'id');
 
@@ -189,6 +206,9 @@ class AttendanceController extends Controller
             ])
             ->when($scopedStudentIds, function ($q) use ($scopedStudentIds): void {
                 $q->whereIn('student_id', $scopedStudentIds);
+            })
+            ->when($scopedAssignmentIds, function ($q) use ($scopedAssignmentIds): void {
+                $q->whereIn('teacher_subject_assignment_id', $scopedAssignmentIds);
             })
             ->when($activeSession, function ($q) use ($activeSession): void {
                 $q->where('academic_session_id', $activeSession->id);
@@ -230,7 +250,34 @@ class AttendanceController extends Controller
             'filters' => $request->only(['class_id', 'date_from', 'date_to', 'status']),
             'activeSession' => $activeSession?->name,
             'isScoped' => $scopedStudentIds !== null,
+            'scopedToTeacher' => $scopedAssignments !== null,
         ]);
+    }
+
+    /**
+     * Return the assignments the current user is allowed to view attendance for.
+     * Teachers are scoped to their own assignments — soft-deleted ones included
+     * so attendance they recorded earlier stays visible. Other staff roles are
+     * not scoped (null). A teacher without a linked Teacher record is scoped to
+     * nothing.
+     *
+     * @return Collection<int, TeacherSubjectAssignment>|null
+     */
+    private function scopedAssignments(User $user): ?Collection
+    {
+        if (! $user->hasRole(RoleEnum::Teacher->value)) {
+            return null;
+        }
+
+        $teacher = Teacher::where('user_id', $user->id)->first();
+
+        if (! $teacher) {
+            return collect();
+        }
+
+        return $teacher->assignments()
+            ->withTrashed()
+            ->get(['id', 'school_class_id', 'deleted_at']);
     }
 
     /**

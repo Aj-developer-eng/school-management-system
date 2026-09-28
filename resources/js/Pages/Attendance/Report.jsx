@@ -15,7 +15,7 @@ const statusStyles = {
 
 const statusIcons = { present: Check, absent: X, late: Clock, excused: FileText };
 
-export default function Report({ records, summary, classes, filters, activeSession, isScoped }) {
+export default function Report({ records, summary, classes, filters, activeSession, isScoped, scopedToTeacher }) {
     const [form, setForm] = useState({
         class_id: filters.class_id ?? '',
         date_from: filters.date_from ?? '',
@@ -56,6 +56,11 @@ export default function Report({ records, summary, classes, filters, activeSessi
                                 <Filter className="h-4 w-4" />
                                 Filters
                             </div>
+                            {scopedToTeacher && (
+                                <p className="w-full text-xs font-medium text-gray-500 dark:text-gray-400">
+                                    Showing only attendance recorded for your assigned classes and subjects.
+                                </p>
+                            )}
                             <div>
                                 <label className="mb-1 block text-xs font-medium text-gray-500">Class</label>
                                 <select
