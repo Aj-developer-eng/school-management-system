@@ -221,7 +221,7 @@ export default function Form({ parent, students }) {
                         </h3>
 
                         {data.students.map((row, index) => (
-                            <div key={index} className="mt-3 grid grid-cols-1 items-end gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700 sm:grid-cols-4">
+                            <div key={index} className="mt-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                                 <div>
                                     <InputLabel htmlFor={`student-${index}`} value="Student" />
                                     <SearchableSelect
@@ -234,38 +234,40 @@ export default function Form({ parent, students }) {
                                     />
                                 </div>
 
-                                <div>
-                                    <InputLabel htmlFor={`guardian-${index}`} value="Guardian Type" />
-                                    <select
-                                        id={`guardian-${index}`}
-                                        value={row.guardian_type}
-                                        onChange={(event) => updateStudent(index, 'guardian_type', event.target.value)}
-                                        className="mt-1 block w-full rounded-md border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                                <div className="mt-3 flex flex-wrap items-end gap-4">
+                                    <div className="w-full sm:w-44">
+                                        <InputLabel htmlFor={`guardian-${index}`} value="Guardian Type" />
+                                        <select
+                                            id={`guardian-${index}`}
+                                            value={row.guardian_type}
+                                            onChange={(event) => updateStudent(index, 'guardian_type', event.target.value)}
+                                            className="mt-1 block w-full rounded-md border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                                        >
+                                            <option value="Father">Father</option>
+                                            <option value="Mother">Mother</option>
+                                            <option value="Guardian">Guardian</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="mb-2.5 flex items-center gap-2">
+                                        <input
+                                            id={`primary-${index}`}
+                                            type="checkbox"
+                                            checked={row.is_primary_contact}
+                                            onChange={(event) => updateStudent(index, 'is_primary_contact', event.target.checked)}
+                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+                                        />
+                                        <InputLabel htmlFor={`primary-${index}`} value="Primary Contact" />
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => removeStudent(index)}
+                                        className="mb-2.5 ml-auto inline-flex items-center justify-center gap-1 text-red-600 hover:text-red-800 dark:text-red-400"
                                     >
-                                        <option value="Father">Father</option>
-                                        <option value="Mother">Mother</option>
-                                        <option value="Guardian">Guardian</option>
-                                    </select>
+                                        <Trash2 size={16} /> Remove
+                                    </button>
                                 </div>
-
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        id={`primary-${index}`}
-                                        type="checkbox"
-                                        checked={row.is_primary_contact}
-                                        onChange={(event) => updateStudent(index, 'is_primary_contact', event.target.checked)}
-                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
-                                    />
-                                    <InputLabel htmlFor={`primary-${index}`} value="Primary Contact" />
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() => removeStudent(index)}
-                                    className="inline-flex items-center justify-center gap-1 text-red-600 hover:text-red-800 dark:text-red-400"
-                                >
-                                    <Trash2 size={16} /> Remove
-                                </button>
                             </div>
                         ))}
 
