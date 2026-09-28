@@ -50,5 +50,26 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(function (User $user): ?bool {
             return $user->hasRole(RoleEnum::SuperAdmin->value) ? true : null;
         });
+
+        \Illuminate\Support\Facades\View::composer('app', function ($view): void {
+            $cms = \App\Models\LandingPageSetting::first();
+            $school = \App\Models\SchoolSetting::first();
+
+            $metaTitle = $cms?->meta_title ?: ($school?->school_name ? $school->school_name . ' — International School' : config('app.name', 'Laravel'));
+            $metaDescription = $cms?->meta_description ?: ($cms?->hero_subtitle ?: 'International School Management System providing Cambridge education and globally recognized qualifications.');
+            $metaKeywords = $cms?->meta_keywords ?: 'school, education, management system, Cambridge, BTEC, O Levels, A Levels';
+            $ogImage = $cms?->og_image_url ?: ($cms?->banner_image_url ?: ($school ? $school->logoUrl() : null));
+            $canonical = $cms?->canonical_url ?: url()->current();
+            $robots = ($cms && ! $cms->robots_indexing) ? 'noindex, nofollow' : 'index, follow';
+
+            $view->with('seoData', [
+                'title' => $metaTitle,
+                'description' => $metaDescription,
+                'keywords' => $metaKeywords,
+                'og_image' => $ogImage,
+                'canonical' => $canonical,
+                'robots' => $robots,
+            ]);
+        });
     }
 }

@@ -42,7 +42,18 @@ class DashboardController extends Controller
             return $this->teacherDashboard($user);
         }
 
-        return $this->staffDashboard($user);
+        if ($user->hasAnyRole(RoleEnum::staffRoles())) {
+            return $this->staffDashboard($user);
+        }
+
+        return $this->defaultDashboard($user);
+    }
+
+    private function defaultDashboard(User $user): Response
+    {
+        return Inertia::render('Dashboard', [
+            'dashboardType' => 'empty',
+        ]);
     }
 
     private function staffDashboard(User $user): Response
@@ -107,7 +118,7 @@ class DashboardController extends Controller
         $timetable = $this->buildTimetable($activeSession);
 
         $quickActions = $this->quickActions($user);
-// dd('default dashboard');
+
         return Inertia::render('Dashboard', [
             'stats' => $stats,
             'enrollmentsByClass' => $enrollmentsByClass,

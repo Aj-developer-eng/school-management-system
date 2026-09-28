@@ -173,9 +173,29 @@ export default function Landing({ school, cms, activeSession }) {
         { label: 'Contact', href: '#contact' },
     ];
 
+    const metaTitle = c.meta_title || `${schoolName} — O/A Levels, BTEC, SAT & UK`;
+    const metaDescription = c.meta_description || c.hero_subtitle || 'Premier international school management system providing quality education, Cambridge curriculum, and university pathways.';
+    const metaKeywords = c.meta_keywords || 'school, education, O levels, A levels, BTEC, SAT, Cambridge, international school';
+    const ogImage = c.og_image_url || c.banner_image_url || school?.logo_url;
+    const canonical = c.canonical_url || (typeof window !== 'undefined' ? window.location.origin : '');
+
     return (
         <>
-            <Head title={`${schoolName} — O/A Levels, BTEC, SAT & UK`} />
+            <Head>
+                <title>{metaTitle}</title>
+                <meta name="description" content={metaDescription} />
+                <meta name="keywords" content={metaKeywords} />
+                <meta property="og:title" content={metaTitle} />
+                <meta property="og:description" content={metaDescription} />
+                <meta property="og:type" content="website" />
+                {ogImage && <meta property="og:image" content={ogImage} />}
+                {canonical && <meta property="og:url" content={canonical} />}
+                {canonical && <link rel="canonical" href={canonical} />}
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={metaTitle} />
+                <meta name="twitter:description" content={metaDescription} />
+                {ogImage && <meta name="twitter:image" content={ogImage} />}
+            </Head>
             <div className="min-h-screen bg-white font-sans text-gray-900 antialiased">
                 {/* Header */}
                 <header className="fixed inset-x-0 top-0 z-50 border-b border-gray-200/60 bg-white/80 backdrop-blur-xl">

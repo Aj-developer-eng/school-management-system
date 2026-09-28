@@ -96,6 +96,14 @@ export default function Edit({ settings }) {
         footer_reach_label: settings.footer_reach_label ?? '',
         footer_mode_text: settings.footer_mode_text ?? '',
         footer_tagline: settings.footer_tagline ?? '',
+        meta_title: settings.meta_title ?? '',
+        meta_description: settings.meta_description ?? '',
+        meta_keywords: settings.meta_keywords ?? '',
+        og_image_url: settings.og_image_url ?? '',
+        canonical_url: settings.canonical_url ?? '',
+        robots_indexing: settings.robots_indexing ?? true,
+        sitemap_enabled: settings.sitemap_enabled ?? true,
+        custom_robots_txt: settings.custom_robots_txt ?? '',
     });
 
     const update = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
@@ -472,6 +480,76 @@ export default function Edit({ settings }) {
                     </div>
                     <div className="border-t border-gray-100 px-6 py-4">
                         <p className="text-sm text-gray-500">Note: Contact info (address, phone, email) and copyright text are managed in School Settings.</p>
+                    </div>
+                </Card>
+
+                {/* SEO & Meta Tags */}
+                <Card title="Search Engine Optimization (SEO) & Social Sharing">
+                    <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
+                        <Field
+                            label="Meta Title"
+                            value={form.meta_title}
+                            onChange={(v) => update('meta_title', v)}
+                            placeholder="e.g. Apex International — O/A Levels, BTEC, SAT & UK"
+                            full
+                        />
+                        <TextArea
+                            label="Meta Description"
+                            value={form.meta_description}
+                            onChange={(v) => update('meta_description', v)}
+                            placeholder="Brief description that appears in Google search snippets..."
+                            full
+                        />
+                        <Field
+                            label="Meta Keywords"
+                            value={form.meta_keywords}
+                            onChange={(v) => update('meta_keywords', v)}
+                            placeholder="e.g. school, education, A Levels, BTEC, international school"
+                            full
+                        />
+                        <Field
+                            label="Open Graph Image URL (OG Image)"
+                            value={form.og_image_url}
+                            onChange={(v) => update('og_image_url', v)}
+                            placeholder="https://example.com/images/og-preview.jpg"
+                        />
+                        <Field
+                            label="Canonical URL"
+                            value={form.canonical_url}
+                            onChange={(v) => update('canonical_url', v)}
+                            placeholder="https://example.com"
+                        />
+                        <div className="flex items-center gap-3 sm:col-span-2 pt-2">
+                            <input
+                                id="robots_indexing"
+                                type="checkbox"
+                                checked={!!form.robots_indexing}
+                                onChange={(e) => update('robots_indexing', e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <label htmlFor="robots_indexing" className="text-sm font-medium text-gray-700 select-none">
+                                Allow Search Engines to Index Site (robots &quot;index, follow&quot;)
+                            </label>
+                        </div>
+                        <div className="flex items-center gap-3 sm:col-span-2">
+                            <input
+                                id="sitemap_enabled"
+                                type="checkbox"
+                                checked={!!form.sitemap_enabled}
+                                onChange={(e) => update('sitemap_enabled', e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <label htmlFor="sitemap_enabled" className="text-sm font-medium text-gray-700 select-none">
+                                Enable XML Sitemap (/sitemap.xml)
+                            </label>
+                        </div>
+                        <TextArea
+                            label="Custom robots.txt Rules (Optional)"
+                            value={form.custom_robots_txt}
+                            onChange={(v) => update('custom_robots_txt', v)}
+                            placeholder={"User-agent: *\nDisallow: /admin\nDisallow: /dashboard"}
+                            full
+                        />
                     </div>
                 </Card>
 

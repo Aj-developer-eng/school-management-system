@@ -68,6 +68,14 @@ class LandingPageSetting extends Model
         'footer_reach_label',
         'footer_mode_text',
         'footer_tagline',
+        'meta_title',
+        'meta_description',
+        'meta_keywords',
+        'og_image_url',
+        'canonical_url',
+        'robots_indexing',
+        'sitemap_enabled',
+        'custom_robots_txt',
     ];
 
     protected function casts(): array
@@ -81,6 +89,8 @@ class LandingPageSetting extends Model
             'why_us' => 'array',
             'testimonials' => 'array',
             'footer_institute_links' => 'array',
+            'robots_indexing' => 'boolean',
+            'sitemap_enabled' => 'boolean',
         ];
     }
 

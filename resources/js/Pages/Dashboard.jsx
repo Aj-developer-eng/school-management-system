@@ -897,7 +897,7 @@ export default function Dashboard(props) {
                     />
                 )}
 
-                {dashboardType !== 'parent' && dashboardType !== 'student' && dashboardType !== 'teacher' && (
+                {dashboardType === 'staff' && (
                     <StaffDashboard
                         stats={stats}
                         quickActions={quickActions ?? []}
@@ -908,6 +908,20 @@ export default function Dashboard(props) {
                         invoiceReferences={props.invoiceReferences ?? []}
                         timetable={props.timetable ?? []}
                     />
+                )}
+
+                {dashboardType === 'empty' && (
+                    <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-card dark:border-gray-700 dark:bg-gray-800">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 text-amber-500 dark:bg-amber-500/10 dark:text-amber-400">
+                            <Sparkles className="h-8 w-8" />
+                        </div>
+                        <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            Welcome to the Portal
+                        </h3>
+                        <p className="mx-auto mt-2 max-w-md text-sm text-gray-500 dark:text-gray-400">
+                            Your user account currently has no assigned roles or dashboard privileges. Please contact your system administrator to assign you appropriate roles.
+                        </p>
+                    </div>
                 )}
             </div>
         </AuthenticatedLayout>

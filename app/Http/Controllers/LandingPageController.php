@@ -139,6 +139,14 @@ class LandingPageController extends Controller
             'footer_reach_label' => ['nullable', 'string', 'max:100'],
             'footer_mode_text' => ['nullable', 'string', 'max:100'],
             'footer_tagline' => ['nullable', 'string', 'max:200'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string', 'max:500'],
+            'meta_keywords' => ['nullable', 'string', 'max:500'],
+            'og_image_url' => ['nullable', 'string', 'max:500'],
+            'canonical_url' => ['nullable', 'string', 'max:500'],
+            'robots_indexing' => ['nullable', 'boolean'],
+            'sitemap_enabled' => ['nullable', 'boolean'],
+            'custom_robots_txt' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $settings = LandingPageSetting::current();

@@ -290,7 +290,14 @@ class UserController extends Controller
         $user->load('roles');
 
         return Inertia::render('User/Form', [
-            'user' => $user,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'is_active' => (bool) $user->is_active,
+                'roles' => $user->roles->pluck('name')->values()->all(),
+            ],
             'roles' => Role::orderBy('name')->pluck('name'),
         ]);
     }

@@ -18,6 +18,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolSettingController;
 use App\Http\Controllers\SectionController;
+use App\Http\Controllers\SeoController;
 use App\Http\Controllers\SpecialRequestController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentParentController;
@@ -30,6 +31,8 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', LandingPageController::class)->name('landing');
+Route::get('/robots.txt', [SeoController::class, 'robots'])->name('seo.robots');
+Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('seo.sitemap');
 
 Route::get('/dashboard', DashboardController::class)
     ->middleware(['auth', 'verified'])
