@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
+import SearchableSelect from '@/Components/Ui/SearchableSelect';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -223,19 +224,14 @@ export default function Form({ parent, students }) {
                             <div key={index} className="mt-3 grid grid-cols-1 items-end gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700 sm:grid-cols-4">
                                 <div>
                                     <InputLabel htmlFor={`student-${index}`} value="Student" />
-                                    <select
+                                    <SearchableSelect
                                         id={`student-${index}`}
                                         value={row.student_id}
-                                        onChange={(event) => updateStudent(index, 'student_id', event.target.value)}
-                                        className="mt-1 block w-full rounded-md border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
-                                    >
-                                        <option value="">Select student</option>
-                                        {students.map((s) => (
-                                            <option key={s.id} value={s.id}>
-                                                {s.label}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={(value) => updateStudent(index, 'student_id', value)}
+                                        options={students}
+                                        placeholder="Search name or reg no…"
+                                        emptyMessage="No students match your search"
+                                    />
                                 </div>
 
                                 <div>

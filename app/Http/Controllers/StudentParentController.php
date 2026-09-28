@@ -7,6 +7,7 @@ use App\Http\Requests\Parent\UpdateRequest;
 use App\Models\Student;
 use App\Models\StudentParent;
 use App\Services\StudentParentService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -46,7 +47,7 @@ class StudentParentController extends Controller
         return $this->renderForm();
     }
 
-    public function store(StoreRequest $request): \Illuminate\Http\RedirectResponse
+    public function store(StoreRequest $request): RedirectResponse
     {
         $this->parents->create($request->validated());
 
@@ -62,7 +63,7 @@ class StudentParentController extends Controller
         return $this->renderForm($parent);
     }
 
-    public function update(UpdateRequest $request, StudentParent $parent): \Illuminate\Http\RedirectResponse
+    public function update(UpdateRequest $request, StudentParent $parent): RedirectResponse
     {
         $this->parents->update($parent, $request->validated());
 
@@ -70,7 +71,7 @@ class StudentParentController extends Controller
             ->with('success', 'Parent updated successfully.');
     }
 
-    public function destroy(StudentParent $parent): \Illuminate\Http\RedirectResponse
+    public function destroy(StudentParent $parent): RedirectResponse
     {
         $this->authorize('delete', $parent);
         $parent->delete();
@@ -99,8 +100,14 @@ class StudentParentController extends Controller
                 'is_active' => $parent->is_active,
                 'students' => $existingStudents,
             ] : null,
+            // `keywords` lets the searchable student picker match on the student
+            // name as well as the admission (reg) number shown in the label.
             'students' => Student::with('user')->where('is_active', true)->orderBy('admission_number')->get()
-                ->map(fn (Student $student) => ['id' => $student->id, 'label' => $student->admission_number.' — '.($student->user?->name ?? '')]),
+                ->map(fn (Student $student) => [
+                    'value' => $student->id,
+                    'label' => $student->admission_number.' — '.($student->user?->name ?? ''),
+                    'keywords' => trim($student->admission_number.' '.($student->user?->name ?? '')),
+                ]),
         ]);
     }
 }
