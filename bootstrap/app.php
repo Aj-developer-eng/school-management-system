@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Scanner-facing security headers (HSTS, CSP, nosniff, referrer policy)
+        // are applied to every response, including /robots.txt and /sitemap.xml.
+        $middleware->append(SecurityHeaders::class);
+
         // Coolify's Traefik proxy terminates TLS and forwards plain HTTP to
         // this container, so without trusting it Laravel never sees the
         // request as HTTPS — url()/asset() helpers (and the Vite manifest

@@ -14,8 +14,10 @@ use App\Policies\FeePaymentPolicy;
 use App\Policies\FeeStructurePolicy;
 use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
+use App\Support\LandingPageContent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Role;
@@ -51,24 +53,31 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasRole(RoleEnum::SuperAdmin->value) ? true : null;
         });
 
-        \Illuminate\Support\Facades\View::composer('app', function ($view): void {
-            $cms = \App\Models\LandingPageSetting::first();
-            $school = \App\Models\SchoolSetting::first();
+        View::composer('app', function ($view): void {
+            $page = $view->getData()['page'] ?? [];
+            $component = is_array($page) ? ($page['component'] ?? null) : null;
 
-            $metaTitle = $cms?->meta_title ?: ($school?->school_name ? $school->school_name . ' — International School' : config('app.name', 'Laravel'));
-            $metaDescription = $cms?->meta_description ?: ($cms?->hero_subtitle ?: 'International School Management System providing Cambridge education and globally recognized qualifications.');
-            $metaKeywords = $cms?->meta_keywords ?: 'school, education, management system, Cambridge, BTEC, O Levels, A Levels';
-            $ogImage = $cms?->og_image_url ?: ($cms?->banner_image_url ?: ($school ? $school->logoUrl() : null));
-            $canonical = $cms?->canonical_url ?: url()->current();
-            $robots = ($cms && ! $cms->robots_indexing) ? 'noindex, nofollow' : 'index, follow';
+            // Only the public landing page carries indexable SEO metadata — every
+            // other screen is behind the login, so keep it out of search results
+            // instead of reusing the landing page's tags.
+            if ($component !== 'Landing') {
+                $view->with('seoData', [
+                    'title' => null,
+                    'description' => null,
+                    'keywords' => null,
+                    'og_image' => null,
+                    'canonical' => null,
+                    'schema' => null,
+                    'robots' => 'noindex, nofollow',
+                ]);
 
-            $view->with('seoData', [
-                'title' => $metaTitle,
-                'description' => $metaDescription,
-                'keywords' => $metaKeywords,
-                'og_image' => $ogImage,
-                'canonical' => $canonical,
-                'robots' => $robots,
+                return;
+            }
+
+            $content = LandingPageContent::build();
+
+            $view->with('seoData', $content['seo'] + [
+                'schema' => LandingPageContent::schema($content),
             ]);
         });
     }

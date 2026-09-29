@@ -6,15 +6,30 @@ use App\Models\AcademicSession;
 use App\Models\LandingPageSetting;
 use App\Models\SchoolSetting;
 use App\Services\ImageOptimizer;
+use App\Support\CrawlerDetector;
+use App\Support\LandingPageContent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class LandingPageController extends Controller
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request): Response|View
     {
+        // Search engines without JS rendering, social scrapers, AI crawlers and
+        // SEO audits never run the React app, so they would otherwise see an
+        // empty document. Hand them the same CMS content as server-rendered HTML.
+        if (CrawlerDetector::matches($request->userAgent())) {
+            $content = LandingPageContent::build();
+
+            return view('seo.landing', [
+                'content' => $content,
+                'schema' => LandingPageContent::schema($content),
+            ]);
+        }
+
         $school = SchoolSetting::first();
         $cms = LandingPageSetting::current();
         $activeSession = AcademicSession::active()->first();

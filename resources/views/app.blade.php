@@ -4,31 +4,41 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        @php($seo = $seoData ?? [])
 
-        @if(isset($seoData))
-        <meta name="description" content="{{ $seoData['description'] }}">
-        <meta name="keywords" content="{{ $seoData['keywords'] }}">
-        <meta name="robots" content="{{ $seoData['robots'] }}">
-        <link rel="canonical" href="{{ $seoData['canonical'] }}">
+        <title inertia>{{ $seo['title'] ?? config('app.name', 'Laravel') }}</title>
+        <link rel="icon" href="/favicon.ico" sizes="any">
+
+        @if(!empty($seo['title']))
+        <meta name="description" content="{{ $seo['description'] }}">
+        <meta name="keywords" content="{{ $seo['keywords'] }}">
+        <meta name="robots" content="{{ $seo['robots'] }}">
+        <link rel="canonical" href="{{ $seo['canonical'] }}">
 
         <!-- Open Graph / Facebook -->
         <meta property="og:type" content="website">
-        <meta property="og:url" content="{{ $seoData['canonical'] }}">
-        <meta property="og:title" content="{{ $seoData['title'] }}">
-        <meta property="og:description" content="{{ $seoData['description'] }}">
-        @if($seoData['og_image'])
-        <meta property="og:image" content="{{ $seoData['og_image'] }}">
+        <meta property="og:url" content="{{ $seo['canonical'] }}">
+        <meta property="og:title" content="{{ $seo['title'] }}">
+        <meta property="og:description" content="{{ $seo['description'] }}">
+        @if($seo['og_image'])
+        <meta property="og:image" content="{{ $seo['og_image'] }}">
         @endif
 
         <!-- Twitter Card -->
         <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:url" content="{{ $seoData['canonical'] }}">
-        <meta name="twitter:title" content="{{ $seoData['title'] }}">
-        <meta name="twitter:description" content="{{ $seoData['description'] }}">
-        @if($seoData['og_image'])
-        <meta name="twitter:image" content="{{ $seoData['og_image'] }}">
+        <meta name="twitter:url" content="{{ $seo['canonical'] }}">
+        <meta name="twitter:title" content="{{ $seo['title'] }}">
+        <meta name="twitter:description" content="{{ $seo['description'] }}">
+        @if($seo['og_image'])
+        <meta name="twitter:image" content="{{ $seo['og_image'] }}">
         @endif
+
+        <!-- Structured data (schema.org) -->
+        @if(!empty($seo['schema']))
+        <script type="application/ld+json">{!! json_encode($seo['schema'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
+        @endif
+        @else
+        <meta name="robots" content="noindex, nofollow">
         @endif
 
         <!-- Fonts -->

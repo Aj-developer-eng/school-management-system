@@ -36,6 +36,19 @@ const iconMap = {
     Home, PenTool, Layers, Languages, Landmark, BadgeCheck, Network, Earth,
 };
 
+// Search snippets are cut off beyond ~140 characters, so the client-side
+// description mirrors the server-rendered one (App\Support\LandingPageContent).
+const truncateMeta = (text, limit = 140) => {
+    const value = String(text ?? '').replace(/\s+/g, ' ').trim();
+
+    if (value.length <= limit) return value;
+
+    const cut = value.slice(0, limit);
+    const lastSpace = cut.lastIndexOf(' ');
+
+    return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).replace(/[ ,.;:-]+$/, '')}…`;
+};
+
 export default function Landing({ school, cms, activeSession }) {
     const schoolName = school?.school_name ?? 'EdSkills Global';
     const address = school ? `${school.address ?? ''}, ${school.city ?? ''}`.trim().replace(/,$/, '') : '';
@@ -174,7 +187,7 @@ export default function Landing({ school, cms, activeSession }) {
     ];
 
     const metaTitle = c.meta_title || `${schoolName} — O/A Levels, BTEC, SAT & UK`;
-    const metaDescription = c.meta_description || c.hero_subtitle || 'Premier international school management system providing quality education, Cambridge curriculum, and university pathways.';
+    const metaDescription = truncateMeta(c.meta_description || c.hero_subtitle || 'Premier international school management system providing quality education, Cambridge curriculum, and university pathways.');
     const metaKeywords = c.meta_keywords || 'school, education, O levels, A levels, BTEC, SAT, Cambridge, international school';
     const ogImage = c.og_image_url || c.banner_image_url || school?.logo_url;
     const canonical = c.canonical_url || (typeof window !== 'undefined' ? window.location.origin : '');
