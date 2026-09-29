@@ -161,10 +161,10 @@ export default function Show({ test, students }) {
                                         {students.map((s) => {
                                             const result = results[s.id] ?? { marks_obtained: '', is_absent: false, is_not_applicable: false, remarks: '' };
 
-                                            // In read-only view (e.g. parents), only show students
-                                            // with actual marks — hides "no marks" rows, whether
-                                            // absent or not.
-                                            if (!canUploadResults && !s.result?.marks_obtained) {
+                                            // In read-only view (e.g. parents), show only students
+                                            // with a saved result — this includes absent and
+                                            // "not applicable" rows, which carry no marks.
+                                            if (!canUploadResults && !s.result) {
                                                 return null;
                                             }
 
@@ -190,10 +190,12 @@ export default function Show({ test, students }) {
                                                                 }}
                                                                 className="w-24 rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
                                                             />
+                                                        ) : s.result?.is_not_applicable ? (
+                                                            'N/A'
+                                                        ) : s.result?.marks_obtained ? (
+                                                            Number(s.result.marks_obtained)
                                                         ) : (
-                                                            s.result?.marks_obtained
-                                                                ? Number(s.result.marks_obtained)
-                                                                : '—'
+                                                            '—'
                                                         )}
                                                     </td>
                                                     <td className="py-3">

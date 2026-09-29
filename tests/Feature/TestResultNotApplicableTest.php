@@ -10,6 +10,7 @@ use App\Models\SchoolClass;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Models\StudentParent;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherSubjectAssignment;
@@ -17,6 +18,7 @@ use App\Models\Test;
 use App\Models\TestResult;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -222,6 +224,66 @@ class TestResultNotApplicableTest extends TestCase
         $this->assertDatabaseCount('test_results', 0);
     }
 
+    public function test_parent_sees_not_applicable_result_on_test_page(): void
+    {
+        $student = $this->enrollStudent('ADM-030', '1');
+        $parentUser = $this->makeParent($student);
+
+        $this->publishNotApplicableResult($student);
+
+        $this->actingAs($parentUser)
+            ->get(route('tests.show', $this->test))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Test/Show')
+                ->has('students', 1)
+                ->where('students.0.id', $student->id)
+                ->where('students.0.result.is_not_applicable', true)
+            );
+    }
+
+    public function test_parent_dashboard_lists_published_not_applicable_result(): void
+    {
+        $student = $this->enrollStudent('ADM-031', '1');
+        $parentUser = $this->makeParent($student);
+
+        $this->publishNotApplicableResult($student);
+
+        $this->actingAs($parentUser)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->where('dashboardType', 'parent')
+                ->has('testResults', 1)
+                ->where('testResults.0.test_id', $this->test->id)
+                ->where('testResults.0.is_not_applicable', true)
+                ->where('testResults.0.is_absent', false)
+                ->where('testResults.0.marks_obtained', null)
+                ->where('testResults.0.grade', null)
+            );
+    }
+
+    public function test_parent_dashboard_hides_unpublished_test_results(): void
+    {
+        $student = $this->enrollStudent('ADM-032', '1');
+        $parentUser = $this->makeParent($student);
+
+        TestResult::create([
+            'test_id' => $this->test->id,
+            'student_id' => $student->id,
+            'is_not_applicable' => true,
+        ]);
+
+        $this->actingAs($parentUser)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->has('testResults', 0)
+            );
+    }
+
     private function enrollStudent(string $admissionNumber, string $rollNumber): Student
     {
         $student = Student::create([
@@ -240,5 +302,38 @@ class TestResultNotApplicableTest extends TestCase
         ]);
 
         return $student;
+    }
+
+    private function makeParent(Student $student): User
+    {
+        $parentUser = User::factory()->create();
+        $parentUser->assignRole(Role::findOrCreate(RoleEnum::Parent->value, 'web'));
+
+        $parent = StudentParent::create([
+            'user_id' => $parentUser->id,
+            'is_active' => true,
+        ]);
+
+        $parent->students()->attach($student->id, [
+            'guardian_type' => 'Father',
+            'is_primary_contact' => true,
+        ]);
+
+        return $parentUser;
+    }
+
+    private function publishNotApplicableResult(Student $student): TestResult
+    {
+        $this->test->update([
+            'status' => TestStatusEnum::ResultsPublished,
+            'results_published_at' => now(),
+        ]);
+
+        return TestResult::create([
+            'test_id' => $this->test->id,
+            'student_id' => $student->id,
+            'is_not_applicable' => true,
+            'remarks' => 'Exempted',
+        ]);
     }
 }

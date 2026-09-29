@@ -18,6 +18,7 @@ const statusColors = {
     completed: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
     present: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
     absent: 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
+    not_applicable: 'bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300',
     late: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
     excused: 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400',
 };
@@ -323,7 +324,7 @@ function TimetableSection({ timetable }) {
     );
 }
 
-function ParentDashboard({ children, invoices, feeSummary, activeSession, todayAttendance, subjectPapers, timetable }) {
+function ParentDashboard({ children, invoices, feeSummary, activeSession, todayAttendance, testResults, subjectPapers, timetable }) {
     const { can } = useAuth();
 
     return (
@@ -412,6 +413,79 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                 </div>
             </div>
             )}
+
+            {/* Published test results */}
+            <div className="animate-fade-in">
+                <SectionHeading
+                    action={
+                        <Link
+                            href={route('tests.index')}
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300"
+                        >
+                            All Tests
+                        </Link>
+                    }
+                >
+                    Recent Test Results
+                </SectionHeading>
+                <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Child</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Test</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Subject</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Date</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Result</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {testResults.length > 0 ? testResults.map((result) => (
+                                <tr key={result.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-indigo-50/40 dark:border-gray-700/50 dark:hover:bg-gray-700/30">
+                                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
+                                        {result.student ?? '—'}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <Link
+                                            href={route('tests.show', result.test_id)}
+                                            className="font-medium text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200"
+                                        >
+                                            {result.test_title ?? '—'}
+                                        </Link>
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{result.subject ?? '—'}</td>
+                                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{formatDate(result.test_date)}</td>
+                                    <td className="px-4 py-3 text-center">
+                                        {result.is_not_applicable ? (
+                                            <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusColors.not_applicable}`}>
+                                                Not Applicable
+                                            </span>
+                                        ) : result.is_absent ? (
+                                            <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusColors.absent}`}>
+                                                Absent
+                                            </span>
+                                        ) : (
+                                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                {result.marks_obtained ?? '—'} / {result.total_marks ?? '—'}
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-3 text-center font-medium text-gray-700 dark:text-gray-300">
+                                        {result.is_not_applicable || result.is_absent ? '—' : (result.grade ?? '—')}
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                                        No published test results yet.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
             <PapersSection papers={subjectPapers ?? []} />
 
@@ -799,6 +873,7 @@ export default function Dashboard(props) {
         assignmentStats,
         teacher,
         todayAttendance,
+        testResults,
     } = props;
 
     const sessionLabel = dashboardType === 'staff'
@@ -872,6 +947,7 @@ export default function Dashboard(props) {
                         feeSummary={feeSummary}
                         activeSession={activeSession}
                         todayAttendance={todayAttendance ?? []}
+                        testResults={testResults ?? []}
                         subjectPapers={props.subjectPapers ?? []}
                         timetable={props.timetable ?? []}
                     />

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\AssignmentStatusEnum;
 use App\Enums\InvoiceStatusEnum;
 use App\Enums\RoleEnum;
+use App\Enums\TestStatusEnum;
 use App\Models\AcademicSession;
 use App\Models\Attendance;
 use App\Models\FeeInvoice;
@@ -17,6 +18,7 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherAssignmentLog;
 use App\Models\TeacherSubjectAssignment;
+use App\Models\TestResult;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
@@ -140,6 +142,7 @@ class DashboardController extends Controller
         $children = collect();
         $invoices = collect();
         $todayAttendance = collect();
+        $testResults = collect();
         $feeSummary = [
             'total_invoiced' => 0,
             'total_paid' => 0,
@@ -193,6 +196,40 @@ class DashboardController extends Controller
                     ->orderBy('student_id')
                     ->get();
 
+                // Published test results for the children, including absent and
+                // "not applicable" entries so parents see the full picture.
+                $testResults = TestResult::with([
+                    'test:id,title,test_date,subject_id,school_class_id,total_marks',
+                    'test.subject:id,name',
+                    'test.schoolClass:id,name',
+                    'student.user:id,name',
+                ])
+                    ->whereIn('student_id', $studentIds)
+                    ->whereNull('deleted_at')
+                    ->whereHas('test', function ($q): void {
+                        $q->where('status', TestStatusEnum::ResultsPublished->value)
+                            ->whereNull('deleted_at');
+                    })
+                    ->orderByDesc('id')
+                    ->limit(10)
+                    ->get()
+                    ->map(fn (TestResult $result): array => [
+                        'id' => $result->id,
+                        'test_id' => $result->test_id,
+                        'test_title' => $result->test?->title,
+                        'test_date' => $result->test?->test_date?->toDateString(),
+                        'subject' => $result->test?->subject?->name,
+                        'school_class' => $result->test?->schoolClass?->name,
+                        'total_marks' => $result->test?->total_marks !== null ? (float) $result->test->total_marks : null,
+                        'student' => $result->student?->user?->name,
+                        'marks_obtained' => $result->marks_obtained !== null ? (float) $result->marks_obtained : null,
+                        'grade' => $result->grade,
+                        'is_absent' => (bool) $result->is_absent,
+                        'is_not_applicable' => (bool) $result->is_not_applicable,
+                        'remarks' => $result->remarks,
+                    ])
+                    ->values();
+
                 // Subjects of the children's current classes, with downloadable papers.
                 $classIds = $children->pluck('enrollments')->flatten(1)->pluck('school_class_id')->unique()->filter();
 
@@ -230,6 +267,7 @@ class DashboardController extends Controller
             'invoices' => $invoices,
             'feeSummary' => $feeSummary,
             'todayAttendance' => $todayAttendance,
+            'testResults' => $testResults,
             'subjectPapers' => $subjectPapers,
             'activeSession' => $activeSession?->name,
             'timetable' => $this->buildTimetable($activeSession, null, $classSectionPairs),
