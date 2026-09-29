@@ -173,9 +173,7 @@
                                 <td>{{ $result->test?->test_type?->label() ?? '—' }}</td>
                                 <td>{{ $result->test?->subject?->name ?? '—' }}</td>
                                 <td class="text-right">
-                                    @if ($result->is_not_applicable)
-                                        Not Applicable
-                                    @elseif ($result->is_absent)
+                                    @if ($result->is_absent)
                                         Absent
                                     @elseif ($result->marks_obtained !== null)
                                         {{ number_format((float) $result->marks_obtained, 2) }}@if ($result->test?->total_marks !== null) / {{ number_format((float) $result->test->total_marks, 2) }}@endif
@@ -183,7 +181,7 @@
                                         —
                                     @endif
                                 </td>
-                                <td>{{ $result->is_not_applicable || $result->is_absent ? '—' : ($result->grade ?? '—') }}</td>
+                                <td>{{ $result->is_absent ? '—' : ($result->grade ?? '—') }}</td>
                                 <td>{{ $result->remarks ?? '—' }}</td>
                             </tr>
                         @endforeach

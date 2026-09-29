@@ -18,6 +18,7 @@ use App\Models\Test;
 use App\Models\TestResult;
 use App\Models\User;
 use App\Services\SchoolSettingsService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
@@ -225,6 +226,44 @@ class TestResultNotApplicableTest extends TestCase
         $this->assertDatabaseCount('test_results', 0);
     }
 
+    public function test_parent_does_not_see_the_test_index(): void
+    {
+        $student = $this->enrollStudent('ADM-037', '1');
+        $parentUser = $this->makeParent($student);
+
+        $this->publishNotApplicableResult($student);
+
+        $this->actingAs($parentUser)
+            ->get(route('tests.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Test/Index')
+                ->has('tests.data', 0)
+                ->where('tests.total', 0)
+            );
+    }
+
+    public function test_staff_still_sees_the_test_index(): void
+    {
+        $this->publishNotApplicableResult($this->enrollStudent('ADM-038', '1'));
+
+        $this->actingAs($this->teacherUser)
+            ->get(route('tests.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Test/Index')
+                ->has('tests.data', 1)
+            );
+
+        $this->actingAs($this->makeSuperAdmin())
+            ->get(route('tests.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Test/Index')
+                ->has('tests.data', 1)
+            );
+    }
+
     public function test_parent_does_not_see_not_applicable_result_on_test_page(): void
     {
         $student = $this->enrollStudent('ADM-030', '1');
@@ -394,17 +433,23 @@ class TestResultNotApplicableTest extends TestCase
             );
     }
 
-    public function test_student_pdf_view_lists_test_results_with_statuses(): void
+    public function test_student_pdf_view_lists_applicable_test_results(): void
     {
         $student = $this->enrollStudent('ADM-040', '1');
-
-        $this->publishNotApplicableResult($student);
 
         $absentTest = $this->makeTestWithStatus(TestStatusEnum::Conducted, 'Class Test Physics');
         TestResult::create([
             'test_id' => $absentTest->id,
             'student_id' => $student->id,
             'is_absent' => true,
+        ]);
+
+        $gradedTest = $this->makeTestWithStatus(TestStatusEnum::ResultsPublished, 'Class Test Chemistry');
+        TestResult::create([
+            'test_id' => $gradedTest->id,
+            'student_id' => $student->id,
+            'marks_obtained' => 82,
+            'grade' => 'A',
         ]);
 
         $student->load(['user', 'enrollments', 'parents.user', 'invoices']);
@@ -425,10 +470,62 @@ class TestResultNotApplicableTest extends TestCase
         ])->render();
 
         $this->assertStringContainsString('Test Results', $html);
-        $this->assertStringContainsString('Mid Term Mathematics', $html);
-        $this->assertStringContainsString('Not Applicable', $html);
         $this->assertStringContainsString('Class Test Physics', $html);
         $this->assertStringContainsString('Absent', $html);
+        $this->assertStringContainsString('Class Test Chemistry', $html);
+        $this->assertStringContainsString('82.00', $html);
+    }
+
+    public function test_student_pdf_omits_not_applicable_and_subjectless_tests(): void
+    {
+        $admin = $this->makeSuperAdmin();
+        $student = $this->enrollStudent('ADM-043', '1');
+
+        // Result marked "not applicable".
+        $this->publishNotApplicableResult($student);
+
+        $physics = Subject::create(['name' => 'Physics', 'code' => 'PHY', 'is_active' => true]);
+        $chemistry = Subject::create(['name' => 'Chemistry', 'code' => 'CHEM', 'is_active' => true]);
+
+        // Graded result on a test whose subject no longer exists.
+        $subjectlessTest = $this->makeTestWithStatus(TestStatusEnum::ResultsPublished, 'Class Test Physics');
+        $subjectlessTest->update(['subject_id' => $physics->id]);
+        TestResult::create([
+            'test_id' => $subjectlessTest->id,
+            'student_id' => $student->id,
+            'marks_obtained' => 60,
+            'grade' => 'D',
+        ]);
+        $subjectlessTest->subject->delete();
+
+        // Graded result that must still appear.
+        $gradedTest = $this->makeTestWithStatus(TestStatusEnum::ResultsPublished, 'Class Test Chemistry');
+        $gradedTest->update(['subject_id' => $chemistry->id]);
+        TestResult::create([
+            'test_id' => $gradedTest->id,
+            'student_id' => $student->id,
+            'marks_obtained' => 82,
+            'grade' => 'A',
+        ]);
+
+        $captured = null;
+        $pdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+        $pdf->shouldReceive('download')->once()->andReturn(response('', 200, ['Content-Type' => 'application/pdf']));
+
+        Pdf::shouldReceive('loadView')
+            ->once()
+            ->andReturnUsing(function ($view, $data) use (&$captured, $pdf) {
+                $captured = $data;
+
+                return $pdf;
+            });
+
+        $this->actingAs($admin)
+            ->get(route('students.pdf', $student))
+            ->assertOk();
+
+        $this->assertIsArray($captured);
+        $this->assertSame(['Class Test Chemistry'], $captured['testResults']->pluck('test.title')->all());
     }
 
     public function test_student_pdf_downloads_with_test_results_section(): void

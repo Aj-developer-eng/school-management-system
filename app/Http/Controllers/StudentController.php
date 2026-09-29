@@ -221,7 +221,9 @@ class StudentController extends Controller
 
         $school = $settingsService->get();
 
-        // Test results for this student (conducted or published tests only).
+        // Test results for this student. Results marked "not applicable" and
+        // tests whose subject is no longer available are left out of the record
+        // (same rule as the parent's "Recent Test Results" section).
         $testResults = TestResult::with([
             'test:id,title,test_type,test_date,total_marks,subject_id,school_class_id,section_id',
             'test.subject:id,name',
@@ -230,12 +232,14 @@ class StudentController extends Controller
         ])
             ->where('student_id', $student->id)
             ->whereNull('deleted_at')
+            ->where('is_not_applicable', false)
             ->whereHas('test', function ($q): void {
                 $q->whereNull('deleted_at')
                     ->whereIn('status', [
                         TestStatusEnum::Conducted->value,
                         TestStatusEnum::ResultsPublished->value,
-                    ]);
+                    ])
+                    ->whereHas('subject');
             })
             ->get()
             ->sortByDesc(fn (TestResult $result): int => $result->test?->test_date?->timestamp ?? 0)

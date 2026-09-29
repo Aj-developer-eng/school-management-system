@@ -31,6 +31,10 @@ class TestController extends Controller
         $user = $request->user();
         $activeSession = AcademicSession::active()->first();
 
+        // Parents and students never get the test list — they only ever see
+        // their own results on an individual test page.
+        $isScopedViewer = $this->scopedStudentIds($user) !== null;
+
         $tests = Test::query()
             ->with([
                 'teacher.user:id,name',
@@ -41,6 +45,7 @@ class TestController extends Controller
                 'results' => fn ($q) => $q->whereNull('deleted_at'),
             ])
             ->whereNull('tests.deleted_at')
+            ->when($isScopedViewer, fn ($q) => $q->whereNull('tests.id'))
             ->when($activeSession, fn ($q) => $q->where('academic_session_id', $activeSession->id))
             ->when($request->search, function ($query, $search): void {
                 $query->where('title', 'like', "%{$search}%")
