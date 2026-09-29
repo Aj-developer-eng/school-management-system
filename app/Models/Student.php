@@ -59,6 +59,13 @@ class Student extends Model
         return $this->hasMany(StudentEnrollment::class);
     }
 
+    public function subjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'student_subject')
+            ->using(StudentSubject::class)
+            ->withTimestamps();
+    }
+
     public function invoices(): HasMany
     {
         return $this->hasMany(FeeInvoice::class);

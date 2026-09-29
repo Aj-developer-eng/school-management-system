@@ -57,6 +57,8 @@ class StudentService
                 'status' => 'active',
             ]);
 
+            $student->subjects()->sync($this->subjectIds($data));
+
             return $student;
         });
     }
@@ -101,8 +103,27 @@ class StudentService
                 'enrolled_on' => $data['enrolled_on'] ?? $enrollment->enrolled_on,
             ]);
 
+            // Only touch the subject selection when the form submitted it, so
+            // other callers cannot wipe it accidentally.
+            if (array_key_exists('subject_ids', $data)) {
+                $student->subjects()->sync($this->subjectIds($data));
+            }
+
             return $student->load(['user', 'enrollments.academicSession', 'enrollments.schoolClass', 'enrollments.section']);
         });
+    }
+
+    /**
+     * Normalize the submitted subject ids into a unique list of integers.
+     *
+     * @param  array<string, mixed>  $data
+     * @return list<int>
+     */
+    private function subjectIds(array $data): array
+    {
+        $subjectIds = array_map('intval', $data['subject_ids'] ?? []);
+
+        return array_values(array_unique($subjectIds));
     }
 
     private function generateEmail(string $admissionNumber): string

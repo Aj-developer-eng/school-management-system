@@ -38,6 +38,8 @@ class UpdateRequest extends FormRequest
             'section_id' => ['nullable', 'exists:sections,id'],
             'roll_number' => ['required', 'string', 'max:20'],
             'enrolled_on' => ['nullable', 'date'],
+            'subject_ids' => ['nullable', 'array'],
+            'subject_ids.*' => ['integer', 'exists:subjects,id'],
         ];
     }
 }

@@ -120,7 +120,7 @@ Several controllers scope data based on the logged-in user's role:
 
 ### 3. Student Management
 
-- **Students** (`/students`) — Full student records with admission numbers (auto-generated), enrollment tracking, PDF export. Activate/deactivate toggle (hidden for Super Admin).
+- **Students** (`/students`) — Full student records with admission numbers (auto-generated), enrollment tracking, PDF export. Subject checkboxes on the admit/edit form (pre-filled from the selected class, saved per student). Activate/deactivate toggle (hidden for Super Admin).
 - **Enrollments** — Students enrolled in class+section per academic session with roll numbers.
 - **Parents** (`/parents`) — Parent accounts linked to students via `parent_student` pivot (guardian_type, is_primary_contact).
 
@@ -176,6 +176,7 @@ Student ──┬── StudentEnrollment ──┬── SchoolClass
           │                 └── FeeConcession
           ├── Attendance
           ├── TestResult ── Test
+          ├── Subject (via student_subject pivot)
           └── StudentParent (via parent_student pivot)
 
 User ──┬── Student
@@ -277,7 +278,7 @@ Migrations are in `database/migrations/` with timestamp prefixes. Key tables:
 
 - `users`, `students`, `teachers`, `parents`
 - `academic_sessions`, `school_classes`, `sections`, `subjects`
-- `class_subject` (pivot), `parent_student` (pivot)
+- `class_subject` (pivot), `parent_student` (pivot), `student_subject` (pivot)
 - `teacher_subject_assignments`, `teacher_assignment_logs`
 - `student_enrollments`
 - `fee_structures`, `fee_invoices`, `fee_payments`, `fee_concessions`

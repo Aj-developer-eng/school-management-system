@@ -10,6 +10,7 @@ use App\Models\FeeInvoice;
 use App\Models\SchoolClass;
 use App\Models\Section;
 use App\Models\Student;
+use App\Models\Subject;
 use App\Models\TestResult;
 use App\Services\ActivityLogService;
 use App\Services\SchoolSettingsService;
@@ -260,6 +261,21 @@ class StudentController extends Controller
     {
         $activeSession = AcademicSession::active()->first();
 
+        // Active subjects with the classes they are mapped to, so the form can
+        // offer them as checkboxes scoped to the selected class.
+        $subjects = Subject::query()
+            ->where('is_active', true)
+            ->with('schoolClasses:id')
+            ->orderBy('name')
+            ->get(['id', 'name', 'code'])
+            ->map(fn (Subject $subject): array => [
+                'id' => $subject->id,
+                'name' => $subject->name,
+                'code' => $subject->code,
+                'school_class_ids' => $subject->schoolClasses->pluck('id')->all(),
+            ])
+            ->values();
+
         return Inertia::render('Student/Form', [
             'student' => $student,
             'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
@@ -273,6 +289,10 @@ class StudentController extends Controller
                     'academic_session_id' => $section->academic_session_id,
                 ])
                 ->all(),
+            'subjects' => $subjects,
+            'selected_subject_ids' => $student
+                ? $student->subjects()->pluck('subjects.id')->all()
+                : [],
             'default_session_id' => $student?->enrollments?->first()?->academic_session_id ?? $activeSession?->id,
         ]);
     }
