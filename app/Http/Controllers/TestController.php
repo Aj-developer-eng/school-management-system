@@ -132,11 +132,15 @@ class TestController extends Controller
         }
 
         // Parents see only their children's results; students only their own.
-        // Unpublished results stay hidden from them entirely.
+        // Unpublished results stay hidden from them entirely. Two more rules
+        // apply to them: "not applicable" results are staff-only, and a test
+        // whose subject is no longer available exposes no results at all.
         $scopedStudentIds = $this->scopedStudentIds($user);
         if ($scopedStudentIds !== null) {
-            $students = $test->status === TestStatusEnum::ResultsPublished
-                ? $students->filter(fn ($s) => $scopedStudentIds->contains($s['id']))->values()
+            $students = $test->status === TestStatusEnum::ResultsPublished && $test->subject !== null
+                ? $students
+                    ->filter(fn ($s) => $scopedStudentIds->contains($s['id']) && ! $s['result']?->is_not_applicable)
+                    ->values()
                 : collect();
         }
 

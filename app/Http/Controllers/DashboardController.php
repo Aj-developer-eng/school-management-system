@@ -196,8 +196,9 @@ class DashboardController extends Controller
                     ->orderBy('student_id')
                     ->get();
 
-                // Published test results for the children, including absent and
-                // "not applicable" entries so parents see the full picture.
+                // Published test results for the children. Parents do not see
+                // "not applicable" entries, and a test whose subject is no
+                // longer available contributes no results.
                 $testResults = TestResult::with([
                     'test:id,title,test_date,subject_id,school_class_id,total_marks',
                     'test.subject:id,name',
@@ -206,9 +207,11 @@ class DashboardController extends Controller
                 ])
                     ->whereIn('student_id', $studentIds)
                     ->whereNull('deleted_at')
+                    ->where('is_not_applicable', false)
                     ->whereHas('test', function ($q): void {
                         $q->where('status', TestStatusEnum::ResultsPublished->value)
-                            ->whereNull('deleted_at');
+                            ->whereNull('deleted_at')
+                            ->whereHas('subject');
                     })
                     ->orderByDesc('id')
                     ->limit(10)

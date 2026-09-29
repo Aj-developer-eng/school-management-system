@@ -141,7 +141,7 @@ Several controllers scope data based on the logged-in user's role:
 ### 6. Tests & Results
 
 - **Tests** (`/tests`) — Teachers create tests (quiz, class test, mid-term, final, assignment, oral, practical). Status flow: announced → conducted → results_published.
-- **Results** — Enter marks per student, flag a student as absent or **Not Applicable** (test does not apply — no marks, no grade), auto-grade calculation (A+ through F). Publish results notifies parents via NotificationService.
+- **Results** — Enter marks per student, flag a student as absent or **Not Applicable** (test does not apply — no marks, no grade), auto-grade calculation (A+ through F). "Not applicable" results and results of tests without a subject stay staff-only. Publish results notifies parents via NotificationService.
 
 ### 7. Special Requests
 

@@ -225,7 +225,7 @@ class TestResultNotApplicableTest extends TestCase
         $this->assertDatabaseCount('test_results', 0);
     }
 
-    public function test_parent_sees_not_applicable_result_on_test_page(): void
+    public function test_parent_does_not_see_not_applicable_result_on_test_page(): void
     {
         $student = $this->enrollStudent('ADM-030', '1');
         $parentUser = $this->makeParent($student);
@@ -237,13 +237,72 @@ class TestResultNotApplicableTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Test/Show')
+                ->has('students', 0)
+            );
+    }
+
+    public function test_teacher_still_sees_not_applicable_result_on_test_page(): void
+    {
+        $student = $this->enrollStudent('ADM-029', '1');
+
+        $this->publishNotApplicableResult($student);
+
+        $this->actingAs($this->teacherUser)
+            ->get(route('tests.show', $this->test))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Test/Show')
                 ->has('students', 1)
                 ->where('students.0.id', $student->id)
                 ->where('students.0.result.is_not_applicable', true)
             );
     }
 
-    public function test_parent_dashboard_lists_published_not_applicable_result(): void
+    public function test_parent_does_not_see_results_when_the_test_has_no_subject(): void
+    {
+        $student = $this->enrollStudent('ADM-033', '1');
+        $parentUser = $this->makeParent($student);
+
+        $this->publishNotApplicableResult($student);
+
+        // The subject is removed, so the test is no longer associated with one.
+        $this->test->subject->delete();
+
+        $this->actingAs($parentUser)
+            ->get(route('tests.show', $this->test))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Test/Show')
+                ->has('students', 0)
+                ->where('test.subject', null)
+            );
+    }
+
+    public function test_parent_still_sees_absent_and_graded_results(): void
+    {
+        $student = $this->enrollStudent('ADM-034', '1');
+        $parentUser = $this->makeParent($student);
+
+        $this->publishNotApplicableResult($student);
+
+        $absentTest = $this->makeTestWithStatus(TestStatusEnum::ResultsPublished, 'Class Test Physics');
+        TestResult::create([
+            'test_id' => $absentTest->id,
+            'student_id' => $student->id,
+            'is_absent' => true,
+        ]);
+
+        $this->actingAs($parentUser)
+            ->get(route('tests.show', $absentTest))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Test/Show')
+                ->has('students', 1)
+                ->where('students.0.result.is_absent', true)
+            );
+    }
+
+    public function test_parent_dashboard_hides_not_applicable_result(): void
     {
         $student = $this->enrollStudent('ADM-031', '1');
         $parentUser = $this->makeParent($student);
@@ -256,12 +315,62 @@ class TestResultNotApplicableTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
                 ->where('dashboardType', 'parent')
-                ->has('testResults', 1)
-                ->where('testResults.0.test_id', $this->test->id)
-                ->where('testResults.0.is_not_applicable', true)
-                ->where('testResults.0.is_absent', false)
-                ->where('testResults.0.marks_obtained', null)
-                ->where('testResults.0.grade', null)
+                ->has('testResults', 0)
+            );
+    }
+
+    public function test_parent_dashboard_lists_graded_and_absent_results(): void
+    {
+        $student = $this->enrollStudent('ADM-035', '1');
+        $parentUser = $this->makeParent($student);
+
+        $gradedTest = $this->makeTestWithStatus(TestStatusEnum::ResultsPublished, 'Class Test Chemistry');
+        TestResult::create([
+            'test_id' => $gradedTest->id,
+            'student_id' => $student->id,
+            'marks_obtained' => 82,
+            'grade' => 'A',
+        ]);
+
+        $absentTest = $this->makeTestWithStatus(TestStatusEnum::ResultsPublished, 'Class Test Physics');
+        TestResult::create([
+            'test_id' => $absentTest->id,
+            'student_id' => $student->id,
+            'is_absent' => true,
+        ]);
+
+        $this->actingAs($parentUser)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->has('testResults', 2)
+            );
+    }
+
+    public function test_parent_dashboard_hides_results_for_tests_without_a_subject(): void
+    {
+        $student = $this->enrollStudent('ADM-036', '1');
+        $parentUser = $this->makeParent($student);
+
+        $this->publishNotApplicableResult($student);
+
+        $gradedTest = $this->makeTestWithStatus(TestStatusEnum::ResultsPublished, 'Class Test Chemistry');
+        TestResult::create([
+            'test_id' => $gradedTest->id,
+            'student_id' => $student->id,
+            'marks_obtained' => 70,
+            'grade' => 'B',
+        ]);
+
+        $gradedTest->subject->delete();
+
+        $this->actingAs($parentUser)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->has('testResults', 0)
             );
     }
 

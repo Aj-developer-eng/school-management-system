@@ -76,6 +76,11 @@ export default function Show({ test, students }) {
     const canMarkConducted = can('tests.update') && statusValue === 'announced';
     const canPublish = can('tests.upload-results') && statusValue === 'conducted' && (test.results?.length ?? 0) > 0;
 
+    // Parents and students get a read-only view. Results marked "not applicable"
+    // are staff-only, and a test without a subject exposes no results.
+    const isReadOnly = !canUploadResults;
+    const hasSubject = Boolean(test.subject?.id);
+
     return (
         <AuthenticatedLayout
             title={`Test: ${test.title}`}
@@ -136,7 +141,7 @@ export default function Show({ test, students }) {
                 </div>
 
                 {/* Results entry / display */}
-                {statusValue !== 'announced' && (students?.length ?? 0) > 0 && (
+                {statusValue !== 'announced' && (students?.length ?? 0) > 0 && (!isReadOnly || hasSubject) && (
                     <Card>
                         <div className="flex items-center justify-between p-6 pb-0">
                             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
@@ -161,10 +166,10 @@ export default function Show({ test, students }) {
                                         {students.map((s) => {
                                             const result = results[s.id] ?? { marks_obtained: '', is_absent: false, is_not_applicable: false, remarks: '' };
 
-                                            // In read-only view (e.g. parents), show only students
-                                            // with a saved result — this includes absent and
-                                            // "not applicable" rows, which carry no marks.
-                                            if (!canUploadResults && !s.result) {
+                                            // In read-only view (e.g. parents), show only saved
+                                            // results that apply: "not applicable" rows are
+                                            // staff-only, and rows without any result are noise.
+                                            if (isReadOnly && (!s.result || s.result.is_not_applicable)) {
                                                 return null;
                                             }
 
@@ -277,6 +282,14 @@ export default function Show({ test, students }) {
                     <Card>
                         <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
                             This test has been announced. After conducting the test, mark it as conducted to enable result entry.
+                        </div>
+                    </Card>
+                )}
+
+                {statusValue !== 'announced' && isReadOnly && !hasSubject && (
+                    <Card>
+                        <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                            This test is not linked to a subject, so no results are shown.
                         </div>
                     </Card>
                 )}
