@@ -17,6 +17,7 @@ use App\Models\TeacherSubjectAssignment;
 use App\Models\Test;
 use App\Models\TestResult;
 use App\Models\User;
+use App\Services\SchoolSettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
@@ -284,6 +285,71 @@ class TestResultNotApplicableTest extends TestCase
             );
     }
 
+    public function test_student_pdf_view_lists_test_results_with_statuses(): void
+    {
+        $student = $this->enrollStudent('ADM-040', '1');
+
+        $this->publishNotApplicableResult($student);
+
+        $absentTest = $this->makeTestWithStatus(TestStatusEnum::Conducted, 'Class Test Physics');
+        TestResult::create([
+            'test_id' => $absentTest->id,
+            'student_id' => $student->id,
+            'is_absent' => true,
+        ]);
+
+        $student->load(['user', 'enrollments', 'parents.user', 'invoices']);
+
+        $testResults = TestResult::with([
+            'test.subject:id,name',
+            'test.schoolClass:id,name',
+            'test.section:id,name',
+        ])
+            ->where('student_id', $student->id)
+            ->get();
+
+        $html = view('pdf.student-record', [
+            'student' => $student,
+            'school' => app(SchoolSettingsService::class)->get(),
+            'logoBase64' => null,
+            'testResults' => $testResults,
+        ])->render();
+
+        $this->assertStringContainsString('Test Results', $html);
+        $this->assertStringContainsString('Mid Term Mathematics', $html);
+        $this->assertStringContainsString('Not Applicable', $html);
+        $this->assertStringContainsString('Class Test Physics', $html);
+        $this->assertStringContainsString('Absent', $html);
+    }
+
+    public function test_student_pdf_downloads_with_test_results_section(): void
+    {
+        $admin = $this->makeSuperAdmin();
+        $student = $this->enrollStudent('ADM-041', '1');
+
+        $this->publishNotApplicableResult($student);
+
+        $gradedTest = $this->makeTestWithStatus(TestStatusEnum::ResultsPublished, 'Class Test Chemistry');
+        TestResult::create([
+            'test_id' => $gradedTest->id,
+            'student_id' => $student->id,
+            'marks_obtained' => 82,
+            'grade' => 'A',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('students.pdf', $student));
+
+        $response->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $response->headers->get('content-type'));
+
+        // A student without any test results still renders (empty-state branch).
+        $studentWithoutResults = $this->enrollStudent('ADM-042', '2');
+
+        $this->actingAs($admin)
+            ->get(route('students.pdf', $studentWithoutResults))
+            ->assertOk();
+    }
+
     private function enrollStudent(string $admissionNumber, string $rollNumber): Student
     {
         $student = Student::create([
@@ -335,5 +401,31 @@ class TestResultNotApplicableTest extends TestCase
             'is_not_applicable' => true,
             'remarks' => 'Exempted',
         ]);
+    }
+
+    private function makeTestWithStatus(TestStatusEnum $status, string $title): Test
+    {
+        return Test::create([
+            'teacher_subject_assignment_id' => $this->test->teacher_subject_assignment_id,
+            'teacher_id' => $this->test->teacher_id,
+            'academic_session_id' => $this->test->academic_session_id,
+            'school_class_id' => $this->test->school_class_id,
+            'section_id' => $this->test->section_id,
+            'subject_id' => $this->test->subject_id,
+            'title' => $title,
+            'test_type' => TestTypeEnum::ClassTest,
+            'test_date' => now()->subDay()->toDateString(),
+            'total_marks' => 100,
+            'passing_marks' => 40,
+            'status' => $status,
+        ]);
+    }
+
+    private function makeSuperAdmin(): User
+    {
+        $user = User::factory()->create();
+        $user->assignRole(Role::findOrCreate(RoleEnum::SuperAdmin->value, 'web'));
+
+        return $user;
     }
 }

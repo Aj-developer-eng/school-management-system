@@ -149,6 +149,51 @@
             @endif
         </div>
 
+        {{-- Test Results --}}
+        <div class="section">
+            <p class="section-title">Test Results</p>
+            @if ($testResults->isNotEmpty())
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Test</th>
+                            <th>Type</th>
+                            <th>Subject</th>
+                            <th class="text-right">Marks</th>
+                            <th>Grade</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($testResults as $result)
+                            <tr>
+                                <td>{{ $result->test?->test_date?->format('d M Y') ?? '—' }}</td>
+                                <td>{{ $result->test?->title ?? '—' }}</td>
+                                <td>{{ $result->test?->test_type?->label() ?? '—' }}</td>
+                                <td>{{ $result->test?->subject?->name ?? '—' }}</td>
+                                <td class="text-right">
+                                    @if ($result->is_not_applicable)
+                                        Not Applicable
+                                    @elseif ($result->is_absent)
+                                        Absent
+                                    @elseif ($result->marks_obtained !== null)
+                                        {{ number_format((float) $result->marks_obtained, 2) }}@if ($result->test?->total_marks !== null) / {{ number_format((float) $result->test->total_marks, 2) }}@endif
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                                <td>{{ $result->is_not_applicable || $result->is_absent ? '—' : ($result->grade ?? '—') }}</td>
+                                <td>{{ $result->remarks ?? '—' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @else
+                <p style="font-size: 12px; color: #999;">No test results recorded.</p>
+            @endif
+        </div>
+
         {{-- Parents / Guardians --}}
         <div class="section">
             <p class="section-title">Parents / Guardians</p>

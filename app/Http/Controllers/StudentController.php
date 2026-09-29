@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TestStatusEnum;
 use App\Http\Requests\Student\StoreRequest;
 use App\Http\Requests\Student\UpdateRequest;
 use App\Models\AcademicSession;
@@ -9,6 +10,7 @@ use App\Models\FeeInvoice;
 use App\Models\SchoolClass;
 use App\Models\Section;
 use App\Models\Student;
+use App\Models\TestResult;
 use App\Services\ActivityLogService;
 use App\Services\SchoolSettingsService;
 use App\Services\StudentService;
@@ -218,6 +220,26 @@ class StudentController extends Controller
 
         $school = $settingsService->get();
 
+        // Test results for this student (conducted or published tests only).
+        $testResults = TestResult::with([
+            'test:id,title,test_type,test_date,total_marks,subject_id,school_class_id,section_id',
+            'test.subject:id,name',
+            'test.schoolClass:id,name',
+            'test.section:id,name',
+        ])
+            ->where('student_id', $student->id)
+            ->whereNull('deleted_at')
+            ->whereHas('test', function ($q): void {
+                $q->whereNull('deleted_at')
+                    ->whereIn('status', [
+                        TestStatusEnum::Conducted->value,
+                        TestStatusEnum::ResultsPublished->value,
+                    ]);
+            })
+            ->get()
+            ->sortByDesc(fn (TestResult $result): int => $result->test?->test_date?->timestamp ?? 0)
+            ->values();
+
         $logoBase64 = null;
         $media = $school->getFirstMedia($school::LOGO_COLLECTION);
         if ($media && file_exists($media->getPath())) {
@@ -228,6 +250,7 @@ class StudentController extends Controller
             'student' => $student,
             'school' => $school,
             'logoBase64' => $logoBase64,
+            'testResults' => $testResults,
         ]);
 
         return $pdf->download("student-{$student->admission_number}-{$student->user->name}.pdf");
