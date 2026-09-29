@@ -31,9 +31,11 @@ class TestController extends Controller
         $user = $request->user();
         $activeSession = AcademicSession::active()->first();
 
-        // Parents and students never get the test list — they only ever see
-        // their own results on an individual test page.
-        $isScopedViewer = $this->scopedStudentIds($user) !== null;
+        // Parents and students only ever see the tests they have a visible result
+        // for: published results, excluding "not applicable" entries and tests
+        // whose subject is no longer available. Staff roles stay unrestricted.
+        $scopedStudentIds = $this->scopedStudentIds($user);
+        $isScopedViewer = $scopedStudentIds !== null;
 
         $tests = Test::query()
             ->with([
@@ -42,10 +44,14 @@ class TestController extends Controller
                 'section:id,name',
                 'subject:id,name',
                 'academicSession:id,name',
-                'results' => fn ($q) => $q->whereNull('deleted_at'),
+                'results' => fn ($q) => $q
+                    ->whereNull('deleted_at')
+                    ->when($isScopedViewer, fn ($rq) => $rq
+                        ->whereIn('student_id', $scopedStudentIds)
+                        ->where('is_not_applicable', false)),
             ])
             ->whereNull('tests.deleted_at')
-            ->when($isScopedViewer, fn ($q) => $q->whereNull('tests.id'))
+            ->when($isScopedViewer, fn ($q) => $q->whereIn('tests.id', $this->visibleTestIds($scopedStudentIds)))
             ->when($activeSession, fn ($q) => $q->where('academic_session_id', $activeSession->id))
             ->when($request->search, function ($query, $search): void {
                 $query->where('title', 'like', "%{$search}%")
@@ -324,6 +330,26 @@ class TestController extends Controller
             ])
             ->sortBy('roll_number')
             ->values();
+    }
+
+    /**
+     * The IDs of the tests a scoped viewer (parent or student) may see: the
+     * ones holding at least one of their results that has been published.
+     * Mirrors the visibility rules applied by show() and the parent dashboard.
+     */
+    private function visibleTestIds(Collection $studentIds): array
+    {
+        return TestResult::query()
+            ->select('test_id')
+            ->whereIn('student_id', $studentIds)
+            ->whereNull('deleted_at')
+            ->where('is_not_applicable', false)
+            ->whereHas('test', fn ($q) => $q
+                ->where('status', TestStatusEnum::ResultsPublished->value)
+                ->whereNull('deleted_at')
+                ->whereHas('subject'))
+            ->pluck('test_id')
+            ->all();
     }
 
     private function calculateGrade(?string $marks, string $totalMarks, string $passingMarks): ?string
