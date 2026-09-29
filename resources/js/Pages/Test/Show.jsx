@@ -17,8 +17,13 @@ export default function Show({ test, students }) {
 
     // "No mark given" counts as absent: a student without a saved result
     // record, an explicitly absent one, or one with no marks stored.
+    // Students marked "Not Applicable" are neither absent nor graded.
     const computeAbsent = (s) => {
         const r = s.result;
+        if (r?.is_not_applicable) {
+            return false;
+        }
+
         if (!r || r.is_absent) {
             return true;
         }
@@ -35,6 +40,7 @@ export default function Show({ test, students }) {
                 {
                     marks_obtained: s.result?.marks_obtained ?? '',
                     is_absent: computeAbsent(s),
+                    is_not_applicable: s.result?.is_not_applicable ?? false,
                     remarks: s.result?.remarks ?? '',
                 },
             ]),
@@ -147,12 +153,13 @@ export default function Show({ test, students }) {
                                             <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Marks</th>
                                             <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Grade</th>
                                             <th className="py-2 text-center font-medium text-gray-500 dark:text-gray-400">Absent</th>
+                                            <th className="py-2 text-center font-medium text-gray-500 dark:text-gray-400">Not Applicable</th>
                                             <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Remarks</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {students.map((s) => {
-                                            const result = results[s.id] ?? { marks_obtained: '', is_absent: false, remarks: '' };
+                                            const result = results[s.id] ?? { marks_obtained: '', is_absent: false, is_not_applicable: false, remarks: '' };
 
                                             // In read-only view (e.g. parents), only show students
                                             // with actual marks — hides "no marks" rows, whether
@@ -175,9 +182,10 @@ export default function Show({ test, students }) {
                                                                 value={result.marks_obtained}
                                                                 onChange={(e) => {
                                                                     updateResult(s.id, 'marks_obtained', e.target.value);
-                                                                    if (e.target.value !== '' && result.is_absent) {
-                                                                        // Marks given -> the student is present.
+                                                                    if (e.target.value !== '' && (result.is_absent || result.is_not_applicable)) {
+                                                                        // Marks given -> the student is present and the test applies.
                                                                         updateResult(s.id, 'is_absent', false);
+                                                                        updateResult(s.id, 'is_not_applicable', false);
                                                                     }
                                                                 }}
                                                                 className="w-24 rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
@@ -201,14 +209,38 @@ export default function Show({ test, students }) {
                                                                 onChange={(e) => {
                                                                     updateResult(s.id, 'is_absent', e.target.checked);
                                                                     if (e.target.checked) {
-                                                                        // Absent students have no marks.
+                                                                        // Absent students have no marks and the test applies to them.
                                                                         updateResult(s.id, 'marks_obtained', '');
+                                                                        updateResult(s.id, 'is_not_applicable', false);
                                                                     }
                                                                 }}
                                                                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
                                                             />
                                                         ) : (
                                                             computeAbsent(s) ? 'Yes' : 'No'
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 text-center">
+                                                        {canUploadResults ? (
+                                                            <input
+                                                                type="checkbox"
+                                                                aria-label="Not Applicable"
+                                                                title="Not Applicable"
+                                                                checked={result.is_not_applicable}
+                                                                onChange={(e) => {
+                                                                    const checked = e.target.checked;
+                                                                    updateResult(s.id, 'is_not_applicable', checked);
+                                                                    if (checked) {
+                                                                        // The test does not apply -> the student is
+                                                                        // neither absent nor graded.
+                                                                        updateResult(s.id, 'is_absent', false);
+                                                                        updateResult(s.id, 'marks_obtained', '');
+                                                                    }
+                                                                }}
+                                                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+                                                            />
+                                                        ) : (
+                                                            result.is_not_applicable ? 'Yes' : 'No'
                                                         )}
                                                     </td>
                                                     <td className="py-3">

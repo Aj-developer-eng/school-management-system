@@ -21,6 +21,7 @@ class TestResult extends Model
         'grade',
         'remarks',
         'is_absent',
+        'is_not_applicable',
     ];
 
     protected function casts(): array
@@ -28,6 +29,7 @@ class TestResult extends Model
         return [
             'marks_obtained' => 'decimal:2',
             'is_absent' => 'boolean',
+            'is_not_applicable' => 'boolean',
         ];
     }
 

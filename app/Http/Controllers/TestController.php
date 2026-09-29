@@ -230,12 +230,18 @@ class TestController extends Controller
             'results.*.student_id' => ['required', 'exists:students,id'],
             'results.*.marks_obtained' => ['nullable', 'numeric', 'min:0'],
             'results.*.is_absent' => ['boolean'],
+            'results.*.is_not_applicable' => ['boolean'],
             'results.*.remarks' => ['nullable', 'string', 'max:500'],
         ]);
 
         DB::transaction(function () use ($request, $test): void {
             foreach ($request->input('results') as $row) {
-                $marks = ($row['is_absent'] ?? false) ? null : ($row['marks_obtained'] ?? null);
+                // "Not Applicable" takes precedence: the test does not apply to
+                // the student, so they are neither absent nor graded.
+                $isNotApplicable = (bool) ($row['is_not_applicable'] ?? false);
+                $isAbsent = ! $isNotApplicable && (bool) ($row['is_absent'] ?? false);
+
+                $marks = ($isNotApplicable || $isAbsent) ? null : ($row['marks_obtained'] ?? null);
                 $grade = $this->calculateGrade($marks, $test->total_marks, $test->passing_marks);
 
                 TestResult::updateOrCreate(
@@ -244,7 +250,8 @@ class TestController extends Controller
                         'marks_obtained' => $marks,
                         'grade' => $grade,
                         'remarks' => $row['remarks'] ?? null,
-                        'is_absent' => $row['is_absent'] ?? false,
+                        'is_absent' => $isAbsent,
+                        'is_not_applicable' => $isNotApplicable,
                     ]
                 );
             }
@@ -346,16 +353,20 @@ class TestController extends Controller
                 continue;
             }
 
-            $marksDisplay = $result->is_absent
-                ? 'Absent'
-                : number_format((float) $result->marks_obtained, 2) . '/' . number_format((float) $test->total_marks, 2);
+            $marksDisplay = match (true) {
+                $result->is_not_applicable => 'Not Applicable',
+                $result->is_absent => 'Absent',
+                default => number_format((float) $result->marks_obtained, 2) . '/' . number_format((float) $test->total_marks, 2),
+            };
+
+            $gradeDisplay = $result->grade ? " — Grade: {$result->grade}" : '';
 
             foreach ($student->parents as $parent) {
                 if ($parent->user) {
                     NotificationService::send($parent->user, [
                         'type' => 'test_result_published',
                         'title' => "Test Result: {$test->title}",
-                        'message' => "{$student->user->name} — {$test->subject?->name} ({$test->schoolClass?->name}): {$marksDisplay} — Grade: {$result->grade}",
+                        'message' => "{$student->user->name} — {$test->subject?->name} ({$test->schoolClass?->name}): {$marksDisplay}{$gradeDisplay}",
                         'link' => '/tests/' . $test->id,
                     ]);
                 }
