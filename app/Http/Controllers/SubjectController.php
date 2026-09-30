@@ -11,11 +11,14 @@ use App\Models\Subject;
 use App\Models\SubjectPaper;
 use App\Models\Teacher;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SubjectController extends Controller
 {
@@ -29,7 +32,12 @@ class SubjectController extends Controller
         $activeSessionId = AcademicSession::active()->value('id');
 
         $subjects = Subject::query()
-            ->with(['schoolClasses', 'papers'])
+            ->with([
+                'schoolClasses',
+                'papers',
+                'notes' => fn ($q) => $q->whereNull('deleted_at'),
+                'notes.teacher.user:id,name',
+            ])
             ->select('subjects.*')
             ->selectRaw('(select count(distinct se.student_id)
                 from student_enrollments se
@@ -94,7 +102,7 @@ class SubjectController extends Controller
      * Teachers are scoped to subjects they are assigned to.
      * Returns null for other roles (no scoping — they see everything).
      */
-    private function scopedSubjectIds(User $user): ?\Illuminate\Support\Collection
+    private function scopedSubjectIds(User $user): ?Collection
     {
         if ($user->hasRole(RoleEnum::Teacher->value)) {
             $teacher = Teacher::where('user_id', $user->id)->first();
@@ -114,7 +122,7 @@ class SubjectController extends Controller
         ]);
     }
 
-    public function store(StoreRequest $request): \Illuminate\Http\RedirectResponse
+    public function store(StoreRequest $request): RedirectResponse
     {
         $subject = Subject::create($request->safe()->except('school_class_ids'));
         $subject->schoolClasses()->sync($request->input('school_class_ids', []));
@@ -133,7 +141,7 @@ class SubjectController extends Controller
         ]);
     }
 
-    public function update(UpdateRequest $request, Subject $subject): \Illuminate\Http\RedirectResponse
+    public function update(UpdateRequest $request, Subject $subject): RedirectResponse
     {
         $subject->update($request->safe()->except('school_class_ids'));
         $subject->schoolClasses()->sync($request->input('school_class_ids', []));
@@ -142,7 +150,7 @@ class SubjectController extends Controller
             ->with('success', 'Subject updated successfully.');
     }
 
-    public function destroy(Subject $subject): \Illuminate\Http\RedirectResponse
+    public function destroy(Subject $subject): RedirectResponse
     {
         $subject->delete();
 
@@ -150,7 +158,7 @@ class SubjectController extends Controller
             ->with('success', 'Subject deleted successfully.');
     }
 
-    public function uploadPaper(Request $request, Subject $subject): \Illuminate\Http\RedirectResponse
+    public function uploadPaper(Request $request, Subject $subject): RedirectResponse
     {
         abort_unless($request->user()->can('subjects.upload-papers'), 403);
 
@@ -172,7 +180,7 @@ class SubjectController extends Controller
         return back()->with('success', 'Paper uploaded successfully.');
     }
 
-    public function downloadPaper(Request $request, SubjectPaper $paper): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function downloadPaper(Request $request, SubjectPaper $paper): StreamedResponse
     {
         abort_unless(
             $request->user()->can('subjects.download-papers') || $request->user()->can('subjects.upload-papers'),
@@ -184,7 +192,7 @@ class SubjectController extends Controller
         return Storage::disk('public')->download($paper->file_path, $paper->original_name);
     }
 
-    public function destroyPaper(Request $request, SubjectPaper $paper): \Illuminate\Http\RedirectResponse
+    public function destroyPaper(Request $request, SubjectPaper $paper): RedirectResponse
     {
         abort_unless($request->user()->can('subjects.delete-papers'), 403);
 

@@ -15,6 +15,7 @@ use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudentParent;
 use App\Models\Subject;
+use App\Models\SubjectNote;
 use App\Models\Teacher;
 use App\Models\TeacherAssignmentLog;
 use App\Models\TeacherSubjectAssignment;
@@ -143,6 +144,7 @@ class DashboardController extends Controller
         $invoices = collect();
         $todayAttendance = collect();
         $testResults = collect();
+        $classNotes = collect();
         $feeSummary = [
             'total_invoiced' => 0,
             'total_paid' => 0,
@@ -252,6 +254,30 @@ class DashboardController extends Controller
                         ->filter(fn ($s) => $s->papers->isNotEmpty())
                         ->values();
                 }
+
+                // "What was taught today" notes posted by teachers against the
+                // subjects the children take. Only active notes are shown, so
+                // the active/inactive toggle hides a note from parents.
+                $classNotes = SubjectNote::with(['subject:id,name', 'teacher.user:id,name'])
+                    ->whereNull('subject_notes.deleted_at')
+                    ->where('is_active', true)
+                    ->when($classIds->isNotEmpty(), fn ($q) => $q->whereIn('subject_id', function ($sub) use ($classIds): void {
+                        $sub->select('class_subject.subject_id')
+                            ->from('class_subject')
+                            ->whereIn('class_subject.school_class_id', $classIds);
+                    }))
+                    ->orderByDesc('note_date')
+                    ->orderByDesc('id')
+                    ->limit(10)
+                    ->get()
+                    ->map(fn (SubjectNote $note): array => [
+                        'id' => $note->id,
+                        'subject' => $note->subject?->name,
+                        'note' => $note->note,
+                        'note_date' => $note->note_date?->toDateString(),
+                        'teacher' => $note->teacher?->user?->name,
+                    ])
+                    ->values();
             }
         }
 
@@ -271,6 +297,7 @@ class DashboardController extends Controller
             'feeSummary' => $feeSummary,
             'todayAttendance' => $todayAttendance,
             'testResults' => $testResults,
+            'classNotes' => $classNotes,
             'subjectPapers' => $subjectPapers,
             'activeSession' => $activeSession?->name,
             'timetable' => $this->buildTimetable($activeSession, null, $classSectionPairs),

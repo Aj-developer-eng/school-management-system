@@ -40,4 +40,9 @@ class Subject extends Model
     {
         return $this->hasMany(SubjectPaper::class)->orderByDesc('created_at');
     }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(SubjectNote::class)->orderByDesc('note_date')->orderByDesc('id');
+    }
 }

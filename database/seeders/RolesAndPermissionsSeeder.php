@@ -112,6 +112,8 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::UploadSubjectPapers->value,
             PermissionEnum::DownloadSubjectPapers->value,
             PermissionEnum::DeleteSubjectPapers->value,
+            PermissionEnum::AddSubjectNotes->value,
+            PermissionEnum::DeleteSubjectNotes->value,
         ]);
 
         $this->syncRolePermissions(RoleEnum::Accountant, [

@@ -324,7 +324,7 @@ function TimetableSection({ timetable }) {
     );
 }
 
-function ParentDashboard({ children, invoices, feeSummary, activeSession, todayAttendance, testResults, subjectPapers, timetable }) {
+function ParentDashboard({ children, invoices, feeSummary, activeSession, todayAttendance, testResults, classNotes, subjectPapers, timetable }) {
     const { can } = useAuth();
 
     return (
@@ -488,6 +488,44 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
             </div>
 
             <PapersSection papers={subjectPapers ?? []} />
+
+            {/* What was taught today, posted by teachers against each subject */}
+            <div className="animate-fade-in">
+                <SectionHeading>What Was Taught Today</SectionHeading>
+                <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
+                    {classNotes.length > 0 ? (
+                        <ul className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                            {classNotes.map((note) => (
+                                <li key={note.id} className="px-4 py-3 transition-colors hover:bg-indigo-50/40 dark:hover:bg-gray-700/30">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                                {note.subject ?? 'Subject'}
+                                            </span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                {formatDate(note.note_date)}
+                                            </span>
+                                        </div>
+                                        {note.teacher && (
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                by {note.teacher}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="mt-2 whitespace-pre-line text-sm text-gray-700 dark:text-gray-300">
+                                        {note.note}
+                                    </p>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                            No class notes have been shared yet.
+                        </p>
+                    )}
+                </div>
+            </div>
+
 
             {/* Children progress */}
             <div className="animate-fade-in">
@@ -874,6 +912,7 @@ export default function Dashboard(props) {
         teacher,
         todayAttendance,
         testResults,
+        classNotes,
     } = props;
 
     const sessionLabel = dashboardType === 'staff'
@@ -948,6 +987,7 @@ export default function Dashboard(props) {
                         activeSession={activeSession}
                         todayAttendance={todayAttendance ?? []}
                         testResults={testResults ?? []}
+                        classNotes={props.classNotes ?? []}
                         subjectPapers={props.subjectPapers ?? []}
                         timetable={props.timetable ?? []}
                     />

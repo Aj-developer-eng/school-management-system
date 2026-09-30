@@ -23,6 +23,7 @@ use App\Http\Controllers\SpecialRequestController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentParentController;
 use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\SubjectNoteController;
 use App\Http\Controllers\TeacherAssignmentController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\TeacherReportController;
@@ -74,6 +75,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('subject-papers/{paper}', [SubjectController::class, 'destroyPaper'])
         ->name('subject-papers.destroy');
 
+    Route::post('subjects/{subject}/notes', [SubjectNoteController::class, 'store'])
+        ->name('subjects.notes.store');
+    Route::patch('subject-notes/{note}/toggle-active', [SubjectNoteController::class, 'toggleActive'])
+        ->name('subject-notes.toggle-active');
+    Route::delete('subject-notes/{note}', [SubjectNoteController::class, 'destroy'])
+        ->name('subject-notes.destroy');
+
     Route::resource('teachers', TeacherController::class)
         ->except(['show'])
         ->names('teachers');
@@ -89,7 +97,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->names('teacher-assignments');
 
     Route::resource('students', StudentController::class)
-       ->names('students');
+        ->names('students');
 
     Route::patch('students/{student}/toggle-active', [StudentController::class, 'toggleActive'])
         ->name('students.toggle-active');

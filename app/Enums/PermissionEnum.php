@@ -111,6 +111,10 @@ enum PermissionEnum: string
     case DownloadSubjectPapers = 'subjects.download-papers';
     case DeleteSubjectPapers = 'subjects.delete-papers';
 
+    // Subject Notes (daily "what was taught today" notes for parents)
+    case AddSubjectNotes = 'subjects.add-notes';
+    case DeleteSubjectNotes = 'subjects.delete-notes';
+
     // Expenses
     case ViewExpenses = 'expenses.view';
     case CreateExpenses = 'expenses.create';

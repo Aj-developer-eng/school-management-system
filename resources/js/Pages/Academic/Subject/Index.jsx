@@ -14,9 +14,10 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
+import { formatDate } from '@/utils/format';
 import { confirmAction } from '@/utils/swal';
 import { Link, router, useForm } from '@inertiajs/react';
-import { Download, FileText, Paperclip, Search, Upload, X } from 'lucide-react';
+import { Download, FileText, NotebookPen, Paperclip, Search, Trash2, Upload, X } from 'lucide-react';
 
 const formatSize = (bytes) => {
     if (!bytes) return '—';
@@ -25,16 +26,28 @@ const formatSize = (bytes) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+/** Today as a local YYYY-MM-DD string (toISOString would shift the day in some timezones). */
+const todayInputValue = () => {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+
+    return `${now.getFullYear()}-${month}-${day}`;
+};
+
 export default function Index({ subjects, filters }) {
     const { can } = useAuth();
     const handleSearch = useFilter('subjects.index');
 
     const [paperSubject, setPaperSubject] = useState(null);
     const [studentsSubject, setStudentsSubject] = useState(null);
+    const [noteSubject, setNoteSubject] = useState(null);
 
     const canUpload = can('subjects.upload-papers');
     const canDownload = can('subjects.download-papers') || can('subjects.upload-papers');
     const canDeletePapers = can('subjects.delete-papers');
+    const canAddNote = can('subjects.add-notes');
+    const canDeleteNote = can('subjects.delete-notes');
 
     const columns = [
         { key: 'name', label: 'Name' },
@@ -86,9 +99,25 @@ export default function Index({ subjects, filters }) {
         {
             key: 'actions',
             label: 'Actions',
-            width: '180px',
+            width: '260px',
             render: (row) => (
                 <div className="flex items-center gap-3">
+                    {canAddNote && (
+                        <button
+                            type="button"
+                            onClick={() => setNoteSubject(row)}
+                            title="Add a note about what was taught, and notify parents"
+                            className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+                        >
+                            <NotebookPen className="h-3.5 w-3.5" />
+                            Notes
+                            {(row.notes?.length ?? 0) > 0 && (
+                                <span className="rounded-full bg-emerald-50 px-1.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                    {row.notes.length}
+                                </span>
+                            )}
+                        </button>
+                    )}
                     {(canUpload || canDownload) && (
                         <button
                             type="button"
@@ -130,6 +159,12 @@ export default function Index({ subjects, filters }) {
             />
 
             <StudentsModal subject={studentsSubject} onClose={() => setStudentsSubject(null)} />
+
+            <NotesModal
+                subject={noteSubject}
+                onClose={() => setNoteSubject(null)}
+                canDelete={canDeleteNote}
+            />
         </AuthenticatedLayout>
     );
 }
@@ -343,3 +378,185 @@ function PapersModal({ subject, onClose, canUpload, canDownload, canDelete }) {
         </div>
     );
 }
+
+function NotesModal({ subject, onClose, canDelete }) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        note: '',
+        note_date: todayInputValue(),
+        is_active: true,
+    });
+
+    // Start from a clean form each time a different subject is opened.
+    useEffect(() => {
+        reset();
+    }, [subject?.id]);
+
+    if (!subject) return null;
+
+    const submit = (event) => {
+        event.preventDefault();
+        post(route('subjects.notes.store', subject.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                reset();
+                router.reload({ only: ['subjects'] });
+            },
+        });
+    };
+
+    const toggleNote = (note) => {
+        router.patch(
+            route('subject-notes.toggle-active', note.id),
+            {},
+            { preserveScroll: true, onSuccess: () => router.reload({ only: ['subjects'] }) },
+        );
+    };
+
+    const removeNote = async (note) => {
+        const confirmed = await confirmAction({
+            title: 'Delete Note',
+            text: `Delete this ${subject.name} note for ${formatDate(note.note_date)}? This cannot be undone.`,
+            confirmButtonText: 'Yes, delete it',
+        });
+
+        if (confirmed) {
+            router.delete(route('subject-notes.destroy', note.id), {
+                preserveScroll: true,
+                onSuccess: () => router.reload({ only: ['subjects'] }),
+            });
+        }
+    };
+
+    const notes = subject.notes ?? [];
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-gray-900">
+                <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
+                    <div>
+                        <h2 className="text-sm font-semibold uppercase text-gray-500 dark:text-gray-400">
+                            Class Notes — {subject.name}
+                        </h2>
+                        <p className="text-xs text-gray-400">
+                            Tell parents what was taught today.
+                        </p>
+                    </div>
+                    <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+
+                <div className="max-h-64 overflow-y-auto p-4">
+                    {notes.length > 0 ? (
+                        <ul className="space-y-2">
+                            {notes.map((note) => (
+                                <li
+                                    key={note.id}
+                                    className="rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700"
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                                {formatDate(note.note_date)}
+                                                {note.teacher?.user?.name ? ` · ${note.teacher.user.name}` : ''}
+                                            </p>
+                                            <p className="mt-1 whitespace-pre-line break-words text-gray-800 dark:text-gray-200">
+                                                {note.note}
+                                            </p>
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-2">
+                                            <StatusBadge active={note.is_active} />
+                                            {canDelete && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeNote(note)}
+                                                    title="Delete note"
+                                                    className="text-gray-400 hover:text-red-600"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleNote(note)}
+                                        className="mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400"
+                                    >
+                                        Mark as {note.is_active ? 'inactive' : 'active'}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <div className="flex flex-col items-center gap-1 py-6 text-center">
+                            <NotebookPen className="h-6 w-6 text-gray-300" />
+                            <p className="text-sm text-gray-500 dark:text-gray-400">No notes for this subject yet.</p>
+                        </div>
+                    )}
+                </div>
+
+                <form onSubmit={submit} className="space-y-3 border-t border-gray-200 p-4 dark:border-gray-700">
+                    <div>
+                        <InputLabel htmlFor="note_subject" value="Subject" />
+                        <TextInput
+                            id="note_subject"
+                            value={subject.name}
+                            readOnly
+                            disabled
+                            className="mt-1 block w-full bg-gray-50 dark:bg-gray-800"
+                        />
+                    </div>
+
+                    <div>
+                        <InputLabel htmlFor="note_body" value="Note" />
+                        <textarea
+                            id="note_body"
+                            value={data.note}
+                            onChange={(e) => setData('note', e.target.value)}
+                            rows={3}
+                            placeholder="What was taught today — e.g. Chapter 4 Fractions; covered addition and subtraction, homework from exercise 4.2."
+                            className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                        />
+                        <InputError message={errors.note} className="mt-1" />
+                    </div>
+
+                    <div>
+                        <InputLabel htmlFor="note_date" value="Date" />
+                        <TextInput
+                            id="note_date"
+                            type="date"
+                            value={data.note_date}
+                            onChange={(e) => setData('note_date', e.target.value)}
+                            className="mt-1 block w-full"
+                        />
+                        <InputError message={errors.note_date} className="mt-1" />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <input
+                            id="note_is_active"
+                            type="checkbox"
+                            checked={data.is_active}
+                            onChange={(e) => setData('is_active', e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+                        />
+                        <InputLabel htmlFor="note_is_active" value="Active" />
+                        <span className="text-xs text-gray-400">
+                            {data.is_active ? 'Parents will be notified' : 'Saved without notifying parents'}
+                        </span>
+                    </div>
+                    <InputError message={errors.is_active} className="mt-1" />
+
+                    <div className="flex justify-end">
+                        <PrimaryButton disabled={processing || data.note.trim() === ''}>
+                            <NotebookPen className="h-4 w-4" />
+                            Save Note
+                        </PrimaryButton>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
