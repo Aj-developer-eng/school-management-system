@@ -77,6 +77,7 @@ enum PermissionEnum: string
     case CreateFeeInvoices = 'fee-invoices.create';
     case UpdateFeeInvoices = 'fee-invoices.update';
     case DeleteFeeInvoices = 'fee-invoices.delete';
+    case PrintFeeInvoices = 'fee-invoices.print';
 
     // Fee Payments
     case ViewFeePayments = 'fee-payments.view';
@@ -105,6 +106,9 @@ enum PermissionEnum: string
     // Attendance
     case ViewAttendances = 'attendances.view';
     case CreateAttendances = 'attendances.create';
+
+    // Database Backups
+    case DownloadBackups = 'backups.download';
 
     // Subject Papers (past papers / test PDFs)
     case UploadSubjectPapers = 'subjects.upload-papers';

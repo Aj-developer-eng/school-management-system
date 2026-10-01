@@ -2,21 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleEnum;
 use App\Http\Requests\FeeInvoice\BulkGenerateRequest;
 use App\Http\Requests\FeeInvoice\StoreRequest;
 use App\Http\Requests\FeeInvoice\UpdateRequest;
-use App\Models\AcademicSession;
 use App\Models\FeeInvoice;
 use App\Models\FeeStructure;
-use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\StudentParent;
 use App\Models\User;
-use App\Enums\RoleEnum;
 use App\Services\ActivityLogService;
 use App\Services\FeeInvoiceService;
 use App\Services\SchoolSettingsService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -89,7 +89,7 @@ class FeeInvoiceController extends Controller
         ]);
     }
 
-    public function store(StoreRequest $request, FeeInvoiceService $service): \Illuminate\Http\RedirectResponse
+    public function store(StoreRequest $request, FeeInvoiceService $service): RedirectResponse
     {
         $service->createInvoice($request->validated());
 
@@ -121,7 +121,7 @@ class FeeInvoiceController extends Controller
         ]);
     }
 
-    public function update(UpdateRequest $request, FeeInvoice $feeInvoice, FeeInvoiceService $service): \Illuminate\Http\RedirectResponse
+    public function update(UpdateRequest $request, FeeInvoice $feeInvoice, FeeInvoiceService $service): RedirectResponse
     {
         $service->updateInvoice($feeInvoice, $request->validated());
 
@@ -131,7 +131,7 @@ class FeeInvoiceController extends Controller
             ->with('success', 'Invoice updated successfully.');
     }
 
-    public function bulkGenerate(BulkGenerateRequest $request, FeeInvoiceService $service): \Illuminate\Http\RedirectResponse
+    public function bulkGenerate(BulkGenerateRequest $request, FeeInvoiceService $service): RedirectResponse
     {
         $count = $service->bulkGenerate(
             $request->input('fee_structure_id'),
@@ -145,7 +145,7 @@ class FeeInvoiceController extends Controller
             ->with('success', "{$count} invoice(s) generated successfully.");
     }
 
-    public function cancel(FeeInvoice $feeInvoice, FeeInvoiceService $service): \Illuminate\Http\RedirectResponse
+    public function cancel(FeeInvoice $feeInvoice, FeeInvoiceService $service): RedirectResponse
     {
         $service->cancelInvoice($feeInvoice);
 
@@ -155,7 +155,7 @@ class FeeInvoiceController extends Controller
             ->with('success', 'Invoice cancelled successfully.');
     }
 
-    public function destroy(FeeInvoice $feeInvoice): \Illuminate\Http\RedirectResponse
+    public function destroy(FeeInvoice $feeInvoice): RedirectResponse
     {
         $feeInvoice->payments()->delete();
         $feeInvoice->delete();
@@ -168,7 +168,34 @@ class FeeInvoiceController extends Controller
 
     public function downloadPdf(FeeInvoice $feeInvoice, SchoolSettingsService $settingsService): \Illuminate\Http\Response
     {
-        $this->authorize('view', $feeInvoice);
+        $pdf = Pdf::loadView('pdf.fee-invoice', $this->invoiceViewData($feeInvoice, $settingsService));
+
+        return $pdf->download("invoice-{$feeInvoice->invoice_number}.pdf");
+    }
+
+    /**
+     * Printable HTML version of the same invoice. The "Print" action opens this
+     * in a new tab, where the browser print dialog opens automatically.
+     * Governed by the "fee-invoices.print" permission, which a super admin can
+     * grant to any role from /roles.
+     */
+    public function printInvoice(FeeInvoice $feeInvoice, SchoolSettingsService $settingsService): View
+    {
+        return view('pdf.fee-invoice', [
+            ...$this->invoiceViewData($feeInvoice, $settingsService, 'print'),
+            'autoPrint' => true,
+        ]);
+    }
+
+    /**
+     * The shared invoice document data, used by both the PDF download and the
+     * printable page so the two can never drift apart.
+     *
+     * @return array<string, mixed>
+     */
+    private function invoiceViewData(FeeInvoice $feeInvoice, SchoolSettingsService $settingsService, string $ability = 'view'): array
+    {
+        $this->authorize($ability, $feeInvoice);
 
         $feeInvoice->load(['student.user', 'academicSession', 'schoolClass', 'feeStructure', 'payments' => function ($q): void {
             $q->latest();
@@ -181,15 +208,13 @@ class FeeInvoiceController extends Controller
         $logoBase64 = null;
         $media = $school->getFirstMedia($school::LOGO_COLLECTION);
         if ($media && file_exists($media->getPath())) {
-            $logoBase64 = 'data:' . $media->mime_type . ';base64,' . base64_encode(file_get_contents($media->getPath()));
+            $logoBase64 = 'data:'.$media->mime_type.';base64,'.base64_encode(file_get_contents($media->getPath()));
         }
 
-        $pdf = Pdf::loadView('pdf.fee-invoice', [
+        return [
             'invoice' => $feeInvoice,
             'school' => $school,
             'logoBase64' => $logoBase64,
-        ]);
-
-        return $pdf->download("invoice-{$feeInvoice->invoice_number}.pdf");
+        ];
     }
 }

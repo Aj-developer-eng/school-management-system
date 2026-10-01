@@ -21,21 +21,22 @@ class FeeInvoicePolicy
             return false;
         }
 
-        // Parents may only view invoices for their own children.
-        if ($user->hasRole(RoleEnum::Parent->value)) {
-            $parent = StudentParent::where('user_id', $user->id)->first();
+        return $this->belongsToViewer($user, $feeInvoice);
+    }
 
-            return $parent?->students()->where('students.id', $feeInvoice->student_id)->exists() ?? false;
+    /**
+     * Printing a printable copy of an invoice is a separate capability from
+     * viewing it, so it has its own permission — but it keeps the same
+     * parent/student scoping, so a parent can only ever print their own
+     * children's invoices.
+     */
+    public function print(User $user, FeeInvoice $feeInvoice): bool
+    {
+        if (! $user->can('fee-invoices.print')) {
+            return false;
         }
 
-        // Students may only view their own invoices.
-        if ($user->hasRole(RoleEnum::Student->value)) {
-            $student = Student::where('user_id', $user->id)->first();
-
-            return $student?->id === $feeInvoice->student_id;
-        }
-
-        return true;
+        return $this->belongsToViewer($user, $feeInvoice);
     }
 
     public function create(User $user): bool
@@ -51,5 +52,26 @@ class FeeInvoicePolicy
     public function delete(User $user, FeeInvoice $feeInvoice): bool
     {
         return $user->can('fee-invoices.delete');
+    }
+
+    /**
+     * Whether the invoice belongs to the viewer. Parents may only reach their
+     * own children's invoices and students only their own; staff see all.
+     */
+    private function belongsToViewer(User $user, FeeInvoice $feeInvoice): bool
+    {
+        if ($user->hasRole(RoleEnum::Parent->value)) {
+            $parent = StudentParent::where('user_id', $user->id)->first();
+
+            return $parent?->students()->where('students.id', $feeInvoice->student_id)->exists() ?? false;
+        }
+
+        if ($user->hasRole(RoleEnum::Student->value)) {
+            $student = Student::where('user_id', $user->id)->first();
+
+            return $student?->id === $feeInvoice->student_id;
+        }
+
+        return true;
     }
 }

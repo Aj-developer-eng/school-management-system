@@ -36,9 +36,34 @@
         .payments-table th { text-align: left; padding: 8px 12px; background: #f9fafb; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666; border-bottom: 1px solid #e5e7eb; }
         .payments-table td { padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
         .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #999; }
+        .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 800px; margin: 0 auto; padding: 12px 20px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-family: 'Helvetica', 'Arial', sans-serif; }
+        .toolbar strong { color: #333; }
+        .toolbar button { padding: 7px 16px; border: 0; border-radius: 6px; background: #4f46e5; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .toolbar button.secondary { background: #6b7280; }
+
+        /* Printing: drop the on-screen toolbar and let the invoice use the
+           full page width. Kept separate from the PDF rules above. */
+        @media print {
+            @page { size: A4 portrait; margin: 10mm; }
+            body { background: #fff; }
+            .toolbar { display: none !important; }
+            .container { max-width: none; margin: 0; padding: 0; }
+            .section, .amounts-table tr, .payments-table tr { page-break-inside: avoid; }
+            thead { display: table-header-group; }
+        }
     </style>
 </head>
 <body>
+    @if ($autoPrint ?? false)
+        <div class="toolbar">
+            <span>Invoice <strong>{{ $invoice->invoice_number }}</strong> — {{ $invoice->student->user->name }}</span>
+            <span>
+                <button type="button" onclick="window.print()">Print</button>
+                <button type="button" class="secondary" onclick="window.close()">Close</button>
+            </span>
+        </div>
+    @endif
+
     <div class="container">
         <div class="header">
             <div class="school-info">
@@ -179,5 +204,14 @@
             @endif
         </div>
     </div>
+
+    @if ($autoPrint ?? false)
+        <script>
+            // Open the browser print dialog as soon as the invoice has rendered.
+            window.addEventListener('load', function () {
+                window.print();
+            });
+        </script>
+    @endif
 </body>
 </html>

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AcademicSessionController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\FeeConcessionController;
@@ -46,6 +47,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('dashboard.assignments.complete');
     Route::patch('/dashboard/assignments/{assignment}/reset', [DashboardController::class, 'resetAssignment'])
         ->name('dashboard.assignments.reset');
+
+    Route::get('/backups/download', [BackupController::class, 'download'])
+        ->name('backups.download');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -164,6 +168,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('fee-invoices.cancel');
     Route::get('fee-invoices/{fee_invoice}/pdf', [FeeInvoiceController::class, 'downloadPdf'])
         ->name('fee-invoices.pdf');
+    Route::get('fee-invoices/{fee_invoice}/print', [FeeInvoiceController::class, 'printInvoice'])
+        ->name('fee-invoices.print');
     Route::resource('fee-invoices', FeeInvoiceController::class)
         ->parameters(['fee-invoices' => 'fee_invoice'])
         ->names('fee-invoices');

@@ -895,7 +895,7 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
 }
 
 export default function Dashboard(props) {
-    const { user, roles } = useAuth();
+    const { user, roles, can } = useAuth();
     const {
         dashboardType,
         stats,
@@ -923,7 +923,21 @@ export default function Dashboard(props) {
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
     return (
-        <AuthenticatedLayout title="Dashboard" breadcrumbs={[{ label: 'Dashboard' }]}>
+        <AuthenticatedLayout
+            title="Dashboard"
+            breadcrumbs={[{ label: 'Dashboard' }]}
+            actions={
+                can('backups.download') ? (
+                    <a
+                        href={route('backups.download')}
+                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                    >
+                        <Download size={16} />
+                        Backup Database
+                    </a>
+                ) : null
+            }
+        >
             <div className="space-y-6">
                 {/* Welcome banner */}
                 <div className="animate-rise relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy via-indigo-950 to-navy p-6 shadow-hero sm:p-8">

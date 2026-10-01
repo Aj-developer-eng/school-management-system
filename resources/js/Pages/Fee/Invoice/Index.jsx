@@ -7,7 +7,7 @@ import Pagination from '@/Components/Ui/Pagination';
 import SearchInput from '@/Components/Ui/SearchInput';
 import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, Printer } from 'lucide-react';
 import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -75,9 +75,21 @@ export default function Index({ invoices, filters }) {
         {
             key: 'actions',
             label: 'Actions',
-            width: '120px',
+            width: '200px',
             render: (row) => (
                 <div className="flex items-center gap-3">
+                    {can('fee-invoices.print') && (
+                        <a
+                            href={route('fee-invoices.print', row.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Print invoice"
+                            className="inline-flex items-center gap-1 text-xs font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400"
+                        >
+                            <Printer className="h-3.5 w-3.5" />
+                            Print
+                        </a>
+                    )}
                     {can('fee-invoices.update') && row.status !== 'cancelled' && (
                         <Link
                             href={route('fee-invoices.edit', row.id)}
