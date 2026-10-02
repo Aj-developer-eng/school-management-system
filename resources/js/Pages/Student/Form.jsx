@@ -330,12 +330,13 @@ export default function Form({ student, sessions, classes, sections, subjects = 
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
-                            <InputLabel htmlFor="section_id" value="Section (optional)" />
+                            <InputLabel htmlFor="section_id" value="Section" />
                             <select
                                 id="section_id"
                                 value={data.section_id}
                                 onChange={(event) => setData('section_id', event.target.value)}
                                 className={selectClass}
+                                required
                             >
                                 <option value="">Select section</option>
                                 {filteredSections.map((section) => (
