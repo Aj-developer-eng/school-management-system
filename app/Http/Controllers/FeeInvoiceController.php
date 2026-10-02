@@ -82,7 +82,14 @@ class FeeInvoiceController extends Controller
     public function create(): Response
     {
         return Inertia::render('Fee/Invoice/Form', [
-            'students' => Student::with('user:id,name')->whereNull('deleted_at')->get(['id', 'user_id', 'admission_number']),
+            // `keywords` lets the searchable student picker match on the student
+            // name as well as the admission number shown in the label.
+            'students' => Student::with('user:id,name')->whereNull('deleted_at')->orderBy('admission_number')->get()
+                ->map(fn (Student $student) => [
+                    'value' => $student->id,
+                    'label' => ($student->user?->name ?? 'Unknown').' ('.$student->admission_number.')',
+                    'keywords' => trim(($student->user?->name ?? '').' '.$student->admission_number),
+                ]),
             'feeStructures' => FeeStructure::with(['academicSession:id,name', 'schoolClass:id,name'])
                 ->where('is_active', true)
                 ->get(['id', 'name', 'academic_session_id', 'school_class_id', 'amount']),

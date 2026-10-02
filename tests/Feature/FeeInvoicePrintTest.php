@@ -14,6 +14,7 @@ use App\Models\StudentParent;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -190,7 +191,37 @@ class FeeInvoicePrintTest extends TestCase
             ->assertOk();
     }
 
-    private function makeStudent(string $admissionNumber, string $name): Student
+    public function test_invoice_create_form_lists_searchable_students(): void
+    {
+        $sara = $this->makeStudent('ADM-002', 'Sara Ahmed');
+
+        $this->actingAs($this->makeSuperAdmin())
+            ->get(route('fee-invoices.create'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Fee/Invoice/Form')
+                ->has('students', 2)
+                // Options are { value, label, keywords } so the picker can filter
+                // on the student name as well as the admission number.
+                ->where('students.0.value', $this->student->id)
+                ->where('students.0.label', 'Ali Khan (ADM-001)')
+                ->where('students.0.keywords', 'Ali Khan ADM-001')
+                ->where('students.1.value', $sara->id)
+                ->where('students.1.keywords', 'Sara Ahmed ADM-002')
+            );
+    }
+
+public function test_invoice_create_form_omits_soft_deleted_students(): void
+    {
+        $this->student->delete();
+
+        $this->actingAs($this->makeSuperAdmin())
+            ->get(route('fee-invoices.create'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('students', 0));
+    }
+
+private function makeStudent(string $admissionNumber, string $name): Student
     {
         $user = User::factory()->create(['name' => $name]);
 
