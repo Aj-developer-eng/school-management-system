@@ -151,6 +151,63 @@ class StudentSubjectSelectionTest extends TestCase
             );
     }
 
+    public function test_student_show_page_lists_the_student_subjects(): void
+    {
+        $this->actingAs($this->admin)->post(route('students.store'), [
+            ...$this->studentPayload(),
+            'subject_ids' => [$this->physics->id, $this->mathematics->id],
+        ]);
+
+        $student = Student::query()->latest('id')->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->get(route('students.show', $student))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Student/Show')
+                ->has('student.subjects', 2)
+                // Sorted by name, not by the order they were submitted in.
+                ->where('student.subjects.0.name', 'Mathematics')
+                ->where('student.subjects.0.code', 'MATH')
+                ->where('student.subjects.1.name', 'Physics')
+                ->where('student.subjects.1.code', 'PHY')
+            );
+    }
+
+    public function test_student_show_page_lists_only_the_students_own_subjects(): void
+    {
+        $this->actingAs($this->admin)->post(route('students.store'), [
+            ...$this->studentPayload(),
+            'subject_ids' => [$this->mathematics->id],
+        ]);
+
+        $student = Student::query()->latest('id')->firstOrFail();
+
+        // Chemistry belongs to the class but not to this student, and Physics is
+        // assigned to nobody — neither may leak onto the page.
+        $this->actingAs($this->admin)
+            ->get(route('students.show', $student))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('student.subjects', 1)
+                ->where('student.subjects.0.name', 'Mathematics')
+            );
+    }
+
+    public function test_student_show_page_reports_no_subjects_when_none_are_assigned(): void
+    {
+        $this->actingAs($this->admin)->post(route('students.store'), $this->studentPayload());
+
+        $student = Student::query()->latest('id')->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->get(route('students.show', $student))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('student.subjects', 0)
+            );
+    }
+
     public function test_unknown_subject_id_is_rejected(): void
     {
         $this->actingAs($this->admin)

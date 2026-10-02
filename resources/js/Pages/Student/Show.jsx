@@ -57,6 +57,37 @@ export default function Show({ student, parents }) {
                     </div>
                 </Card>
 
+                {/* Subjects */}
+                <div>
+                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        Subjects
+                    </h3>
+                    <Card>
+                        {student.subjects?.length > 0 ? (
+                            <div className="flex flex-wrap gap-2 p-6">
+                                {student.subjects.map((subject) => (
+                                    <span
+                                        key={subject.id}
+                                        title={subject.code}
+                                        className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"
+                                    >
+                                        {subject.name}
+                                        {subject.code && (
+                                            <span className="ml-2 text-xs text-indigo-500 dark:text-indigo-400">
+                                                {subject.code}
+                                            </span>
+                                        )}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                                No subjects assigned to this student.
+                            </div>
+                        )}
+                    </Card>
+                </div>
+
                 {/* Parents */}
                 <div>
                     <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">

@@ -77,7 +77,7 @@ class StudentController extends Controller
     {
         $this->authorize('view', $student);
 
-        $student->load(['user', 'enrollments.academicSession', 'enrollments.schoolClass', 'enrollments.section']);
+        $student->load(['user', 'enrollments.academicSession', 'enrollments.schoolClass', 'enrollments.section', 'subjects:id,name,code']);
 
         $parents = $student->parents()
             ->with('user:id,name,email,phone')
@@ -112,6 +112,16 @@ class StudentController extends Controller
                     'section' => $student->enrollments->first()->section?->name,
                     'session' => $student->enrollments->first()->academicSession?->name,
                 ] : null,
+                // Subjects the student is personally enrolled in (student_subject).
+                'subjects' => $student->subjects
+                    ->sortBy('name')
+                    ->map(fn ($subject) => [
+                        'id' => $subject->id,
+                        'name' => $subject->name,
+                        'code' => $subject->code,
+                    ])
+                    ->values()
+                    ->all(),
             ],
             'parents' => $parents,
         ]);
