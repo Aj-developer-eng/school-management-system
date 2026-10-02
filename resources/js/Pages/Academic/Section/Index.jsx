@@ -31,7 +31,6 @@ export default function Index({ sections, filters, sessions, classes }) {
         { key: 'name', label: 'Name' },
         { key: 'category', label: 'Category', render: (row) => row.category?.name ?? '—' },
         { key: 'school_class', label: 'Class', render: (row) => row.school_class?.name },
-        { key: 'academic_session', label: 'Session', render: (row) => row.academic_session?.name },
         { key: 'room_number', label: 'Room' },
         { key: 'capacity', label: 'Capacity' },
         {
