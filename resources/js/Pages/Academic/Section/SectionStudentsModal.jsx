@@ -112,6 +112,7 @@ export default function SectionStudentsModal({ show, section, onClose }) {
                                 <th className="px-4 py-3">Roll #</th>
                                 <th className="px-4 py-3">Name</th>
                                 <th className="px-4 py-3">Admission #</th>
+                                <th className="px-4 py-3">Subjects</th>
                                 <th className="px-4 py-3">Email</th>
                                 <th className="px-4 py-3">Status</th>
                             </tr>
@@ -125,6 +126,23 @@ export default function SectionStudentsModal({ show, section, onClose }) {
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         {student.admission_number ?? '—'}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {!student.subjects?.length ? (
+                                            <span className="text-gray-400 dark:text-gray-500">—</span>
+                                        ) : (
+                                            <div className="flex flex-wrap gap-1">
+                                                {student.subjects.map((subject) => (
+                                                    <span
+                                                        key={subject.id}
+                                                        title={subject.code}
+                                                        className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"
+                                                    >
+                                                        {subject.name}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">{student.email ?? '—'}</td>
                                     <td className="px-4 py-3 whitespace-nowrap">

@@ -9,6 +9,7 @@ use App\Models\SchoolClass;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -103,6 +104,35 @@ class SectionStudentsListTest extends TestCase
             ->assertOk()
             ->assertJsonPath('total', 1)
             ->assertJsonPath('students.0.name', 'Sara Ahmed');
+    }
+
+    public function test_it_lists_the_subjects_of_each_student(): void
+    {
+        $mathematics = Subject::create(['name' => 'Mathematics', 'code' => 'MATH', 'is_active' => true]);
+        $physics = Subject::create(['name' => 'Physics', 'code' => 'PHY', 'is_active' => true]);
+        $history = Subject::create(['name' => 'History', 'code' => 'HIST', 'is_active' => true]);
+
+        $ali = $this->enrollStudent('Ali Khan', 'ADM-001', '1');
+        $ali->subjects()->sync([$mathematics->id, $physics->id]);
+
+        // Sara has no subject selection of her own, so she must come back with an
+        // empty list rather than inheriting the class subjects.
+        $this->enrollStudent('Sara Ahmed', 'ADM-002', '2');
+
+        $this->actingAs($this->admin)
+            ->getJson(route('sections.students', $this->section))
+            ->assertOk()
+            ->assertJsonPath('students.0.name', 'Ali Khan')
+            ->assertJsonCount(2, 'students.0.subjects')
+            ->assertJsonPath('students.0.subjects.0.name', 'Mathematics')
+            ->assertJsonPath('students.0.subjects.0.code', 'MATH')
+            ->assertJsonPath('students.0.subjects.1.name', 'Physics')
+            ->assertJsonPath('students.1.name', 'Sara Ahmed')
+            ->assertJsonCount(0, 'students.1.subjects');
+
+        // History belongs to nobody and must not leak into the list.
+        $this->assertDatabaseCount('student_subject', 2);
+        $this->assertSame('History', $history->name);
     }
 
     public function test_it_requires_authentication(): void

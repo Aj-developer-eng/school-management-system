@@ -10,6 +10,7 @@ use App\Models\Section;
 use App\Models\SectionCategory;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Models\Subject;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -60,7 +61,7 @@ class SectionController extends Controller
         $this->authorize('viewAny', Student::class);
 
         $students = StudentEnrollment::query()
-            ->with(['student.user:id,name,email,phone'])
+            ->with(['student.user:id,name,email,phone', 'student.subjects:id,name,code'])
             ->where('section_id', $section->id)
             ->whereNull('deleted_at')
             ->when($request->search, function ($query, $search): void {
@@ -85,6 +86,17 @@ class SectionController extends Controller
                 'roll_number' => $enrollment->roll_number,
                 'status' => $enrollment->status,
                 'is_active' => (bool) $enrollment->student?->is_active,
+                // Subjects the student is personally enrolled in. A student may
+                // have none selected, so this is an empty list rather than the
+                // subjects of the whole class.
+                'subjects' => $enrollment->student?->subjects
+                    ->map(fn (Subject $subject) => [
+                        'id' => $subject->id,
+                        'name' => $subject->name,
+                        'code' => $subject->code,
+                    ])
+                    ->values()
+                    ->all() ?? [],
             ]);
 
         return response()->json([
