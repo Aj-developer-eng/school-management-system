@@ -3,6 +3,7 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { useAuth } from '@/utils/authorization';
+import axios from 'axios';
 import { Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -44,25 +45,9 @@ export default function SelectWithCreate({
         setCreateError(null);
 
         try {
-            const response = await fetch(route(createRoute), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify({ name }),
-            });
-
-            if (!response.ok) {
-                const payload = await response.json().catch(() => ({}));
-
-                throw new Error(
-                    payload?.errors?.name?.[0] ?? payload?.message ?? 'Unable to create the option.',
-                );
-            }
-
-            const created = await response.json();
+            // axios (not fetch) so the XSRF-TOKEN cookie is echoed back in the
+            // X-XSRF-TOKEN header and Laravel's CSRF check passes.
+            const { data: created } = await axios.post(route(createRoute), { name });
 
             setEntries((current) =>
                 [...current, [String(created.id), created.name]].sort((a, b) =>
@@ -73,7 +58,15 @@ export default function SelectWithCreate({
             setNewName('');
             setAdding(false);
         } catch (exception) {
-            setCreateError(exception.message || 'Unable to create the option.');
+            const payload = exception?.response?.data;
+
+            setCreateError(
+                payload?.errors?.name?.[0] ??
+                    payload?.message ??
+                    (exception?.response?.status === 419
+                        ? 'Your session expired. Please refresh the page and try again.'
+                        : 'Unable to create the option.'),
+            );
         } finally {
             setSaving(false);
         }
