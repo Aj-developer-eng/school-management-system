@@ -176,6 +176,66 @@ class SectionCategoryTest extends TestCase
         $this->assertNull($section->fresh()->section_category_id);
     }
 
+    public function test_a_category_can_be_deleted_inline_and_returns_json(): void
+    {
+        $category = SectionCategory::create(['name' => 'Medical', 'is_active' => true]);
+
+        $this->actingAs($this->admin)
+            ->deleteJson(route('section-categories.destroy', $category))
+            ->assertOk()
+            ->assertJsonPath('message', 'Category deleted successfully.')
+            ->assertJsonPath('released_sections', 0);
+
+        $this->assertSoftDeleted('section_categories', ['id' => $category->id]);
+    }
+
+    public function test_deleting_a_category_inline_reports_the_released_sections(): void
+    {
+        $category = SectionCategory::create(['name' => 'Medical', 'is_active' => true]);
+
+        Section::create([
+            'name' => 'A',
+            'section_category_id' => $category->id,
+            'school_class_id' => $this->class->id,
+            'academic_session_id' => $this->session->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->deleteJson(route('section-categories.destroy', $category))
+            ->assertOk()
+            ->assertJsonPath('released_sections', 1);
+    }
+
+    public function test_a_user_without_the_delete_permission_cannot_delete_a_category(): void
+    {
+        $category = SectionCategory::create(['name' => 'Medical', 'is_active' => true]);
+
+        // Has create but not delete — the "+" shows, the bin must not.
+        $user = User::factory()->create();
+        $role = Role::findOrCreate('Receptionist', 'web');
+        $role->givePermissionTo(
+            Permission::findOrCreate(PermissionEnum::ViewSections->value, 'web'),
+            Permission::findOrCreate(PermissionEnum::CreateSectionCategories->value, 'web'),
+        );
+        $user->assignRole($role);
+
+        $this->actingAs($user)
+            ->deleteJson(route('section-categories.destroy', $category))
+            ->assertForbidden();
+
+        $this->assertNotSoftDeleted('section_categories', ['id' => $category->id]);
+    }
+
+    public function test_guests_cannot_delete_a_category(): void
+    {
+        $category = SectionCategory::create(['name' => 'Medical', 'is_active' => true]);
+
+        $this->deleteJson(route('section-categories.destroy', $category))
+            ->assertUnauthorized();
+
+        $this->assertNotSoftDeleted('section_categories', ['id' => $category->id]);
+    }
+
     public function test_guests_cannot_create_a_category(): void
     {
         $this->postJson(route('section-categories.store'), ['name' => 'Science'])

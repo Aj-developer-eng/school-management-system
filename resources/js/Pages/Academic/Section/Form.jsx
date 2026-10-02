@@ -66,6 +66,8 @@ export default function Form({ section, sessions, classes, categories }) {
                             emptyMessage="No categories yet — use the + button to add one."
                             createRoute="section-categories.store"
                             createPermission="section-categories.create"
+                            deleteRoute="section-categories.destroy"
+                            deletePermission="section-categories.delete"
                             errors={errors.section_category_id}
                         />
                     </div>

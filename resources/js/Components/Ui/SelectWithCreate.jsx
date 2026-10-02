@@ -3,8 +3,9 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { useAuth } from '@/utils/authorization';
+import { confirmAction } from '@/utils/swal';
 import axios from 'axios';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function SelectWithCreate({
@@ -17,22 +18,42 @@ export default function SelectWithCreate({
     emptyMessage = 'No options available',
     createRoute,
     createPermission,
+    deleteRoute,
+    deletePermission,
     errors,
     className = '',
 }) {
     const { can } = useAuth();
     const canCreate = Boolean(createPermission) && can(createPermission);
+    const canDelete = Boolean(deleteRoute) && Boolean(deletePermission) && can(deletePermission);
 
     const [entries, setEntries] = useState(() => Object.entries(options ?? {}));
     const [adding, setAdding] = useState(false);
     const [newName, setNewName] = useState('');
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [createError, setCreateError] = useState(null);
 
     // Keep in step with props when the parent reloads the option list.
     useEffect(() => {
         setEntries(Object.entries(options ?? {}));
     }, [options]);
+
+    /**
+     * Turn an axios failure into something worth showing the user: validation
+     * messages first, then a CSRF hint, then a generic fallback.
+     */
+    const messageFor = (exception, fallback) => {
+        const payload = exception?.response?.data;
+
+        return (
+            payload?.errors?.name?.[0] ??
+            payload?.message ??
+            (exception?.response?.status === 419
+                ? 'Your session expired. Please refresh the page and try again.'
+                : fallback)
+        );
+    };
 
     const create = async () => {
         const name = newName.trim();
@@ -58,17 +79,46 @@ export default function SelectWithCreate({
             setNewName('');
             setAdding(false);
         } catch (exception) {
-            const payload = exception?.response?.data;
-
-            setCreateError(
-                payload?.errors?.name?.[0] ??
-                    payload?.message ??
-                    (exception?.response?.status === 419
-                        ? 'Your session expired. Please refresh the page and try again.'
-                        : 'Unable to create the option.'),
-            );
+            setCreateError(messageFor(exception, 'Unable to create the option.'));
         } finally {
             setSaving(false);
+        }
+    };
+
+    const remove = async () => {
+        const selected = entries.find(([optionId]) => String(optionId) === String(value ?? ''));
+
+        if (!selected) {
+            return;
+        }
+
+        const [optionId, optionName] = selected;
+
+        const confirmed = await confirmAction({
+            title: 'Delete category',
+            text: `Delete "${optionName}"? Any section using it will be left without a category.`,
+            confirmButtonText: 'Yes, delete it',
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        setDeleting(true);
+        setCreateError(null);
+
+        try {
+            await axios.delete(route(deleteRoute, optionId));
+
+            setEntries((current) => current.filter(([id]) => String(id) !== String(optionId)));
+
+            if (String(value ?? '') === String(optionId)) {
+                onChange('');
+            }
+        } catch (exception) {
+            setCreateError(messageFor(exception, 'Unable to delete the category.'));
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -143,6 +193,18 @@ export default function SelectWithCreate({
                             className="inline-flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-600 transition-colors hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300 dark:hover:text-indigo-300"
                         >
                             <Plus size={18} />
+                        </button>
+                    )}
+
+                    {canDelete && value && (
+                        <button
+                            type="button"
+                            onClick={remove}
+                            disabled={deleting}
+                            title={`Delete the selected ${label?.toLowerCase() ?? 'option'}`}
+                            className="inline-flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-red-600 transition-colors hover:border-red-400 hover:text-red-700 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                            <Trash2 size={18} />
                         </button>
                     )}
                 </div>

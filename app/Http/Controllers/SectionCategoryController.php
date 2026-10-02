@@ -75,12 +75,22 @@ class SectionCategoryController extends Controller
             ->with('success', 'Section category updated successfully.');
     }
 
-    public function destroy(SectionCategory $section_category): RedirectResponse
+    public function destroy(Request $request, SectionCategory $section_category): JsonResponse|RedirectResponse
     {
         // Sections keep working without a category, so null the reference instead of
         // refusing the delete.
+        $inUse = $section_category->sections()->count();
+
         $section_category->sections()->update(['section_category_id' => null]);
         $section_category->delete();
+
+        // Inline deletes from the section form go through axios, which expects JSON.
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Category deleted successfully.',
+                'released_sections' => $inUse,
+            ]);
+        }
 
         return redirect()->route('sections.index')
             ->with('success', 'Section category deleted successfully.');
