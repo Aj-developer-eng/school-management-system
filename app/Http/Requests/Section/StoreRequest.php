@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Section;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreRequest extends FormRequest
 {
@@ -15,6 +16,11 @@ class StoreRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:50'],
+            'section_category_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('section_categories', 'id')->whereNull('deleted_at'),
+            ],
             'capacity' => ['nullable', 'integer', 'min:1'],
             'school_class_id' => ['required', 'exists:school_classes,id'],
             'academic_session_id' => ['required', 'exists:academic_sessions,id'],

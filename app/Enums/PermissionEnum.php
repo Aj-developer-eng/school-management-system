@@ -22,6 +22,12 @@ enum PermissionEnum: string
     case UpdateSections = 'sections.update';
     case DeleteSections = 'sections.delete';
 
+    // Section Categories
+    case ViewSectionCategories = 'section-categories.view';
+    case CreateSectionCategories = 'section-categories.create';
+    case UpdateSectionCategories = 'section-categories.update';
+    case DeleteSectionCategories = 'section-categories.delete';
+
     // Subjects
     case ViewSubjects = 'subjects.view';
     case CreateSubjects = 'subjects.create';

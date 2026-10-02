@@ -4,12 +4,14 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import SelectWithCreate from '@/Components/Ui/SelectWithCreate';
 import { Head, useForm } from '@inertiajs/react';
 
-export default function Form({ section, sessions, classes }) {
+export default function Form({ section, sessions, classes, categories }) {
     const isEdit = Boolean(section);
     const { data, setData, post, put, processing, errors } = useForm({
         name: section?.name ?? '',
+        section_category_id: section?.section_category_id ?? '',
         capacity: section?.capacity ?? '',
         school_class_id: section?.school_class_id ?? '',
         academic_session_id: section?.academic_session_id ?? '',
@@ -54,17 +56,18 @@ export default function Form({ section, sessions, classes }) {
                             <InputError message={errors.name} className="mt-2" />
                         </div>
 
-                        <div>
-                            <InputLabel htmlFor="capacity" value="Capacity" />
-                            <TextInput
-                                id="capacity"
-                                type="number"
-                                value={data.capacity}
-                                onChange={(event) => setData('capacity', event.target.value)}
-                                className="mt-1 block w-full"
-                            />
-                            <InputError message={errors.capacity} className="mt-2" />
-                        </div>
+                        <SelectWithCreate
+                            id="section_category_id"
+                            label="Category"
+                            value={data.section_category_id}
+                            onChange={(value) => setData('section_category_id', value)}
+                            options={categories}
+                            placeholder="Select category"
+                            emptyMessage="No categories yet — use the + button to add one."
+                            createRoute="section-categories.store"
+                            createPermission="section-categories.create"
+                            errors={errors.section_category_id}
+                        />
                     </div>
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -105,15 +108,29 @@ export default function Form({ section, sessions, classes }) {
                         </div>
                     </div>
 
-                    <div>
-                        <InputLabel htmlFor="room_number" value="Room Number" />
-                        <TextInput
-                            id="room_number"
-                            value={data.room_number}
-                            onChange={(event) => setData('room_number', event.target.value)}
-                            className="mt-1 block w-full"
-                        />
-                        <InputError message={errors.room_number} className="mt-2" />
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div>
+                            <InputLabel htmlFor="capacity" value="Capacity" />
+                            <TextInput
+                                id="capacity"
+                                type="number"
+                                value={data.capacity}
+                                onChange={(event) => setData('capacity', event.target.value)}
+                                className="mt-1 block w-full"
+                            />
+                            <InputError message={errors.capacity} className="mt-2" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="room_number" value="Room Number" />
+                            <TextInput
+                                id="room_number"
+                                value={data.room_number}
+                                onChange={(event) => setData('room_number', event.target.value)}
+                                className="mt-1 block w-full"
+                            />
+                            <InputError message={errors.room_number} className="mt-2" />
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-2">

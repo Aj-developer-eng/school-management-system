@@ -18,6 +18,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolSettingController;
+use App\Http\Controllers\SectionCategoryController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\SpecialRequestController;
@@ -66,6 +67,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('sections/{section}/students', [SectionController::class, 'students'])
         ->name('sections.students');
+
+    Route::resource('section-categories', SectionCategoryController::class)
+        ->except(['show'])
+        ->parameters(['section-categories' => 'section_category'])
+        ->names('section-categories');
 
     Route::resource('sections', SectionController::class)
         ->except(['show'])
