@@ -64,6 +64,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->parameters(['classes' => 'school_class'])
         ->names('classes');
 
+    Route::get('sections/{section}/students', [SectionController::class, 'students'])
+        ->name('sections.students');
+
     Route::resource('sections', SectionController::class)
         ->except(['show'])
         ->names('sections');

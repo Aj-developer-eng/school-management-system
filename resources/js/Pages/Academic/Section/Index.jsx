@@ -8,11 +8,15 @@ import EditLink from '@/Components/Ui/EditLink';
 import Pagination from '@/Components/Ui/Pagination';
 import SearchInput from '@/Components/Ui/SearchInput';
 import StatusBadge from '@/Components/Ui/StatusBadge';
+import SectionStudentsModal from './SectionStudentsModal';
 import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
+import { useState } from 'react';
+import { Users } from 'lucide-react';
 
 export default function Index({ sections, filters, sessions, classes }) {
     const { can } = useAuth();
+    const [studentsSection, setStudentsSection] = useState(null);
     const handleSearch = useFilter('sections.index', {
         academic_session_id: filters.academic_session_id,
         school_class_id: filters.school_class_id,
@@ -37,9 +41,20 @@ export default function Index({ sections, filters, sessions, classes }) {
         {
             key: 'actions',
             label: 'Actions',
-            width: '120px',
+            width: '150px',
             render: (row) => (
                 <div className="flex items-center gap-3">
+                    {can('students.view') && (
+                        <button
+                            type="button"
+                            onClick={() => setStudentsSection(row)}
+                            className="inline-flex items-center gap-1 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-300"
+                            title="View enrolled students"
+                        >
+                            <Users size={16} />
+                            <span className="text-xs">{row.enrollments_count ?? 0}</span>
+                        </button>
+                    )}
                     {can('sections.update') && <EditLink routeName="sections.edit" params={row.id} />}
                     {can('sections.delete') && <DeleteButton routeName="sections.destroy" params={row.id} />}
                 </div>
@@ -88,6 +103,12 @@ export default function Index({ sections, filters, sessions, classes }) {
                 <DataTable columns={columns} rows={sections} />
                 <Pagination {...sections} />
             </Card>
+
+            <SectionStudentsModal
+                show={Boolean(studentsSection)}
+                section={studentsSection}
+                onClose={() => setStudentsSection(null)}
+            />
         </AuthenticatedLayout>
     );
 }

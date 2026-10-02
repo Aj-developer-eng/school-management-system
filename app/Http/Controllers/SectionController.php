@@ -7,6 +7,9 @@ use App\Http\Requests\Section\UpdateRequest;
 use App\Models\AcademicSession;
 use App\Models\SchoolClass;
 use App\Models\Section;
+use App\Models\Student;
+use App\Models\StudentEnrollment;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,6 +25,7 @@ class SectionController extends Controller
     {
         $sections = Section::query()
             ->with(['schoolClass', 'academicSession'])
+            ->withCount('enrollments')
             ->when($request->search, function ($query, $search): void {
                 $query->where('name', 'like', "%{$search}%");
             })
@@ -42,6 +46,55 @@ class SectionController extends Controller
             'filters' => $request->only(['search', 'academic_session_id', 'school_class_id']),
             'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
             'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+        ]);
+    }
+
+    /**
+     * List the students enrolled in a section. Used by the "Students" button
+     * on the sections listing to show a modal with the enrolled students.
+     */
+    public function students(Request $request, Section $section): JsonResponse
+    {
+        $this->authorize('view', $section);
+        $this->authorize('viewAny', Student::class);
+
+        $students = StudentEnrollment::query()
+            ->with(['student.user:id,name,email,phone'])
+            ->where('section_id', $section->id)
+            ->whereNull('deleted_at')
+            ->when($request->search, function ($query, $search): void {
+                $query->whereHas('student', function ($studentQuery) use ($search): void {
+                    $studentQuery->where('admission_number', 'like', "%{$search}%")
+                        ->orWhereHas('user', function ($userQuery) use ($search): void {
+                            $userQuery->where('name', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->orderByRaw('roll_number is null or roll_number = ""')
+            ->orderBy('roll_number')
+            ->get()
+            ->map(fn (StudentEnrollment $enrollment) => [
+                'id' => $enrollment->student_id,
+                'admission_number' => $enrollment->student?->admission_number,
+                'name' => $enrollment->student?->user?->name,
+                'email' => $enrollment->student?->user?->email,
+                'phone' => $enrollment->student?->user?->phone,
+                'gender' => $enrollment->student?->gender,
+                'roll_number' => $enrollment->roll_number,
+                'status' => $enrollment->status,
+                'is_active' => (bool) $enrollment->student?->is_active,
+            ]);
+
+        return response()->json([
+            'section' => [
+                'id' => $section->id,
+                'name' => $section->name,
+                'school_class' => $section->schoolClass?->name,
+                'academic_session' => $section->academicSession?->name,
+            ],
+            'students' => $students,
+            'total' => $students->count(),
         ]);
     }
 
