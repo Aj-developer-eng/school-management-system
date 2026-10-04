@@ -145,6 +145,7 @@ class DashboardController extends Controller
         $todayAttendance = collect();
         $testResults = collect();
         $classNotes = collect();
+        $subjectPapers = collect();
         $feeSummary = [
             'total_invoiced' => 0,
             'total_paid' => 0,
@@ -154,7 +155,7 @@ class DashboardController extends Controller
 
         if ($parent) {
             $children = $parent->students()
-                ->with(['user:id,name', 'enrollments' => function ($q) use ($activeSession): void {
+                ->with(['user:id,name', 'subjects:id', 'enrollments' => function ($q) use ($activeSession): void {
                     $q->with(['schoolClass:id,name', 'section:id,name', 'academicSession:id,name'])
                         ->where('academic_session_id', $activeSession?->id)
                         ->whereNull('deleted_at')
@@ -238,7 +239,6 @@ class DashboardController extends Controller
                 // Subjects of the children's current classes, with downloadable papers.
                 $classIds = $children->pluck('enrollments')->flatten(1)->pluck('school_class_id')->unique()->filter();
 
-                $subjectPapers = collect();
                 if ($classIds->isNotEmpty()) {
                     $subjectPapers = Subject::whereIn('subjects.id', function ($q) use ($classIds): void {
                         $q->select('class_subject.subject_id')
@@ -281,11 +281,51 @@ class DashboardController extends Controller
             }
         }
 
-        $classSectionPairs = $children
+        // Subjects offered to each class of the children (class_subject mapping).
+        $childClassIds = $children
             ->flatMap(fn ($child) => $child->enrollments)
-            ->filter(fn ($enrollment) => $enrollment->school_class_id && $enrollment->section_id)
-            ->map(fn ($enrollment) => ['class_id' => $enrollment->school_class_id, 'section_id' => $enrollment->section_id])
-            ->unique(fn ($pair) => $pair['class_id'].'-'.$pair['section_id'])
+            ->pluck('school_class_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $classSubjectIds = $childClassIds->isEmpty()
+            ? collect()
+            : DB::table('class_subject')
+                ->whereIn('school_class_id', $childClassIds)
+                ->get(['school_class_id', 'subject_id'])
+                ->groupBy('school_class_id')
+                ->map(fn ($rows) => $rows->pluck('subject_id')->map(fn ($id) => (int) $id)->unique()->values()->all());
+
+        // The weekly timetable is restricted to the subjects each child actually
+        // studies: their own subject selection when they have one, otherwise the
+        // subjects offered by the class they are enrolled in. Children sharing a
+        // class/section merge their subjects so every slot they attend is kept.
+        $classSectionPairs = $children
+            ->flatMap(function (Student $child) use ($classSubjectIds): array {
+                $selectedSubjectIds = $child->subjects->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+                return $child->enrollments
+                    ->filter(fn ($enrollment) => $enrollment->school_class_id && $enrollment->section_id)
+                    ->map(function ($enrollment) use ($classSubjectIds, $selectedSubjectIds): array {
+                        $subjectIds = $selectedSubjectIds !== []
+                            ? $selectedSubjectIds
+                            : ($classSubjectIds[$enrollment->school_class_id] ?? []);
+
+                        return [
+                            'class_id' => $enrollment->school_class_id,
+                            'section_id' => $enrollment->section_id,
+                            'subject_ids' => $subjectIds,
+                        ];
+                    })
+                    ->all();
+            })
+            ->groupBy(fn (array $pair) => $pair['class_id'].'-'.$pair['section_id'])
+            ->map(fn ($group) => [
+                'class_id' => $group->first()['class_id'],
+                'section_id' => $group->first()['section_id'],
+                'subject_ids' => $group->pluck('subject_ids')->flatten()->unique()->values()->all(),
+            ])
             ->values()
             ->all();
 
@@ -300,7 +340,11 @@ class DashboardController extends Controller
             'classNotes' => $classNotes,
             'subjectPapers' => $subjectPapers,
             'activeSession' => $activeSession?->name,
-            'timetable' => $this->buildTimetable($activeSession, null, $classSectionPairs),
+            // No enrolled children means no scope: an empty timetable is safer
+            // than falling back to the whole school's assignments.
+            'timetable' => $classSectionPairs === []
+                ? []
+                : $this->buildTimetable($activeSession, null, $classSectionPairs),
         ]);
     }
 
@@ -452,6 +496,11 @@ class DashboardController extends Controller
         ]);
     }
 
+    /**
+     * Build the weekly timetable entries.
+     *
+     * @param  array<int, array{class_id: int, section_id: int, subject_ids?: array<int, int>}>  $classSectionPairs
+     */
     private function buildTimetable(?AcademicSession $activeSession, ?int $teacherId = null, array $classSectionPairs = []): array
     {
         $timetableDays = [
@@ -474,6 +523,12 @@ class DashboardController extends Controller
                     $q->orWhere(function ($sub) use ($pair): void {
                         $sub->where('school_class_id', $pair['class_id'])
                             ->where('section_id', $pair['section_id']);
+
+                        // When the caller supplies subjects, only slots for those
+                        // subjects are returned (e.g. a child's own subjects).
+                        if (array_key_exists('subject_ids', $pair)) {
+                            $sub->whereIn('subject_id', $pair['subject_ids']);
+                        }
                     });
                 }
             });
