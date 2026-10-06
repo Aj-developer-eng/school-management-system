@@ -16,24 +16,6 @@ enum PermissionEnum: string
     case UpdateClasses = 'classes.update';
     case DeleteClasses = 'classes.delete';
 
-    // Sections
-    case ViewSections = 'sections.view';
-    case CreateSections = 'sections.create';
-    case UpdateSections = 'sections.update';
-    case DeleteSections = 'sections.delete';
-
-    // Section Categories
-    case ViewSectionCategories = 'section-categories.view';
-    case CreateSectionCategories = 'section-categories.create';
-    case UpdateSectionCategories = 'section-categories.update';
-    case DeleteSectionCategories = 'section-categories.delete';
-
-    // Subjects
-    case ViewSubjects = 'subjects.view';
-    case CreateSubjects = 'subjects.create';
-    case UpdateSubjects = 'subjects.update';
-    case DeleteSubjects = 'subjects.delete';
-
     // Teachers
     case ViewTeachers = 'teachers.view';
     case CreateTeachers = 'teachers.create';
@@ -115,15 +97,6 @@ enum PermissionEnum: string
 
     // Database Backups
     case DownloadBackups = 'backups.download';
-
-    // Subject Papers (past papers / test PDFs)
-    case UploadSubjectPapers = 'subjects.upload-papers';
-    case DownloadSubjectPapers = 'subjects.download-papers';
-    case DeleteSubjectPapers = 'subjects.delete-papers';
-
-    // Subject Notes (daily "what was taught today" notes for parents)
-    case AddSubjectNotes = 'subjects.add-notes';
-    case DeleteSubjectNotes = 'subjects.delete-notes';
 
     // Expenses
     case ViewExpenses = 'expenses.view';

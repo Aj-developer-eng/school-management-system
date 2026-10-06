@@ -15,8 +15,6 @@ class Attendance extends Model
         'teacher_subject_assignment_id',
         'academic_session_id',
         'school_class_id',
-        'section_id',
-        'subject_id',
         'recorded_by',
         'attendance_date',
         'status',
@@ -48,16 +46,6 @@ class Attendance extends Model
     public function schoolClass(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class);
-    }
-
-    public function section(): BelongsTo
-    {
-        return $this->belongsTo(Section::class);
-    }
-
-    public function subject(): BelongsTo
-    {
-        return $this->belongsTo(Subject::class);
     }
 
     public function recorder(): BelongsTo

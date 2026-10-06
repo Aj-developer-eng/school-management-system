@@ -14,7 +14,6 @@ return new class extends Migration
             $table->foreignId('student_id')->constrained('students')->cascadeOnDelete();
             $table->foreignId('academic_session_id')->nullable()->constrained('academic_sessions')->nullOnDelete();
             $table->foreignId('school_class_id')->nullable()->constrained('school_classes')->nullOnDelete();
-            $table->foreignId('section_id')->nullable()->constrained('sections')->nullOnDelete();
             $table->foreignId('recorded_by')->nullable()->constrained('users')->nullOnDelete();
             $table->enum('status', ['present', 'absent', 'late', 'excused'])->default('present');
             $table->text('remarks')->nullable();

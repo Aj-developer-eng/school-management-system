@@ -7,11 +7,9 @@ use App\Enums\TestStatusEnum;
 use App\Enums\TestTypeEnum;
 use App\Models\AcademicSession;
 use App\Models\SchoolClass;
-use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudentParent;
-use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherSubjectAssignment;
 use App\Models\Test;
@@ -35,8 +33,6 @@ class TestResultNotApplicableTest extends TestCase
     private Teacher $teacher;
 
     private SchoolClass $class;
-
-    private Section $section;
 
     private Test $test;
 
@@ -66,24 +62,10 @@ class TestResultNotApplicableTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->section = Section::create([
-            'name' => 'A',
-            'school_class_id' => $this->class->id,
-            'academic_session_id' => $this->session->id,
-        ]);
-
-        $subject = Subject::create([
-            'name' => 'Mathematics',
-            'code' => 'MATH',
-            'is_active' => true,
-        ]);
-
         $assignment = TeacherSubjectAssignment::create([
             'teacher_id' => $this->teacher->id,
             'academic_session_id' => $this->session->id,
             'school_class_id' => $this->class->id,
-            'section_id' => $this->section->id,
-            'subject_id' => $subject->id,
         ]);
 
         $this->test = Test::create([
@@ -91,8 +73,6 @@ class TestResultNotApplicableTest extends TestCase
             'teacher_id' => $this->teacher->id,
             'academic_session_id' => $this->session->id,
             'school_class_id' => $this->class->id,
-            'section_id' => $this->section->id,
-            'subject_id' => $subject->id,
             'title' => 'Mid Term Mathematics',
             'test_type' => TestTypeEnum::MidTerm,
             'test_date' => now()->toDateString(),
@@ -297,26 +277,6 @@ class TestResultNotApplicableTest extends TestCase
             );
     }
 
-    public function test_parent_does_not_see_results_when_the_test_has_no_subject(): void
-    {
-        $student = $this->enrollStudent('ADM-033', '1');
-        $parentUser = $this->makeParent($student);
-
-        $this->publishNotApplicableResult($student);
-
-        // The subject is removed, so the test is no longer associated with one.
-        $this->test->subject->delete();
-
-        $this->actingAs($parentUser)
-            ->get(route('tests.show', $this->test))
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Test/Show')
-                ->has('students', 0)
-                ->where('test.subject', null)
-            );
-    }
-
     public function test_parent_still_sees_absent_and_graded_results(): void
     {
         $student = $this->enrollStudent('ADM-034', '1');
@@ -387,32 +347,6 @@ class TestResultNotApplicableTest extends TestCase
             );
     }
 
-    public function test_parent_dashboard_hides_results_for_tests_without_a_subject(): void
-    {
-        $student = $this->enrollStudent('ADM-036', '1');
-        $parentUser = $this->makeParent($student);
-
-        $this->publishNotApplicableResult($student);
-
-        $gradedTest = $this->makeTestWithStatus(TestStatusEnum::ResultsPublished, 'Class Test Chemistry');
-        TestResult::create([
-            'test_id' => $gradedTest->id,
-            'student_id' => $student->id,
-            'marks_obtained' => 70,
-            'grade' => 'B',
-        ]);
-
-        $gradedTest->subject->delete();
-
-        $this->actingAs($parentUser)
-            ->get(route('dashboard'))
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Dashboard')
-                ->has('testResults', 0)
-            );
-    }
-
     public function test_parent_dashboard_hides_unpublished_test_results(): void
     {
         $student = $this->enrollStudent('ADM-032', '1');
@@ -455,9 +389,7 @@ class TestResultNotApplicableTest extends TestCase
         $student->load(['user', 'enrollments', 'parents.user', 'invoices']);
 
         $testResults = TestResult::with([
-            'test.subject:id,name',
             'test.schoolClass:id,name',
-            'test.section:id,name',
         ])
             ->where('student_id', $student->id)
             ->get();
@@ -476,7 +408,7 @@ class TestResultNotApplicableTest extends TestCase
         $this->assertStringContainsString('82.00', $html);
     }
 
-    public function test_student_pdf_omits_not_applicable_and_subjectless_tests(): void
+    public function test_student_pdf_omits_not_applicable_results(): void
     {
         $admin = $this->makeSuperAdmin();
         $student = $this->enrollStudent('ADM-043', '1');
@@ -484,23 +416,8 @@ class TestResultNotApplicableTest extends TestCase
         // Result marked "not applicable".
         $this->publishNotApplicableResult($student);
 
-        $physics = Subject::create(['name' => 'Physics', 'code' => 'PHY', 'is_active' => true]);
-        $chemistry = Subject::create(['name' => 'Chemistry', 'code' => 'CHEM', 'is_active' => true]);
-
-        // Graded result on a test whose subject no longer exists.
-        $subjectlessTest = $this->makeTestWithStatus(TestStatusEnum::ResultsPublished, 'Class Test Physics');
-        $subjectlessTest->update(['subject_id' => $physics->id]);
-        TestResult::create([
-            'test_id' => $subjectlessTest->id,
-            'student_id' => $student->id,
-            'marks_obtained' => 60,
-            'grade' => 'D',
-        ]);
-        $subjectlessTest->subject->delete();
-
         // Graded result that must still appear.
         $gradedTest = $this->makeTestWithStatus(TestStatusEnum::ResultsPublished, 'Class Test Chemistry');
-        $gradedTest->update(['subject_id' => $chemistry->id]);
         TestResult::create([
             'test_id' => $gradedTest->id,
             'student_id' => $student->id,
@@ -568,7 +485,6 @@ class TestResultNotApplicableTest extends TestCase
             'student_id' => $student->id,
             'academic_session_id' => $this->session->id,
             'school_class_id' => $this->class->id,
-            'section_id' => $this->section->id,
             'roll_number' => $rollNumber,
             'enrolled_on' => now()->toDateString(),
         ]);
@@ -616,8 +532,6 @@ class TestResultNotApplicableTest extends TestCase
             'teacher_id' => $this->test->teacher_id,
             'academic_session_id' => $this->test->academic_session_id,
             'school_class_id' => $this->test->school_class_id,
-            'section_id' => $this->test->section_id,
-            'subject_id' => $this->test->subject_id,
             'title' => $title,
             'test_type' => TestTypeEnum::ClassTest,
             'test_date' => now()->subDay()->toDateString(),

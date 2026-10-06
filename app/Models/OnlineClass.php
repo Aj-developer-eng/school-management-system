@@ -20,8 +20,6 @@ class OnlineClass extends Model
         'teacher_id',
         'academic_session_id',
         'school_class_id',
-        'section_id',
-        'subject_id',
         'title',
         'meeting_link',
         'description',
@@ -52,16 +50,6 @@ class OnlineClass extends Model
     public function schoolClass(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class);
-    }
-
-    public function section(): BelongsTo
-    {
-        return $this->belongsTo(Section::class);
-    }
-
-    public function subject(): BelongsTo
-    {
-        return $this->belongsTo(Subject::class);
     }
 
     public function scopeActive($query)

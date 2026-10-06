@@ -12,8 +12,6 @@ class TeacherAssignmentLog extends Model
         'teacher_id',
         'academic_session_id',
         'school_class_id',
-        'section_id',
-        'subject_id',
         'action',
         'log_date',
         'occurred_at',
@@ -41,16 +39,6 @@ class TeacherAssignmentLog extends Model
     public function schoolClass(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class);
-    }
-
-    public function section(): BelongsTo
-    {
-        return $this->belongsTo(Section::class);
-    }
-
-    public function subject(): BelongsTo
-    {
-        return $this->belongsTo(Subject::class);
     }
 
     public function academicSession(): BelongsTo

@@ -40,11 +40,6 @@ export default function Index({ tests, filters }) {
             render: (row) => row.school_class?.name ?? '—',
         },
         {
-            key: 'subject',
-            label: 'Subject',
-            render: (row) => row.subject?.name ?? '—',
-        },
-        {
             key: 'test_date',
             label: 'Date',
             render: (row) => formatDate(row.test_date),
@@ -89,7 +84,7 @@ export default function Index({ tests, filters }) {
         >
             <Card>
                 <div className="p-4">
-                    <SearchInput value={filters.search} onChange={(e) => router.visit(route('tests.index', { search: e.target.value }), { preserveScroll: true, preserveState: true })} placeholder="Search by title, class, or subject…" />
+                    <SearchInput value={filters.search} onChange={(e) => router.visit(route('tests.index', { search: e.target.value }), { preserveScroll: true, preserveState: true })} placeholder="Search by title or class…" />
                 </div>
                 <DataTable columns={columns} rows={tests} />
                 <Pagination {...tests} />

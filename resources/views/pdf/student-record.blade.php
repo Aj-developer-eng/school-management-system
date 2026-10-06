@@ -129,7 +129,6 @@
                         <tr>
                             <th>Session</th>
                             <th>Class</th>
-                            <th>Section</th>
                             <th>Enrolled On</th>
                         </tr>
                     </thead>
@@ -138,7 +137,6 @@
                             <tr>
                                 <td>{{ $enrollment->academicSession?->name ?? '—' }}</td>
                                 <td>{{ $enrollment->schoolClass?->name ?? '—' }}</td>
-                                <td>{{ $enrollment->section?->name ?? '—' }}</td>
                                 <td>{{ $enrollment->enrolled_on?->format('d M Y') ?? '—' }}</td>
                             </tr>
                         @endforeach
@@ -159,7 +157,7 @@
                             <th>Date</th>
                             <th>Test</th>
                             <th>Type</th>
-                            <th>Subject</th>
+                            <th>Class</th>
                             <th class="text-right">Marks</th>
                             <th>Grade</th>
                             <th>Remarks</th>
@@ -171,7 +169,7 @@
                                 <td>{{ $result->test?->test_date?->format('d M Y') ?? '—' }}</td>
                                 <td>{{ $result->test?->title ?? '—' }}</td>
                                 <td>{{ $result->test?->test_type?->label() ?? '—' }}</td>
-                                <td>{{ $result->test?->subject?->name ?? '—' }}</td>
+                                <td>{{ $result->test?->schoolClass?->name ?? '—' }}</td>
                                 <td class="text-right">
                                     @if ($result->is_absent)
                                         Absent

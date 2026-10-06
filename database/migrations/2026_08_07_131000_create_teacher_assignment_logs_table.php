@@ -14,8 +14,6 @@ return new class extends Migration
             $table->foreignId('teacher_id')->constrained('teachers')->cascadeOnDelete();
             $table->foreignId('academic_session_id')->constrained()->cascadeOnDelete();
             $table->foreignId('school_class_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('section_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('subject_id')->constrained()->cascadeOnDelete();
             $table->string('action'); // started, completed, reset
             $table->date('log_date');
             $table->timestamp('occurred_at');

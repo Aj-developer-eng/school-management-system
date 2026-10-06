@@ -8,9 +8,7 @@ use App\Http\Requests\Student\UpdateRequest;
 use App\Models\AcademicSession;
 use App\Models\FeeInvoice;
 use App\Models\SchoolClass;
-use App\Models\Section;
 use App\Models\Student;
-use App\Models\Subject;
 use App\Models\TestResult;
 use App\Services\ActivityLogService;
 use App\Services\SchoolSettingsService;
@@ -29,7 +27,7 @@ class StudentController extends Controller
         $this->authorize('viewAny', Student::class);
 
         $query = Student::query()
-            ->with(['user', 'enrollments.academicSession', 'enrollments.schoolClass', 'enrollments.section']);
+            ->with(['user', 'enrollments.academicSession', 'enrollments.schoolClass']);
 
         if ($request->search) {
             $query->whereHas('user', function ($q) use ($request): void {
@@ -68,7 +66,7 @@ class StudentController extends Controller
     public function edit(Student $student): Response
     {
         $this->authorize('update', $student);
-        $student->load(['user', 'enrollments.academicSession', 'enrollments.schoolClass', 'enrollments.section']);
+        $student->load(['user', 'enrollments.academicSession', 'enrollments.schoolClass']);
 
         return $this->renderForm($student);
     }
@@ -77,7 +75,7 @@ class StudentController extends Controller
     {
         $this->authorize('view', $student);
 
-        $student->load(['user', 'enrollments.academicSession', 'enrollments.schoolClass', 'enrollments.section', 'subjects:id,name,code']);
+        $student->load(['user', 'enrollments.academicSession', 'enrollments.schoolClass']);
 
         $parents = $student->parents()
             ->with('user:id,name,email,phone')
@@ -107,21 +105,18 @@ class StudentController extends Controller
                 'gender' => $student->gender,
                 'address' => $student->address,
                 'is_active' => $student->is_active,
-                'current_class' => $student->enrollments?->first() ? [
-                    'class' => $student->enrollments->first()->schoolClass?->name,
-                    'section' => $student->enrollments->first()->section?->name,
-                    'session' => $student->enrollments->first()->academicSession?->name,
+                'current_class' => $student->enrollments->isNotEmpty() ? [
+                    'class' => $student->enrollments
+                        ->map(fn ($enrollment) => $enrollment->schoolClass?->name)
+                        ->filter()
+                        ->unique()
+                        ->implode(', '),
+                    'session' => $student->enrollments
+                        ->map(fn ($enrollment) => $enrollment->academicSession?->name)
+                        ->filter()
+                        ->unique()
+                        ->implode(', '),
                 ] : null,
-                // Subjects the student is personally enrolled in (student_subject).
-                'subjects' => $student->subjects
-                    ->sortBy('name')
-                    ->map(fn ($subject) => [
-                        'id' => $subject->id,
-                        'name' => $subject->name,
-                        'code' => $subject->code,
-                    ])
-                    ->values()
-                    ->all(),
             ],
             'parents' => $parents,
         ]);
@@ -221,7 +216,6 @@ class StudentController extends Controller
             'user',
             'enrollments.academicSession',
             'enrollments.schoolClass',
-            'enrollments.section',
             'parents.user:id,name,email,phone',
             'invoices.academicSession:id,name',
             'invoices.schoolClass:id,name',
@@ -231,14 +225,12 @@ class StudentController extends Controller
 
         $school = $settingsService->get();
 
-        // Test results for this student. Results marked "not applicable" and
-        // tests whose subject is no longer available are left out of the record
-        // (same rule as the parent's "Recent Test Results" section).
+        // Test results for this student. Results marked "not applicable" are
+        // left out of the record (same rule as the parent's "Recent Test
+        // Results" section).
         $testResults = TestResult::with([
-            'test:id,title,test_type,test_date,total_marks,subject_id,school_class_id,section_id',
-            'test.subject:id,name',
+            'test:id,title,test_type,test_date,total_marks,school_class_id',
             'test.schoolClass:id,name',
-            'test.section:id,name',
         ])
             ->where('student_id', $student->id)
             ->whereNull('deleted_at')
@@ -248,8 +240,7 @@ class StudentController extends Controller
                     ->whereIn('status', [
                         TestStatusEnum::Conducted->value,
                         TestStatusEnum::ResultsPublished->value,
-                    ])
-                    ->whereHas('subject');
+                    ]);
             })
             ->get()
             ->sortByDesc(fn (TestResult $result): int => $result->test?->test_date?->timestamp ?? 0)
@@ -275,39 +266,22 @@ class StudentController extends Controller
     {
         $activeSession = AcademicSession::active()->first();
 
-        // Active subjects with the classes they are mapped to, so the form can
-        // offer them as checkboxes scoped to the selected class.
-        $subjects = Subject::query()
-            ->where('is_active', true)
-            ->with('schoolClasses:id')
-            ->orderBy('name')
-            ->get(['id', 'name', 'code'])
-            ->map(fn (Subject $subject): array => [
-                'id' => $subject->id,
-                'name' => $subject->name,
-                'code' => $subject->code,
-                'school_class_ids' => $subject->schoolClasses->pluck('id')->all(),
-            ])
-            ->values();
+        $defaultSessionId = $student?->enrollments?->first()?->academic_session_id ?? $activeSession?->id;
 
         return Inertia::render('Student/Form', [
             'student' => $student,
             'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
             'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
-            'sections' => Section::orderBy('name')
-                ->get()
-                ->map(fn (Section $section) => [
-                    'id' => $section->id,
-                    'name' => $section->name,
-                    'school_class_id' => $section->school_class_id,
-                    'academic_session_id' => $section->academic_session_id,
-                ])
-                ->all(),
-            'subjects' => $subjects,
-            'selected_subject_ids' => $student
-                ? $student->subjects()->pluck('subjects.id')->all()
+            // Classes the student is already enrolled in for the form's
+            // default session — the multi-select pre-checks them.
+            'selected_class_ids' => $student
+                ? $student->enrollments
+                    ->where('academic_session_id', $defaultSessionId)
+                    ->pluck('school_class_id')
+                    ->map(fn ($id) => (int) $id)
+                    ->all()
                 : [],
-            'default_session_id' => $student?->enrollments?->first()?->academic_session_id ?? $activeSession?->id,
+            'default_session_id' => $defaultSessionId,
         ]);
     }
 }

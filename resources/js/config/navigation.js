@@ -1,9 +1,7 @@
 import {
     BarChart3,
-    BookOpen,
     CalendarRange,
     GraduationCap,
-    Layers,
     LayoutDashboard,
     Library,
     Video,
@@ -55,18 +53,6 @@ export const navigation = [
                 permission: 'classes.view',
             },
             {
-                label: 'Sections',
-                routeName: 'sections.index',
-                icon: Layers,
-                permission: 'sections.view',
-            },
-            {
-                label: 'Subjects',
-                routeName: 'subjects.index',
-                icon: BookOpen,
-                permission: 'subjects.view',
-            },
-            {
                 label: 'Attendance',
                 routeName: 'attendance.index',
                 icon: ClipboardCheck,
@@ -103,7 +89,7 @@ export const navigation = [
                 permission: 'teachers.view',
             },
             {
-                label: 'Subject Assignments',
+                label: 'Class Assignments',
                 routeName: 'teacher-assignments.index',
                 icon: UserCog,
                 permission: 'teacher-assignments.view',

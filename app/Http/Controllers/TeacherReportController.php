@@ -28,7 +28,7 @@ class TeacherReportController extends Controller
         }
 
         $query = TeacherAssignmentLog::query()
-            ->with(['teacher.user:id,name', 'schoolClass:id,name', 'section:id,name', 'subject:id,name'])
+            ->with(['teacher.user:id,name', 'schoolClass:id,name'])
             ->whereBetween('log_date', [$fromDate, $toDate])
             ->when($teacherId, function ($q) use ($teacherId): void {
                 $q->where('teacher_id', $teacherId);

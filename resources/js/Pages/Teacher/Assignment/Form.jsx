@@ -5,7 +5,6 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
 
 export default function Form({ assignment, teachers, sessions, classes }) {
     const isEdit = Boolean(assignment);
@@ -13,8 +12,6 @@ export default function Form({ assignment, teachers, sessions, classes }) {
         teacher_id: assignment?.teacher_id ?? '',
         academic_session_id: assignment?.academic_session_id ?? '',
         school_class_id: assignment?.school_class_id ?? '',
-        section_id: assignment?.section_id ?? '',
-        subject_id: assignment?.subject_id ?? '',
         start_time: assignment?.start_time ?? '',
         end_time: assignment?.end_time ?? '',
         days_of_week: assignment?.days_of_week ?? [],
@@ -39,31 +36,6 @@ export default function Form({ assignment, teachers, sessions, classes }) {
                 : [...current, value],
         );
     };
-
-    const [sections, setSections] = useState([]);
-    const [subjects, setSubjects] = useState([]);
-
-    useEffect(() => {
-        if (data.academic_session_id && data.school_class_id) {
-            fetch(
-                `${route('teacher-assignments.sections')}?academic_session_id=${data.academic_session_id}&school_class_id=${data.school_class_id}`,
-            )
-                .then((res) => res.json())
-                .then((json) => setSections(Object.entries(json).map(([id, name]) => ({ id, name }))));
-        } else {
-            setSections([]);
-        }
-    }, [data.academic_session_id, data.school_class_id]);
-
-    useEffect(() => {
-        if (data.school_class_id) {
-            fetch(`${route('teacher-assignments.subjects')}?school_class_id=${data.school_class_id}`)
-                .then((res) => res.json())
-                .then((json) => setSubjects(Object.entries(json).map(([id, name]) => ({ id, name }))));
-        } else {
-            setSubjects([]);
-        }
-    }, [data.school_class_id]);
 
     const submit = (event) => {
         event.preventDefault();
@@ -147,44 +119,6 @@ export default function Form({ assignment, teachers, sessions, classes }) {
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
-                            <InputLabel htmlFor="section_id" value="Section (Optional)" />
-                            <select
-                                id="section_id"
-                                value={data.section_id}
-                                onChange={(event) => setData('section_id', event.target.value)}
-                                className={selectClass}
-                            >
-                                <option value="">Select section</option>
-                                {sections.map((section) => (
-                                    <option key={section.id} value={section.id}>
-                                        {section.name}
-                                    </option>
-                                ))}
-                            </select>
-                            <InputError message={errors.section_id} className="mt-2" />
-                        </div>
-
-                        <div>
-                            <InputLabel htmlFor="subject_id" value="Subject" />
-                            <select
-                                id="subject_id"
-                                value={data.subject_id}
-                                onChange={(event) => setData('subject_id', event.target.value)}
-                                className={selectClass}
-                            >
-                                <option value="">Select subject</option>
-                                {subjects.map((subject) => (
-                                    <option key={subject.id} value={subject.id}>
-                                        {subject.name}
-                                    </option>
-                                ))}
-                            </select>
-                            <InputError message={errors.subject_id} className="mt-2" />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <div>
                             <InputLabel htmlFor="start_time" value="Class Start Time" />
                             <TextInput
                                 id="start_time"
@@ -230,7 +164,7 @@ export default function Form({ assignment, teachers, sessions, classes }) {
                                 })}
                             </div>
                             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                Select all days this subject takes place (leave empty for no fixed days).
+                                Select all days this class takes place (leave empty for no fixed days).
                             </p>
                             <InputError message={errors.days_of_week} className="mt-2" />
                         </div>

@@ -3,6 +3,7 @@ import Card from '@/Components/Ui/Card';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SearchableSelect from '@/Components/Ui/SearchableSelect';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
 
@@ -40,18 +41,15 @@ export default function Form({ test, assignments, testTypes }) {
             <Card className="max-w-2xl">
                 <form onSubmit={submit} className="space-y-6 p-6">
                     <div>
-                        <InputLabel htmlFor="teacher_subject_assignment_id" value="Class / Section / Subject" />
-                        <select
+                        <InputLabel htmlFor="teacher_subject_assignment_id" value="Class" />
+                        <SearchableSelect
                             id="teacher_subject_assignment_id"
                             value={data.teacher_subject_assignment_id}
-                            onChange={(e) => setData('teacher_subject_assignment_id', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
-                        >
-                            <option value="">Select assignment…</option>
-                            {(assignments ?? []).map((a) => (
-                                <option key={a.id} value={a.id}>{a.label}</option>
-                            ))}
-                        </select>
+                            onChange={(value) => setData('teacher_subject_assignment_id', value)}
+                            options={(assignments ?? []).map((a) => ({ value: a.id, label: a.label }))}
+                            placeholder="Search class by name or time…"
+                            emptyMessage="No classes match your search"
+                        />
                         <InputError message={errors.teacher_subject_assignment_id} className="mt-2" />
                     </div>
 

@@ -51,18 +51,6 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::CreateClasses->value,
             PermissionEnum::UpdateClasses->value,
             PermissionEnum::DeleteClasses->value,
-            PermissionEnum::ViewSections->value,
-            PermissionEnum::CreateSections->value,
-            PermissionEnum::UpdateSections->value,
-            PermissionEnum::DeleteSections->value,
-            PermissionEnum::ViewSectionCategories->value,
-            PermissionEnum::CreateSectionCategories->value,
-            PermissionEnum::UpdateSectionCategories->value,
-            PermissionEnum::DeleteSectionCategories->value,
-            PermissionEnum::ViewSubjects->value,
-            PermissionEnum::CreateSubjects->value,
-            PermissionEnum::UpdateSubjects->value,
-            PermissionEnum::DeleteSubjects->value,
             PermissionEnum::ViewTeachers->value,
             PermissionEnum::CreateTeachers->value,
             PermissionEnum::UpdateTeachers->value,
@@ -90,9 +78,6 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::CreateFeeConcessions->value,
             PermissionEnum::UpdateFeeConcessions->value,
             PermissionEnum::ViewAttendances->value,
-            PermissionEnum::UploadSubjectPapers->value,
-            PermissionEnum::DownloadSubjectPapers->value,
-            PermissionEnum::DeleteSubjectPapers->value,
             PermissionEnum::ViewExpenses->value,
             PermissionEnum::CreateExpenses->value,
             PermissionEnum::UpdateExpenses->value,
@@ -103,8 +88,6 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $this->syncRolePermissions(RoleEnum::Teacher, [
             PermissionEnum::ViewClasses->value,
-            PermissionEnum::ViewSections->value,
-            PermissionEnum::ViewSubjects->value,
             PermissionEnum::ViewTeacherAssignments->value,
             PermissionEnum::ViewStudents->value,
             PermissionEnum::ViewTests->value,
@@ -115,16 +98,10 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::ViewOnlineClasses->value,
             PermissionEnum::ViewAttendances->value,
             PermissionEnum::CreateAttendances->value,
-            PermissionEnum::UploadSubjectPapers->value,
-            PermissionEnum::DownloadSubjectPapers->value,
-            PermissionEnum::DeleteSubjectPapers->value,
-            PermissionEnum::AddSubjectNotes->value,
-            PermissionEnum::DeleteSubjectNotes->value,
         ]);
 
         $this->syncRolePermissions(RoleEnum::Accountant, [
             PermissionEnum::ViewClasses->value,
-            PermissionEnum::ViewSections->value,
             PermissionEnum::ViewStudents->value,
             PermissionEnum::ViewParents->value,
             PermissionEnum::ViewFeeStructures->value,
@@ -151,7 +128,6 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $this->syncRolePermissions(RoleEnum::Receptionist, [
             PermissionEnum::ViewClasses->value,
-            PermissionEnum::ViewSections->value,
             PermissionEnum::ViewStudents->value,
             PermissionEnum::CreateStudents->value,
             PermissionEnum::UpdateStudents->value,
@@ -174,7 +150,6 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::ViewTests->value,
             PermissionEnum::ViewOnlineClasses->value,
             PermissionEnum::ViewAttendances->value,
-            PermissionEnum::DownloadSubjectPapers->value,
         ]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

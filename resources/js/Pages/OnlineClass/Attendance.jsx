@@ -83,8 +83,6 @@ export default function Attendance({ onlineClass, students }) {
                                 </h2>
                                 <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                                     {onlineClass.school_class?.name}
-                                    {onlineClass.section?.name ? ` — ${onlineClass.section.name}` : ''}
-                                    {onlineClass.subject?.name ? ` · ${onlineClass.subject.name}` : ''}
                                     {onlineClass.teacher?.user?.name ? ` · ${onlineClass.teacher.user.name}` : ''}
                                 </p>
                             </div>
@@ -176,7 +174,7 @@ export default function Attendance({ onlineClass, students }) {
                                     }) : (
                                         <tr>
                                             <td colSpan={4} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
-                                                No students enrolled in this class/section.
+                                                No students enrolled in this class.
                                             </td>
                                         </tr>
                                     )}

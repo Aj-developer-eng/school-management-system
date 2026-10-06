@@ -93,8 +93,6 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                     <DashboardCard title="Teachers" value={stats.teachers} subtitle="Teaching staff" color="emerald" delay={70} />
                     <DashboardCard title="Parents" value={stats.parents} subtitle="Registered guardians" color="amber" delay={140} />
                     <DashboardCard title="Classes" value={stats.classes} subtitle="Active classes" color="sky" delay={210} />
-                    <DashboardCard title="Sections" value={stats.sections} subtitle="Active sections" color="violet" delay={280} />
-                    <DashboardCard title="Subjects" value={stats.subjects} subtitle="In catalog" color="rose" delay={350} />
                 </div>
             </div>
 
@@ -208,8 +206,6 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                             <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Teacher</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Class</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Section</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Subject</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Time</th>
                                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
                             </tr>
@@ -222,12 +218,6 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                                     </td>
                                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                                         {a.school_class?.name ?? '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                                        {a.section?.name ?? '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                                        {a.subject?.name ?? '—'}
                                     </td>
                                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                                         {formatTimeRange(a.start_time, a.end_time)}
@@ -304,11 +294,9 @@ function TimetableSection({ timetable }) {
                                     </div>
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {entry.subject?.name ?? entry.subject ?? '—'}
+                                            {entry.class ?? entry.school_class?.name ?? '—'}
                                         </p>
                                         <p className="truncate text-xs text-gray-500 dark:text-gray-400">
-                                            {entry.school_class?.name ?? entry.class ?? '—'}
-                                            {entry.section?.name ?? entry.section ? ` · ${entry.section?.name ?? entry.section}` : ''}
                                             {' · '}
                                             {entry.teacher?.user?.name ?? entry.teacher ?? '—'}
                                         </p>
@@ -324,7 +312,7 @@ function TimetableSection({ timetable }) {
     );
 }
 
-function ParentDashboard({ children, invoices, feeSummary, activeSession, todayAttendance, testResults, classNotes, subjectPapers, timetable }) {
+function ParentDashboard({ children, invoices, feeSummary, activeSession, todayAttendance, testResults, timetable }) {
     const { can } = useAuth();
 
     return (
@@ -371,7 +359,6 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                             <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Child</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Class</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Subject</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Teacher</th>
                                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Remarks</th>
@@ -385,9 +372,6 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                                     </td>
                                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                                         {r.school_class?.name ?? '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                                        {r.subject?.name ?? '—'}
                                     </td>
                                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                                         {r.assignment?.teacher?.user?.name ?? '—'}
@@ -434,7 +418,7 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                             <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Child</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Test</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Subject</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Class</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Date</th>
                                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Result</th>
                                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Grade</th>
@@ -454,7 +438,7 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                                             {result.test_title ?? '—'}
                                         </Link>
                                     </td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{result.subject ?? '—'}</td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{result.school_class ?? '—'}</td>
                                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{formatDate(result.test_date)}</td>
                                     <td className="px-4 py-3 text-center">
                                         {result.is_not_applicable ? (
@@ -477,7 +461,7 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                                         No published test results yet.
                                     </td>
                                 </tr>
@@ -487,52 +471,17 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                 </div>
             </div>
 
-            <PapersSection papers={subjectPapers ?? []} />
-
-            {/* What was taught today, posted by teachers against each subject */}
-            <div className="animate-fade-in">
-                <SectionHeading>What Was Taught Today</SectionHeading>
-                <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
-                    {classNotes.length > 0 ? (
-                        <ul className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                            {classNotes.map((note) => (
-                                <li key={note.id} className="px-4 py-3 transition-colors hover:bg-indigo-50/40 dark:hover:bg-gray-700/30">
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-                                                {note.subject ?? 'Subject'}
-                                            </span>
-                                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                {formatDate(note.note_date)}
-                                            </span>
-                                        </div>
-                                        {note.teacher && (
-                                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                by {note.teacher}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p className="mt-2 whitespace-pre-line text-sm text-gray-700 dark:text-gray-300">
-                                        {note.note}
-                                    </p>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-                            No class notes have been shared yet.
-                        </p>
-                    )}
-                </div>
-            </div>
-
-
-            {/* Children progress */}
             <div className="animate-fade-in">
                 <SectionHeading>My Children</SectionHeading>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {children.length > 0 ? children.map((child, index) => {
-                        const enrollment = child.enrollments?.[0];
+                        const childEnrollments = child.enrollments ?? [];
+                        const classNames = [
+                            ...new Set(childEnrollments.map((e) => e.school_class?.name).filter(Boolean)),
+                        ].join(', ');
+                        const sessionNames = [
+                            ...new Set(childEnrollments.map((e) => e.academic_session?.name).filter(Boolean)),
+                        ].join(', ');
                         return (
                             <div
                                 key={child.id}
@@ -554,19 +503,13 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                                     <div className="flex justify-between">
                                         <span className="text-gray-500 dark:text-gray-400">Class</span>
                                         <span className="font-medium text-gray-700 dark:text-gray-300">
-                                            {enrollment?.school_class?.name ?? 'Not enrolled'}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500 dark:text-gray-400">Section</span>
-                                        <span className="font-medium text-gray-700 dark:text-gray-300">
-                                            {enrollment?.section?.name ?? '—'}
+                                            {classNames || 'Not enrolled'}
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-500 dark:text-gray-400">Session</span>
                                         <span className="font-medium text-gray-700 dark:text-gray-300">
-                                            {enrollment?.academic_session?.name ?? activeSession ?? '—'}
+                                            {sessionNames || activeSession || '—'}
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
@@ -648,62 +591,14 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
     );
 }
 
-function PapersSection({ papers }) {
-    const { can } = useAuth();
+function StudentDashboard({ enrollments, invoices, activeSession, student, timetable }) {
+    const classNames = [
+        ...new Set((enrollments ?? []).map((e) => e.school_class?.name).filter(Boolean)),
+    ].join(', ');
+    const sessionNames = [
+        ...new Set((enrollments ?? []).map((e) => e.academic_session?.name).filter(Boolean)),
+    ].join(', ');
 
-    if (!can('subjects.download-papers') && !can('subjects.upload-papers')) {
-        return null;
-    }
-
-    return (
-        <div className="animate-fade-in">
-            <SectionHeading>Past Papers</SectionHeading>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {papers.length > 0 ? papers.map((subject, index) => (
-                    <div
-                        key={subject.id}
-                        className="animate-rise rounded-xl border border-gray-200 bg-white p-5 shadow-card dark:border-gray-700 dark:bg-gray-800"
-                        style={{ animationDelay: `${index * 60}ms` }}
-                    >
-                        <div className="flex items-center justify-between gap-2">
-                            <div className="min-w-0">
-                                <p className="truncate font-semibold text-gray-900 dark:text-gray-100">{subject.name}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{subject.code}</p>
-                            </div>
-                            <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
-                                {subject.papers.length}
-                            </span>
-                        </div>
-                        <ul className="mt-3 space-y-2 border-t border-gray-100 pt-3 dark:border-gray-700/60">
-                            {subject.papers.map((paper) => (
-                                <li key={paper.id} className="flex items-center justify-between gap-2">
-                                    <div className="min-w-0">
-                                        <p className="truncate text-sm text-gray-700 dark:text-gray-300">{paper.title}</p>
-                                        <p className="truncate text-xs text-gray-400">{paper.original_name}</p>
-                                    </div>
-                                    <a
-                                        href={route('subject-papers.download', paper.id)}
-                                        title={`Download ${paper.title}`}
-                                        className="inline-flex shrink-0 items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
-                                    >
-                                        <Download size={14} />
-                                        PDF
-                                    </a>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )) : (
-                    <p className="col-span-full text-sm text-gray-500 dark:text-gray-400">
-                        No past papers have been uploaded yet for your children&apos;s subjects.
-                    </p>
-                )}
-            </div>
-        </div>
-    );
-}
-
-function StudentDashboard({ enrollment, invoices, activeSession, student, timetable }) {
     return (
         <>
             {/* Enrollment info */}
@@ -711,9 +606,8 @@ function StudentDashboard({ enrollment, invoices, activeSession, student, timeta
                 <SectionHeading>My Enrollment</SectionHeading>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <DashboardCard title="Admission #" value={student?.admission_number ?? '—'} subtitle="Your ID" color="indigo" delay={0} />
-                    <DashboardCard title="Class" value={enrollment?.school_class?.name ?? '—'} subtitle="Current class" color="emerald" delay={70} />
-                    <DashboardCard title="Section" value={enrollment?.section?.name ?? '—'} subtitle="Assigned section" color="amber" delay={140} />
-                    <DashboardCard title="Session" value={enrollment?.academic_session?.name ?? activeSession ?? '—'} subtitle="Active session" color="sky" delay={210} />
+                    <DashboardCard title="Class" value={classNames || '—'} subtitle="Current class" color="emerald" delay={70} />
+                    <DashboardCard title="Session" value={sessionNames || activeSession || '—'} subtitle="Active session" color="sky" delay={140} />
                 </div>
             </div>
 
@@ -812,8 +706,6 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
                         <thead>
                             <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Class</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Section</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Subject</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Time</th>
                                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Action</th>
@@ -824,12 +716,6 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
                                 <tr key={a.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-indigo-50/40 dark:border-gray-700/50 dark:hover:bg-gray-700/30">
                                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                                         {a.school_class?.name ?? '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                                        {a.section?.name ?? '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                                        {a.subject?.name ?? '—'}
                                     </td>
                                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                                         {formatTimeRange(a.start_time, a.end_time)}
@@ -905,14 +791,13 @@ export default function Dashboard(props) {
         invoices,
         feeSummary,
         activeSession,
-        enrollment,
+        enrollments,
         student,
         assignments,
         assignmentStats,
         teacher,
         todayAttendance,
         testResults,
-        classNotes,
     } = props;
 
     const sessionLabel = dashboardType === 'staff'
@@ -1001,15 +886,13 @@ export default function Dashboard(props) {
                         activeSession={activeSession}
                         todayAttendance={todayAttendance ?? []}
                         testResults={testResults ?? []}
-                        classNotes={props.classNotes ?? []}
-                        subjectPapers={props.subjectPapers ?? []}
                         timetable={props.timetable ?? []}
                     />
                 )}
 
                 {dashboardType === 'student' && (
                     <StudentDashboard
-                        enrollment={enrollment}
+                        enrollments={enrollments ?? []}
                         invoices={invoices ?? []}
                         activeSession={activeSession}
                         student={student}

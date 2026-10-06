@@ -28,17 +28,7 @@ export default function Index({ onlineClasses, filters, canMarkAttendance }) {
         {
             key: 'class',
             label: 'Class',
-            render: (row) => (
-                <span>
-                    {row.school_class?.name ?? '—'}
-                    {row.section ? ` — ${row.section.name}` : ''}
-                </span>
-            ),
-        },
-        {
-            key: 'subject',
-            label: 'Subject',
-            render: (row) => row.subject?.name ?? '—',
+            render: (row) => row.school_class?.name ?? '—',
         },
         {
             key: 'teacher',

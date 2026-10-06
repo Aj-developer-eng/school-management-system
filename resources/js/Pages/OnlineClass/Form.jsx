@@ -5,47 +5,25 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
-import { useState } from 'react';
 
-export default function Form({ onlineClass, teachers, sessions, classes, subjects, activeSessionId }) {
+export default function Form({ onlineClass, teachers, sessions, classes, activeSessionId }) {
     const isEdit = Boolean(onlineClass);
     const { data, setData, post, put, processing, errors } = useForm({
         teacher_id: onlineClass?.teacher_id ?? '',
         academic_session_id: onlineClass?.academic_session_id ?? activeSessionId ?? '',
         school_class_id: onlineClass?.school_class_id ?? '',
-        section_id: onlineClass?.section_id ?? '',
-        subject_id: onlineClass?.subject_id ?? '',
         title: onlineClass?.title ?? '',
         meeting_link: onlineClass?.meeting_link ?? '',
         description: onlineClass?.description ?? '',
         scheduled_at: onlineClass?.scheduled_at ?? '',
     });
 
-    const [sections, setSections] = useState([]);
-
-    const loadSections = (sessionId, classId) => {
-        if (!sessionId || !classId) {
-            setSections({});
-            return;
-        }
-        fetch(`${route('teacher-assignments.sections')}?academic_session_id=${sessionId}&school_class_id=${classId}`)
-            .then((res) => res.json())
-            .then(setSections)
-            .catch(() => setSections({}));
-    };
-
     const handleClassChange = (e) => {
-        const classId = e.target.value;
-        setData('school_class_id', classId);
-        setData('section_id', '');
-        loadSections(data.academic_session_id, classId);
+        setData('school_class_id', e.target.value);
     };
 
     const handleSessionChange = (e) => {
-        const sessionId = e.target.value;
-        setData('academic_session_id', sessionId);
-        setData('section_id', '');
-        loadSections(sessionId, data.school_class_id);
+        setData('academic_session_id', e.target.value);
     };
 
     const submit = (event) => {
@@ -143,40 +121,6 @@ export default function Form({ onlineClass, teachers, sessions, classes, subject
                                 ))}
                             </select>
                             <InputError message={errors.school_class_id} className="mt-2" />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <InputLabel htmlFor="section_id" value="Section (optional)" />
-                            <select
-                                id="section_id"
-                                value={data.section_id}
-                                onChange={(e) => setData('section_id', e.target.value)}
-                                className={selectClass}
-                            >
-                                <option value="">Whole class</option>
-                                {Object.entries(sections).map(([id, name]) => (
-                                    <option key={id} value={id}>{name}</option>
-                                ))}
-                            </select>
-                            <InputError message={errors.section_id} className="mt-2" />
-                        </div>
-
-                        <div>
-                            <InputLabel htmlFor="subject_id" value="Subject (optional)" />
-                            <select
-                                id="subject_id"
-                                value={data.subject_id}
-                                onChange={(e) => setData('subject_id', e.target.value)}
-                                className={selectClass}
-                            >
-                                <option value="">None</option>
-                                {Object.entries(subjects ?? {}).map(([id, name]) => (
-                                    <option key={id} value={id}>{name}</option>
-                                ))}
-                            </select>
-                            <InputError message={errors.subject_id} className="mt-2" />
                         </div>
                     </div>
 

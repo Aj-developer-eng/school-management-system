@@ -50,21 +50,19 @@ class SchoolClassController extends Controller
             ? DB::table('student_enrollments as se')
                 ->join('students as st', 'st.id', '=', 'se.student_id')
                 ->join('users as u', 'u.id', '=', 'st.user_id')
-                ->leftJoin('sections as sec', 'sec.id', '=', 'se.section_id')
                 ->whereIn('se.school_class_id', $pageClassIds)
                 ->whereNull('se.deleted_at')
                 ->whereNull('st.deleted_at')
                 ->when($activeSessionId, function ($q) use ($activeSessionId): void {
                     $q->where('se.academic_session_id', $activeSessionId);
                 })
-                ->groupBy('se.school_class_id', 'st.id', 'u.name', 'st.admission_number', 'sec.name')
+                ->groupBy('se.school_class_id', 'st.id', 'u.name', 'st.admission_number')
                 ->orderBy('u.name')
                 ->get([
                     'se.school_class_id',
                     'st.id as student_id',
                     'u.name as student_name',
                     'st.admission_number',
-                    'sec.name as section_name',
                 ])
                 ->groupBy('school_class_id')
             : collect();

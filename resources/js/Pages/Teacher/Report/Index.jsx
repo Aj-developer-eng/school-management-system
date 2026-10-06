@@ -163,8 +163,6 @@ export default function Index({ logs, teacherSummary, dateSummary, filters, teac
                                     <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Time</th>
                                     <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Teacher</th>
                                     <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Class</th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Section</th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Subject</th>
                                     <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Action</th>
                                 </tr>
                             </thead>
@@ -179,8 +177,6 @@ export default function Index({ logs, teacherSummary, dateSummary, filters, teac
                                             {log.teacher?.user?.name ?? '—'}
                                         </td>
                                         <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{log.schoolClass?.name ?? '—'}</td>
-                                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{log.section?.name ?? '—'}</td>
-                                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{log.subject?.name ?? '—'}</td>
                                         <td className="px-4 py-3 text-center">
                                             <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${actionColors[log.action] ?? actionColors.reset}`}>
                                                 {log.action}
@@ -189,7 +185,7 @@ export default function Index({ logs, teacherSummary, dateSummary, filters, teac
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan={7} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                                        <td colSpan={5} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
                                             No logs for the selected period.
                                         </td>
                                     </tr>

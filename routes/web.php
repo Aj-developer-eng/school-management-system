@@ -18,14 +18,10 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolSettingController;
-use App\Http\Controllers\SectionCategoryController;
-use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\SpecialRequestController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentParentController;
-use App\Http\Controllers\SubjectController;
-use App\Http\Controllers\SubjectNoteController;
 use App\Http\Controllers\TeacherAssignmentController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\TeacherReportController;
@@ -65,44 +61,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->parameters(['classes' => 'school_class'])
         ->names('classes');
 
-    Route::get('sections/{section}/students', [SectionController::class, 'students'])
-        ->name('sections.students');
-
-    Route::resource('section-categories', SectionCategoryController::class)
-        ->except(['show'])
-        ->parameters(['section-categories' => 'section_category'])
-        ->names('section-categories');
-
-    Route::resource('sections', SectionController::class)
-        ->except(['show'])
-        ->names('sections');
-
-    Route::resource('subjects', SubjectController::class)
-        ->except(['show'])
-        ->names('subjects');
-
-    Route::post('subjects/{subject}/papers', [SubjectController::class, 'uploadPaper'])
-        ->name('subjects.papers.store');
-    Route::get('subject-papers/{paper}/download', [SubjectController::class, 'downloadPaper'])
-        ->name('subject-papers.download');
-    Route::delete('subject-papers/{paper}', [SubjectController::class, 'destroyPaper'])
-        ->name('subject-papers.destroy');
-
-    Route::post('subjects/{subject}/notes', [SubjectNoteController::class, 'store'])
-        ->name('subjects.notes.store');
-    Route::patch('subject-notes/{note}/toggle-active', [SubjectNoteController::class, 'toggleActive'])
-        ->name('subject-notes.toggle-active');
-    Route::delete('subject-notes/{note}', [SubjectNoteController::class, 'destroy'])
-        ->name('subject-notes.destroy');
-
     Route::resource('teachers', TeacherController::class)
         ->except(['show'])
         ->names('teachers');
-
-    Route::get('teacher-assignments/sections', [TeacherAssignmentController::class, 'filteredSections'])
-        ->name('teacher-assignments.sections');
-    Route::get('teacher-assignments/subjects', [TeacherAssignmentController::class, 'filteredSubjects'])
-        ->name('teacher-assignments.subjects');
 
     Route::resource('teacher-assignments', TeacherAssignmentController::class)
         ->except(['show'])

@@ -137,7 +137,7 @@ export default function StudentDetail({ student, records, summary, filters, acti
                             Attendance History
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Date-wise records with teacher, class, and subject
+                            Date-wise records with teacher and class
                         </p>
                     </div>
 
@@ -171,11 +171,7 @@ export default function StudentDetail({ student, records, summary, filters, acti
                                                 </span>
                                                 <span className="inline-flex items-center gap-1.5">
                                                     <BookOpen className="h-3.5 w-3.5 text-gray-400" />
-                                                    {r.class}{r.section ? ` · ${r.section}` : ''}
-                                                </span>
-                                                <span className="inline-flex items-center gap-1.5">
-                                                    <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                                                    {r.subject ?? 'General'}
+                                                    {r.class}
                                                 </span>
                                             </div>
 

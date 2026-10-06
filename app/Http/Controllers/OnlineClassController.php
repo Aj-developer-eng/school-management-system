@@ -12,7 +12,6 @@ use App\Models\OnlineClassAttendance;
 use App\Models\SchoolClass;
 use App\Models\StudentEnrollment;
 use App\Models\StudentParent;
-use App\Models\Subject;
 use App\Models\Teacher;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
@@ -36,7 +35,7 @@ class OnlineClassController extends Controller
         }
 
         $onlineClasses = OnlineClass::query()
-            ->with(['teacher.user:id,name', 'schoolClass:id,name', 'section:id,name', 'subject:id,name', 'academicSession:id,name'])
+            ->with(['teacher.user:id,name', 'schoolClass:id,name', 'academicSession:id,name'])
             ->when($request->search, function ($query, $search): void {
                 $query->where('title', 'like', "%{$search}%")
                     ->orWhere('meeting_link', 'like', "%{$search}%")
@@ -74,28 +73,23 @@ class OnlineClassController extends Controller
         if ($parent && $activeSession) {
             $studentIds = $parent->students()->pluck('students.id');
 
-            $enrollments = StudentEnrollment::with(['student.user:id,name', 'schoolClass:id,name', 'section:id,name'])
+            $enrollments = StudentEnrollment::with(['student.user:id,name', 'schoolClass:id,name'])
                 ->where('academic_session_id', $activeSession->id)
                 ->whereIn('student_id', $studentIds)
                 ->whereNull('deleted_at')
                 ->get();
 
             $classIds = $enrollments->pluck('school_class_id')->unique()->values();
-            $sectionIds = $enrollments->pluck('section_id')->filter()->unique()->values();
 
             $onlineClasses = OnlineClass::active()
-                ->with(['teacher.user:id,name', 'schoolClass:id,name', 'section:id,name', 'subject:id,name'])
+                ->with(['teacher.user:id,name', 'schoolClass:id,name'])
                 ->where('academic_session_id', $activeSession->id)
                 ->whereIn('school_class_id', $classIds)
-                ->where(function ($query) use ($sectionIds): void {
-                    $query->whereNull('section_id')->orWhereIn('section_id', $sectionIds);
-                })
                 ->latest('scheduled_at')
                 ->get()
                 ->map(function ($onlineClass) use ($enrollments) {
                     $matching = $enrollments->first(function ($e) use ($onlineClass) {
-                        return $e->school_class_id === $onlineClass->school_class_id
-                            && ($onlineClass->section_id === null || $e->section_id === $onlineClass->section_id);
+                        return $e->school_class_id === $onlineClass->school_class_id;
                     });
 
                     return [
@@ -182,7 +176,7 @@ class OnlineClassController extends Controller
     {
         $this->authorize('markAttendance', $onlineClass);
 
-        $onlineClass->load(['schoolClass:id,name', 'section:id,name', 'subject:id,name', 'teacher.user:id,name', 'academicSession:id,name']);
+        $onlineClass->load(['schoolClass:id,name', 'teacher.user:id,name', 'academicSession:id,name']);
 
         $sessionId = $onlineClass->academic_session_id;
 
@@ -191,9 +185,6 @@ class OnlineClassController extends Controller
                 $q->where('academic_session_id', $sessionId);
             })
             ->where('school_class_id', $onlineClass->school_class_id)
-            ->when($onlineClass->section_id, function ($q) use ($onlineClass): void {
-                $q->where('section_id', $onlineClass->section_id);
-            })
             ->whereNull('deleted_at')
             ->orderBy('roll_number')
             ->get()
@@ -238,7 +229,6 @@ class OnlineClassController extends Controller
                 [
                     'academic_session_id' => $onlineClass->academic_session_id,
                     'school_class_id' => $onlineClass->school_class_id,
-                    'section_id' => $onlineClass->section_id,
                     'recorded_by' => $request->user()->id,
                     'status' => $record['status'],
                     'remarks' => $record['remarks'] ?? null,
@@ -256,7 +246,7 @@ class OnlineClassController extends Controller
 
     private function renderForm(?OnlineClass $onlineClass = null): Response
     {
-        $onlineClass?->load('teacher', 'academicSession', 'schoolClass', 'section', 'subject');
+        $onlineClass?->load('teacher', 'academicSession', 'schoolClass');
 
         $activeSession = AcademicSession::active()->first();
 
@@ -271,20 +261,18 @@ class OnlineClassController extends Controller
                 ->map(fn (Teacher $teacher) => ['id' => $teacher->id, 'label' => $teacher->user->name]),
             'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
             'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
-            'subjects' => Subject::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
             'activeSessionId' => $activeSession?->id,
         ]);
     }
 
     private function notifyParents(OnlineClass $onlineClass): void
     {
-        $onlineClass->load(['schoolClass:id,name', 'section:id,name', 'subject:id,name', 'teacher.user:id,name']);
+        $onlineClass->load(['schoolClass:id,name', 'teacher.user:id,name']);
 
         $enrollments = StudentEnrollment::with(['student.parents.user'])
             ->where('academic_session_id', $onlineClass->academic_session_id)
             ->where('school_class_id', $onlineClass->school_class_id)
             ->whereNull('deleted_at')
-            ->when($onlineClass->section_id, fn ($q) => $q->where('section_id', $onlineClass->section_id))
             ->get();
 
         $notified = collect();
@@ -299,7 +287,7 @@ class OnlineClassController extends Controller
                 if ($parent->user && ! $notified->contains($parent->user->id)) {
                     $notified->push($parent->user->id);
 
-                    $classLabel = $onlineClass->schoolClass?->name . ($onlineClass->section ? " — {$onlineClass->section?->name}" : '');
+                    $classLabel = $onlineClass->schoolClass?->name;
                     $title = $onlineClass->title ?: 'Online class';
 
                     NotificationService::send($parent->user, [

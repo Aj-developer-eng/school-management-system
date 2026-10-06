@@ -30,8 +30,6 @@ class AttendanceController extends Controller
 
         $assignments = TeacherSubjectAssignment::with([
             'schoolClass:id,name',
-            'section:id,name',
-            'subject:id,name',
             'teacher.user:id,name',
         ])
             ->when(! $isSuperAdmin, function ($q) use ($teacher): void {
@@ -68,7 +66,7 @@ class AttendanceController extends Controller
         // matches existing rows on SQLite.
         $attendanceDate = Carbon::parse($date)->startOfDay();
 
-        $assignment->load(['schoolClass:id,name', 'section:id,name', 'subject:id,name']);
+        $assignment->load(['schoolClass:id,name']);
 
         // Use the assignment's own session (falls back to the active session
         // when set) so attendance still works if no session is marked active.
@@ -79,9 +77,6 @@ class AttendanceController extends Controller
                 $q->where('academic_session_id', $sessionId);
             })
             ->where('school_class_id', $assignment->school_class_id)
-            ->when($assignment->section_id, function ($q) use ($assignment): void {
-                $q->where('section_id', $assignment->section_id);
-            })
             ->whereNull('deleted_at')
             ->orderBy('roll_number')
             ->get()
@@ -148,8 +143,6 @@ class AttendanceController extends Controller
                 [
                     'academic_session_id' => $sessionId,
                     'school_class_id' => $assignment->school_class_id,
-                    'section_id' => $assignment->section_id,
-                    'subject_id' => $assignment->subject_id,
                     'recorded_by' => $user->id,
                     'status' => $record['status'],
                     'remarks' => $record['remarks'] ?? null,
@@ -157,7 +150,7 @@ class AttendanceController extends Controller
             );
         }
 
-        ActivityLogService::custom('Attendance', 'recorded', "Recorded attendance for {$assignment->schoolClass?->name} - {$assignment->subject?->name} on {$date}");
+        ActivityLogService::custom('Attendance', 'recorded', "Recorded attendance for {$assignment->schoolClass?->name} on {$date}");
 
         return redirect()->back()->with('success', 'Attendance saved successfully.');
     }
@@ -200,8 +193,6 @@ class AttendanceController extends Controller
             ->with([
                 'student.user:id,name',
                 'schoolClass:id,name',
-                'section:id,name',
-                'subject:id,name',
                 'assignment.teacher.user:id,name',
             ])
             ->when($scopedStudentIds, function ($q) use ($scopedStudentIds): void {
@@ -323,8 +314,6 @@ class AttendanceController extends Controller
 
         $records = Attendance::with([
             'schoolClass:id,name',
-            'section:id,name',
-            'subject:id,name',
             'assignment.teacher.user:id,name',
             'recorder:id,name',
         ])
@@ -348,8 +337,6 @@ class AttendanceController extends Controller
                     'status' => $r->status,
                     'remarks' => $r->remarks,
                     'class' => $r->schoolClass?->name,
-                    'section' => $r->section?->name,
-                    'subject' => $r->subject?->name,
                     'teacher' => $r->assignment?->teacher?->user?->name,
                     'recorded_by' => $r->recorder?->name,
                     'created_at' => $r->created_at?->format('Y-m-d H:i'),

@@ -77,9 +77,8 @@ export default function Show({ test, students }) {
     const canPublish = can('tests.upload-results') && statusValue === 'conducted' && (test.results?.length ?? 0) > 0;
 
     // Parents and students get a read-only view. Results marked "not applicable"
-    // are staff-only, and a test without a subject exposes no results.
+    // are staff-only.
     const isReadOnly = !canUploadResults;
-    const hasSubject = Boolean(test.subject?.id);
 
     return (
         <AuthenticatedLayout
@@ -99,8 +98,6 @@ export default function Show({ test, students }) {
                             </h2>
                             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                 {test.school_class?.name}
-                                {test.section ? ` — ${test.section?.name}` : ''}
-                                {' · '}{test.subject?.name}
                                 {' · '}{test.test_type?.label ?? test.test_type}
                             </p>
                             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -141,7 +138,7 @@ export default function Show({ test, students }) {
                 </div>
 
                 {/* Results entry / display */}
-                {statusValue !== 'announced' && (students?.length ?? 0) > 0 && (!isReadOnly || hasSubject) && (
+                {statusValue !== 'announced' && (students?.length ?? 0) > 0 && (
                     <Card>
                         <div className="flex items-center justify-between p-6 pb-0">
                             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
@@ -282,14 +279,6 @@ export default function Show({ test, students }) {
                     <Card>
                         <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
                             This test has been announced. After conducting the test, mark it as conducted to enable result entry.
-                        </div>
-                    </Card>
-                )}
-
-                {statusValue !== 'announced' && isReadOnly && !hasSubject && (
-                    <Card>
-                        <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                            This test is not linked to a subject, so no results are shown.
                         </div>
                     </Card>
                 )}

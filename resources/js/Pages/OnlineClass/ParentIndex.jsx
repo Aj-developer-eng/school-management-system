@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
 import { formatDateTime } from '@/utils/format';
-import { Calendar, ExternalLink, GraduationCap, User, BookOpen } from 'lucide-react';
+import { Calendar, ExternalLink, GraduationCap, User } from 'lucide-react';
 
 export default function ParentIndex({ onlineClasses }) {
     return (
@@ -28,15 +28,8 @@ export default function ParentIndex({ onlineClasses }) {
                                         <span className="inline-flex items-center gap-1.5">
                                             <GraduationCap size={15} />
                                             {cls.school_class?.name}
-                                            {cls.section ? ` — ${cls.section.name}` : ''}
                                             {cls.student_name ? ` (${cls.student_name})` : ''}
                                         </span>
-                                        {cls.subject?.name && (
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <BookOpen size={15} />
-                                                {cls.subject.name}
-                                            </span>
-                                        )}
                                         <span className="inline-flex items-center gap-1.5">
                                             <User size={15} />
                                             {cls.teacher?.user?.name ?? '—'}

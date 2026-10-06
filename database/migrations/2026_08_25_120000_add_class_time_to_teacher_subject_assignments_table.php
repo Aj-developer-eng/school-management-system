@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('teacher_subject_assignments', function (Blueprint $table): void {
-            $table->time('start_time')->nullable()->after('subject_id');
+            $table->time('start_time')->nullable()->after('school_class_id');
             $table->time('end_time')->nullable()->after('start_time');
         });
     }

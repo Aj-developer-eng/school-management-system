@@ -18,8 +18,6 @@ export default function Index({ assignments, filters }) {
         { key: 'teacher', label: 'Teacher', render: (row) => row.teacher?.user?.name },
         { key: 'academic_session', label: 'Session', render: (row) => row.academic_session?.name },
         { key: 'school_class', label: 'Class', render: (row) => row.school_class?.name },
-        { key: 'section', label: 'Section', render: (row) => row.section?.name },
-        { key: 'subject', label: 'Subject', render: (row) => row.subject?.name },
         {
             key: 'class_time',
             label: 'Class Time',
@@ -49,13 +47,13 @@ export default function Index({ assignments, filters }) {
 
     return (
         <AuthenticatedLayout
-            title="Teacher Subject Assignments"
+            title="Class Assignments"
             breadcrumbs={[{ label: 'Teacher Assignments' }]}
             actions={can('teacher-assignments.create') && <CreateButton routeName="teacher-assignments.create" />}
         >
             <Card>
                 <div className="p-4">
-                    <SearchInput value={filters.search} onChange={handleSearch} placeholder="Search by teacher or subject…" />
+                    <SearchInput value={filters.search} onChange={handleSearch} placeholder="Search by teacher or class…" />
                 </div>
                 <DataTable columns={columns} rows={assignments} />
                 <Pagination {...assignments} />

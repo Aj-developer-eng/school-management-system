@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('teacher_subject_assignments', function (Blueprint $table): void {
-            $table->string('status')->default('pending')->after('subject_id');
+            $table->string('status')->default('pending')->after('school_class_id');
             $table->timestamp('started_at')->nullable()->after('status');
             $table->timestamp('completed_at')->nullable()->after('started_at');
 

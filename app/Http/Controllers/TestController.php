@@ -32,8 +32,8 @@ class TestController extends Controller
         $activeSession = AcademicSession::active()->first();
 
         // Parents and students only ever see the tests they have a visible result
-        // for: published results, excluding "not applicable" entries and tests
-        // whose subject is no longer available. Staff roles stay unrestricted.
+        // for: published results, excluding "not applicable" entries. Staff roles
+        // stay unrestricted.
         $scopedStudentIds = $this->scopedStudentIds($user);
         $isScopedViewer = $scopedStudentIds !== null;
 
@@ -41,8 +41,6 @@ class TestController extends Controller
             ->with([
                 'teacher.user:id,name',
                 'schoolClass:id,name',
-                'section:id,name',
-                'subject:id,name',
                 'academicSession:id,name',
                 'results' => fn ($q) => $q
                     ->whereNull('deleted_at')
@@ -55,7 +53,6 @@ class TestController extends Controller
             ->when($activeSession, fn ($q) => $q->where('academic_session_id', $activeSession->id))
             ->when($request->search, function ($query, $search): void {
                 $query->where('title', 'like', "%{$search}%")
-                    ->orWhereHas('subject', fn ($sq) => $sq->where('name', 'like', "%{$search}%"))
                     ->orWhereHas('schoolClass', fn ($sq) => $sq->where('name', 'like', "%{$search}%"));
             });
 
@@ -80,22 +77,8 @@ class TestController extends Controller
         $teacher = Teacher::where('user_id', $user->id)->first();
         $activeSession = AcademicSession::active()->first();
 
-        $assignments = TeacherSubjectAssignment::with(['schoolClass:id,name', 'section:id,name', 'subject:id,name'])
-            ->where('teacher_id', $teacher?->id)
-            ->whereNull('deleted_at')
-            ->when($activeSession, fn ($q) => $q->where('academic_session_id', $activeSession->id))
-            ->get()
-            ->map(fn ($a) => [
-                'id' => $a->id,
-                'label' => "{$a->schoolClass?->name}" . ($a->section ? " — {$a->section?->name}" : '') . " — {$a->subject?->name}",
-                'school_class_id' => $a->school_class_id,
-                'section_id' => $a->section_id,
-                'subject_id' => $a->subject_id,
-                'academic_session_id' => $a->academic_session_id,
-            ]);
-
         return Inertia::render('Test/Form', [
-            'assignments' => $assignments,
+            'assignments' => $this->assignmentOptions($teacher, $activeSession),
             'testTypes' => collect(TestTypeEnum::cases())->map(fn ($t) => ['value' => $t->value, 'label' => $t->label()])->values(),
         ]);
     }
@@ -112,12 +95,10 @@ class TestController extends Controller
             'teacher_id' => $assignment->teacher_id,
             'academic_session_id' => $assignment->academic_session_id,
             'school_class_id' => $assignment->school_class_id,
-            'section_id' => $assignment->section_id,
-            'subject_id' => $assignment->subject_id,
             'status' => TestStatusEnum::Announced,
         ]);
 
-        ActivityLogService::custom('Tests', 'created', "Created test: {$test->title} ({$test->test_type->label()}) for {$test->schoolClass?->name} — {$test->subject?->name}");
+        ActivityLogService::custom('Tests', 'created', "Created test: {$test->title} ({$test->test_type->label()}) for {$test->schoolClass?->name}");
 
         return redirect()->route('tests.index')
             ->with('success', 'Test announced successfully.');
@@ -131,8 +112,6 @@ class TestController extends Controller
         $test->load([
             'teacher.user:id,name',
             'schoolClass:id,name',
-            'section:id,name',
-            'subject:id,name',
             'academicSession:id,name',
             'results.student.user:id,name',
         ]);
@@ -143,12 +122,11 @@ class TestController extends Controller
         }
 
         // Parents see only their children's results; students only their own.
-        // Unpublished results stay hidden from them entirely. Two more rules
-        // apply to them: "not applicable" results are staff-only, and a test
-        // whose subject is no longer available exposes no results at all.
+        // Unpublished results stay hidden from them entirely. "Not applicable"
+        // results are staff-only.
         $scopedStudentIds = $this->scopedStudentIds($user);
         if ($scopedStudentIds !== null) {
-            $students = $test->status === TestStatusEnum::ResultsPublished && $test->subject !== null
+            $students = $test->status === TestStatusEnum::ResultsPublished
                 ? $students
                     ->filter(fn ($s) => $scopedStudentIds->contains($s['id']) && ! $s['result']?->is_not_applicable)
                     ->values()
@@ -169,23 +147,9 @@ class TestController extends Controller
         $teacher = Teacher::where('user_id', $user->id)->first();
         $activeSession = AcademicSession::active()->first();
 
-        $assignments = TeacherSubjectAssignment::with(['schoolClass:id,name', 'section:id,name', 'subject:id,name'])
-            ->where('teacher_id', $teacher?->id)
-            ->whereNull('deleted_at')
-            ->when($activeSession, fn ($q) => $q->where('academic_session_id', $activeSession->id))
-            ->get()
-            ->map(fn ($a) => [
-                'id' => $a->id,
-                'label' => "{$a->schoolClass?->name}" . ($a->section ? " — {$a->section?->name}" : '') . " — {$a->subject?->name}",
-                'school_class_id' => $a->school_class_id,
-                'section_id' => $a->section_id,
-                'subject_id' => $a->subject_id,
-                'academic_session_id' => $a->academic_session_id,
-            ]);
-
         return Inertia::render('Test/Form', [
             'test' => $test,
-            'assignments' => $assignments,
+            'assignments' => $this->assignmentOptions($teacher, $activeSession),
             'testTypes' => collect(TestTypeEnum::cases())->map(fn ($t) => ['value' => $t->value, 'label' => $t->label()])->values(),
         ]);
     }
@@ -203,8 +167,6 @@ class TestController extends Controller
             'teacher_id' => $assignment->teacher_id,
             'academic_session_id' => $assignment->academic_session_id,
             'school_class_id' => $assignment->school_class_id,
-            'section_id' => $assignment->section_id,
-            'subject_id' => $assignment->subject_id,
         ]);
 
         ActivityLogService::custom('Tests', 'updated', "Updated test: {$test->title}");
@@ -310,16 +272,52 @@ class TestController extends Controller
         ]);
     }
 
+    /**
+     * Options for the class picker on the test form: one entry per active
+     * assignment of the teacher, labelled "Class · start – end" so classes
+     * sharing a name but running at different times stay tellable apart.
+     *
+     * @return Collection<int, array{id: int, label: string, school_class_id: int, academic_session_id: int}>
+     */
+    private function assignmentOptions(?Teacher $teacher, ?AcademicSession $activeSession): Collection
+    {
+        return TeacherSubjectAssignment::with(['schoolClass:id,name'])
+            ->where('teacher_id', $teacher?->id)
+            ->whereNull('deleted_at')
+            ->when($activeSession, fn ($q) => $q->where('academic_session_id', $activeSession->id))
+            ->get()
+            ->map(fn (TeacherSubjectAssignment $assignment): array => [
+                'id' => $assignment->id,
+                'label' => $this->assignmentLabel($assignment),
+                'school_class_id' => $assignment->school_class_id,
+                'academic_session_id' => $assignment->academic_session_id,
+            ]);
+    }
+
+    private function assignmentLabel(TeacherSubjectAssignment $assignment): string
+    {
+        $label = (string) $assignment->schoolClass?->name;
+
+        $start = $assignment->start_time?->format('H:i');
+        $end = $assignment->end_time?->format('H:i');
+
+        if ($start !== null && $end !== null) {
+            return "{$label} · {$start} – {$end}";
+        }
+
+        if ($start !== null) {
+            return "{$label} · {$start}";
+        }
+
+        return $label;
+    }
+
     private function getEnrolledStudents(Test $test)
     {
         $query = StudentEnrollment::with(['student.user:id,name'])
             ->where('academic_session_id', $test->academic_session_id)
             ->where('school_class_id', $test->school_class_id)
             ->whereNull('deleted_at');
-
-        if ($test->section_id) {
-            $query->where('section_id', $test->section_id);
-        }
 
         return $query->get()
             ->map(fn ($e) => [
@@ -346,8 +344,7 @@ class TestController extends Controller
             ->where('is_not_applicable', false)
             ->whereHas('test', fn ($q) => $q
                 ->where('status', TestStatusEnum::ResultsPublished->value)
-                ->whereNull('deleted_at')
-                ->whereHas('subject'))
+                ->whereNull('deleted_at'))
             ->pluck('test_id')
             ->all();
     }
@@ -380,7 +377,7 @@ class TestController extends Controller
 
     private function notifyParents(Test $test): void
     {
-        $test->load(['results.student.user:id,name', 'results.student.parents.user', 'subject:id,name', 'schoolClass:id,name']);
+        $test->load(['results.student.user:id,name', 'results.student.parents.user', 'schoolClass:id,name']);
 
         foreach ($test->results as $result) {
             $student = $result->student;
@@ -401,7 +398,7 @@ class TestController extends Controller
                     NotificationService::send($parent->user, [
                         'type' => 'test_result_published',
                         'title' => "Test Result: {$test->title}",
-                        'message' => "{$student->user->name} — {$test->subject?->name} ({$test->schoolClass?->name}): {$marksDisplay}{$gradeDisplay}",
+                        'message' => "{$student->user->name} — {$test->schoolClass?->name}: {$marksDisplay}{$gradeDisplay}",
                         'link' => '/tests/' . $test->id,
                     ]);
                 }

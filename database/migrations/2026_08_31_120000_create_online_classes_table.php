@@ -13,8 +13,6 @@ return new class extends Migration
             $table->foreignId('teacher_id')->constrained('teachers')->cascadeOnDelete();
             $table->foreignId('academic_session_id')->constrained('academic_sessions')->cascadeOnDelete();
             $table->foreignId('school_class_id')->constrained('school_classes')->cascadeOnDelete();
-            $table->foreignId('section_id')->nullable()->constrained('sections')->nullOnDelete();
-            $table->foreignId('subject_id')->nullable()->constrained('subjects')->nullOnDelete();
             $table->string('title')->nullable();
             $table->string('meeting_link');
             $table->text('description')->nullable();

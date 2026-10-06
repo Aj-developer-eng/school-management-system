@@ -38,10 +38,10 @@ export default function Index({ assignments, activeSession, isSuperAdmin }) {
                                     </div>
                                     <div>
                                         <p className="font-medium text-gray-900 dark:text-gray-100">
-                                            {a.school_class?.name} {a.section?.name ? `— ${a.section.name}` : ''}
+                                            {a.school_class?.name}
                                         </p>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            {a.subject?.name ?? 'General'}{isSuperAdmin && a.teacher?.user?.name ? ` · ${a.teacher.user.name}` : ''}
+                                            {isSuperAdmin && a.teacher?.user?.name ? a.teacher.user.name : 'Class attendance'}
                                         </p>
                                     </div>
                                 </div>

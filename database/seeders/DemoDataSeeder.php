@@ -15,11 +15,9 @@ use App\Models\FeePayment;
 use App\Models\FeeStructure;
 use App\Models\SchoolClass;
 use App\Models\SchoolSetting;
-use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudentParent;
-use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherSubjectAssignment;
 use App\Models\User;
@@ -108,63 +106,6 @@ class DemoDataSeeder extends Seeder
                 ],
             );
         }
-
-        foreach ($classes as $code => $class) {
-            if (in_array($code, ['PG', 'NUR', 'PREP', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10'])) {
-                Section::updateOrCreate(
-                    ['name' => 'A', 'school_class_id' => $class->id, 'academic_session_id' => $session2025->id],
-                    ['capacity' => 30, 'room_number' => 'R'.$class->level.'A', 'is_active' => true],
-                );
-                Section::updateOrCreate(
-                    ['name' => 'B', 'school_class_id' => $class->id, 'academic_session_id' => $session2025->id],
-                    ['capacity' => 30, 'room_number' => 'R'.$class->level.'B', 'is_active' => true],
-                );
-            }
-        }
-
-        $subjectDefinitions = [
-            ['name' => 'English', 'code' => 'ENG'],
-            ['name' => 'Urdu', 'code' => 'URD'],
-            ['name' => 'Mathematics', 'code' => 'MATH'],
-            ['name' => 'Science', 'code' => 'SCI'],
-            ['name' => 'Social Studies', 'code' => 'SST'],
-            ['name' => 'Islamiat', 'code' => 'ISL'],
-            ['name' => 'Computer Studies', 'code' => 'COMP'],
-            ['name' => 'Physics', 'code' => 'PHY'],
-            ['name' => 'Chemistry', 'code' => 'CHEM'],
-            ['name' => 'Biology', 'code' => 'BIO'],
-        ];
-
-        $subjects = [];
-        foreach ($subjectDefinitions as $subject) {
-            $subjects[$subject['code']] = Subject::updateOrCreate(
-                ['code' => $subject['code']],
-                ['name' => $subject['name'], 'is_active' => true],
-            );
-        }
-
-        $subjectMappings = [
-            'ENG' => ['PG', 'NUR', 'PREP', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10'],
-            'URD' => ['PG', 'NUR', 'PREP', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10'],
-            'MATH' => ['PREP', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10'],
-            'SCI' => ['C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10'],
-            'SST' => ['C4', 'C5', 'C6', 'C7', 'C8'],
-            'ISL' => ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10'],
-            'COMP' => ['C5', 'C6', 'C7', 'C8', 'C9', 'C10'],
-            'PHY' => ['C9', 'C10'],
-            'CHEM' => ['C9', 'C10'],
-            'BIO' => ['C9', 'C10'],
-        ];
-
-        foreach ($subjectMappings as $subjectCode => $classCodes) {
-            $subject = $subjects[$subjectCode];
-            $ids = collect($classCodes)
-                ->map(fn ($code) => $classes[$code]->id ?? null)
-                ->filter()
-                ->all();
-
-            $subject->schoolClasses()->sync($ids);
-        }
     }
 
     private function seedTeachers(): void
@@ -206,35 +147,17 @@ class DemoDataSeeder extends Seeder
     {
         $session = AcademicSession::where('name', '2025-2026')->first();
         $classC1 = SchoolClass::where('code', 'C1')->first();
-        $sectionA = Section::where('school_class_id', $classC1->id)
-            ->where('academic_session_id', $session->id)
-            ->where('name', 'A')
-            ->first();
-
-        $subjectEng = Subject::where('code', 'ENG')->first();
-        $subjectMath = Subject::where('code', 'MATH')->first();
-        $subjectSci = Subject::where('code', 'SCI')->first();
-        $subjectUrd = Subject::where('code', 'URD')->first();
 
         $teachers = Teacher::orderBy('id')->get();
 
-        $assignments = [
-            ['teacher_index' => 0, 'subject' => $subjectEng],
-            ['teacher_index' => 1, 'subject' => $subjectMath],
-            ['teacher_index' => 2, 'subject' => $subjectSci],
-            ['teacher_index' => 3, 'subject' => $subjectUrd],
-        ];
-
-        foreach ($assignments as $item) {
-            $teacher = $teachers[$item['teacher_index']] ?? null;
-            if ($teacher && $item['subject']) {
+        foreach ([0, 1, 2, 3] as $index) {
+            $teacher = $teachers[$index] ?? null;
+            if ($teacher) {
                 TeacherSubjectAssignment::firstOrCreate(
                     [
                         'teacher_id' => $teacher->id,
                         'academic_session_id' => $session->id,
                         'school_class_id' => $classC1->id,
-                        'section_id' => $sectionA->id,
-                        'subject_id' => $item['subject']->id,
                     ],
                     [
                         'status' => 'pending',
@@ -251,10 +174,6 @@ class DemoDataSeeder extends Seeder
 
         $session = AcademicSession::where('name', '2025-2026')->first();
         $classC1 = SchoolClass::where('code', 'C1')->first();
-        $sectionA = Section::where('school_class_id', $classC1->id)
-            ->where('academic_session_id', $session->id)
-            ->where('name', 'A')
-            ->first();
 
         $studentData = [
             ['name' => 'Hamza Iqbal', 'dob' => '2015-05-12'],
@@ -274,7 +193,6 @@ class DemoDataSeeder extends Seeder
                 'nationality' => 'Pakistani',
                 'academic_session_id' => $session->id,
                 'school_class_id' => $classC1->id,
-                'section_id' => $sectionA->id,
                 'enrolled_on' => '2025-04-01',
             ]);
         }

@@ -139,9 +139,6 @@ function StudentsModal({ classItem, onClose }) {
                                                 {s.admission_number ?? 'No admission #'}
                                             </p>
                                         </div>
-                                        <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
-                                            {s.section_name ?? '—'}
-                                        </span>
                                     </Link>
                                 </li>
                             ))}

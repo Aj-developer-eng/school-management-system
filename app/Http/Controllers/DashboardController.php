@@ -10,12 +10,9 @@ use App\Models\AcademicSession;
 use App\Models\Attendance;
 use App\Models\FeeInvoice;
 use App\Models\SchoolClass;
-use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudentParent;
-use App\Models\Subject;
-use App\Models\SubjectNote;
 use App\Models\Teacher;
 use App\Models\TeacherAssignmentLog;
 use App\Models\TeacherSubjectAssignment;
@@ -69,8 +66,6 @@ class DashboardController extends Controller
             'teachers' => Teacher::where('is_active', true)->count(),
             'parents' => StudentParent::where('is_active', true)->count(),
             'classes' => SchoolClass::where('is_active', true)->count(),
-            'sections' => Section::where('is_active', true)->count(),
-            'subjects' => Subject::where('is_active', true)->count(),
             'active_session' => $activeSession?->name,
         ];
 
@@ -85,13 +80,12 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
-        $assignmentOverview = TeacherSubjectAssignment::with(['teacher.user:id,name', 'schoolClass:id,name', 'section:id,name', 'subject:id,name'])
+        $assignmentOverview = TeacherSubjectAssignment::with(['teacher.user:id,name', 'schoolClass:id,name'])
             ->whereNull('deleted_at')
             ->when($activeSession, function ($q) use ($activeSession): void {
                 $q->where('academic_session_id', $activeSession->id);
             })
             ->orderBy('school_class_id')
-            ->orderBy('subject_id')
             ->get();
 
         $assignmentStats = [
@@ -144,8 +138,6 @@ class DashboardController extends Controller
         $invoices = collect();
         $todayAttendance = collect();
         $testResults = collect();
-        $classNotes = collect();
-        $subjectPapers = collect();
         $feeSummary = [
             'total_invoiced' => 0,
             'total_paid' => 0,
@@ -155,8 +147,8 @@ class DashboardController extends Controller
 
         if ($parent) {
             $children = $parent->students()
-                ->with(['user:id,name', 'subjects:id', 'enrollments' => function ($q) use ($activeSession): void {
-                    $q->with(['schoolClass:id,name', 'section:id,name', 'academicSession:id,name'])
+                ->with(['user:id,name', 'enrollments' => function ($q) use ($activeSession): void {
+                    $q->with(['schoolClass:id,name', 'academicSession:id,name'])
                         ->where('academic_session_id', $activeSession?->id)
                         ->whereNull('deleted_at')
                         ->latest('enrolled_on');
@@ -190,8 +182,6 @@ class DashboardController extends Controller
                 $todayAttendance = Attendance::with([
                     'student.user:id,name',
                     'schoolClass:id,name',
-                    'section:id,name',
-                    'subject:id,name',
                     'assignment.teacher.user:id,name',
                 ])
                     ->whereIn('student_id', $studentIds)
@@ -200,11 +190,9 @@ class DashboardController extends Controller
                     ->get();
 
                 // Published test results for the children. Parents do not see
-                // "not applicable" entries, and a test whose subject is no
-                // longer available contributes no results.
+                // "not applicable" entries.
                 $testResults = TestResult::with([
-                    'test:id,title,test_date,subject_id,school_class_id,total_marks',
-                    'test.subject:id,name',
+                    'test:id,title,test_date,school_class_id,total_marks',
                     'test.schoolClass:id,name',
                     'student.user:id,name',
                 ])
@@ -213,8 +201,7 @@ class DashboardController extends Controller
                     ->where('is_not_applicable', false)
                     ->whereHas('test', function ($q): void {
                         $q->where('status', TestStatusEnum::ResultsPublished->value)
-                            ->whereNull('deleted_at')
-                            ->whereHas('subject');
+                            ->whereNull('deleted_at');
                     })
                     ->orderByDesc('id')
                     ->limit(10)
@@ -224,7 +211,6 @@ class DashboardController extends Controller
                         'test_id' => $result->test_id,
                         'test_title' => $result->test?->title,
                         'test_date' => $result->test?->test_date?->toDateString(),
-                        'subject' => $result->test?->subject?->name,
                         'school_class' => $result->test?->schoolClass?->name,
                         'total_marks' => $result->test?->total_marks !== null ? (float) $result->test->total_marks : null,
                         'student' => $result->student?->user?->name,
@@ -235,97 +221,15 @@ class DashboardController extends Controller
                         'remarks' => $result->remarks,
                     ])
                     ->values();
-
-                // Subjects of the children's current classes, with downloadable papers.
-                $classIds = $children->pluck('enrollments')->flatten(1)->pluck('school_class_id')->unique()->filter();
-
-                if ($classIds->isNotEmpty()) {
-                    $subjectPapers = Subject::whereIn('subjects.id', function ($q) use ($classIds): void {
-                        $q->select('class_subject.subject_id')
-                            ->from('class_subject')
-                            ->whereIn('class_subject.school_class_id', $classIds);
-                    })
-                        ->where('subjects.is_active', true)
-                        ->with(['papers' => function ($q): void {
-                            $q->whereNull('deleted_at')->orderByDesc('created_at');
-                        }])
-                        ->orderBy('subjects.name')
-                        ->get(['subjects.id', 'subjects.name', 'subjects.code'])
-                        ->filter(fn ($s) => $s->papers->isNotEmpty())
-                        ->values();
-                }
-
-                // "What was taught today" notes posted by teachers against the
-                // subjects the children take. Only active notes are shown, so
-                // the active/inactive toggle hides a note from parents.
-                $classNotes = SubjectNote::with(['subject:id,name', 'teacher.user:id,name'])
-                    ->whereNull('subject_notes.deleted_at')
-                    ->where('is_active', true)
-                    ->when($classIds->isNotEmpty(), fn ($q) => $q->whereIn('subject_id', function ($sub) use ($classIds): void {
-                        $sub->select('class_subject.subject_id')
-                            ->from('class_subject')
-                            ->whereIn('class_subject.school_class_id', $classIds);
-                    }))
-                    ->orderByDesc('note_date')
-                    ->orderByDesc('id')
-                    ->limit(10)
-                    ->get()
-                    ->map(fn (SubjectNote $note): array => [
-                        'id' => $note->id,
-                        'subject' => $note->subject?->name,
-                        'note' => $note->note,
-                        'note_date' => $note->note_date?->toDateString(),
-                        'teacher' => $note->teacher?->user?->name,
-                    ])
-                    ->values();
             }
         }
 
-        // Subjects offered to each class of the children (class_subject mapping).
-        $childClassIds = $children
-            ->flatMap(fn ($child) => $child->enrollments)
+        // The weekly timetable covers the classes the children are enrolled in.
+        $classIds = $children
+            ->flatMap(fn (Student $child) => $child->enrollments)
+            ->filter(fn ($enrollment) => $enrollment->school_class_id)
             ->pluck('school_class_id')
-            ->filter()
             ->unique()
-            ->values();
-
-        $classSubjectIds = $childClassIds->isEmpty()
-            ? collect()
-            : DB::table('class_subject')
-                ->whereIn('school_class_id', $childClassIds)
-                ->get(['school_class_id', 'subject_id'])
-                ->groupBy('school_class_id')
-                ->map(fn ($rows) => $rows->pluck('subject_id')->map(fn ($id) => (int) $id)->unique()->values()->all());
-
-        // The weekly timetable is restricted to the subjects each child actually
-        // studies: their own subject selection when they have one, otherwise the
-        // subjects offered by the class they are enrolled in. Children sharing a
-        // class/section merge their subjects so every slot they attend is kept.
-        $classSectionPairs = $children
-            ->flatMap(function (Student $child) use ($classSubjectIds): array {
-                $selectedSubjectIds = $child->subjects->pluck('id')->map(fn ($id) => (int) $id)->all();
-
-                return $child->enrollments
-                    ->filter(fn ($enrollment) => $enrollment->school_class_id && $enrollment->section_id)
-                    ->map(function ($enrollment) use ($classSubjectIds, $selectedSubjectIds): array {
-                        $subjectIds = $selectedSubjectIds !== []
-                            ? $selectedSubjectIds
-                            : ($classSubjectIds[$enrollment->school_class_id] ?? []);
-
-                        return [
-                            'class_id' => $enrollment->school_class_id,
-                            'section_id' => $enrollment->section_id,
-                            'subject_ids' => $subjectIds,
-                        ];
-                    })
-                    ->all();
-            })
-            ->groupBy(fn (array $pair) => $pair['class_id'].'-'.$pair['section_id'])
-            ->map(fn ($group) => [
-                'class_id' => $group->first()['class_id'],
-                'section_id' => $group->first()['section_id'],
-                'subject_ids' => $group->pluck('subject_ids')->flatten()->unique()->values()->all(),
-            ])
             ->values()
             ->all();
 
@@ -337,14 +241,12 @@ class DashboardController extends Controller
             'feeSummary' => $feeSummary,
             'todayAttendance' => $todayAttendance,
             'testResults' => $testResults,
-            'classNotes' => $classNotes,
-            'subjectPapers' => $subjectPapers,
             'activeSession' => $activeSession?->name,
             // No enrolled children means no scope: an empty timetable is safer
             // than falling back to the whole school's assignments.
-            'timetable' => $classSectionPairs === []
+            'timetable' => $classIds === []
                 ? []
-                : $this->buildTimetable($activeSession, null, $classSectionPairs),
+                : $this->buildTimetable($activeSession, null, $classIds),
         ]);
     }
 
@@ -353,16 +255,16 @@ class DashboardController extends Controller
         $student = Student::where('user_id', $user->id)->first();
         $activeSession = AcademicSession::active()->first();
 
-        $enrollment = null;
+        $enrollments = collect();
         $invoices = collect();
 
         if ($student) {
-            $enrollment = StudentEnrollment::with(['schoolClass:id,name', 'section:id,name', 'academicSession:id,name'])
+            $enrollments = StudentEnrollment::with(['schoolClass:id,name', 'academicSession:id,name'])
                 ->where('student_id', $student->id)
                 ->where('academic_session_id', $activeSession?->id)
                 ->whereNull('deleted_at')
-                ->latest('enrolled_on')
-                ->first();
+                ->orderBy('id')
+                ->get();
 
             $invoices = FeeInvoice::with(['feeStructure:id,name'])
                 ->where('student_id', $student->id)
@@ -372,17 +274,20 @@ class DashboardController extends Controller
                 ->get();
         }
 
-        $classSectionPairs = $enrollment
-            ? [['class_id' => $enrollment->school_class_id, 'section_id' => $enrollment->section_id]]
-            : [];
+        $classIds = $enrollments
+            ->pluck('school_class_id')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
 
         return Inertia::render('Dashboard', [
             'dashboardType' => 'student',
             'student' => $student ? ['id' => $student->id, 'admission_number' => $student->admission_number] : null,
-            'enrollment' => $enrollment,
+            'enrollments' => $enrollments,
             'invoices' => $invoices,
             'activeSession' => $activeSession?->name,
-            'timetable' => $this->buildTimetable($activeSession, null, $classSectionPairs),
+            'timetable' => $this->buildTimetable($activeSession, null, $classIds),
         ]);
     }
 
@@ -402,8 +307,6 @@ class DashboardController extends Controller
         if ($teacher) {
             $assignments = TeacherSubjectAssignment::with([
                 'schoolClass:id,name',
-                'section:id,name',
-                'subject:id,name',
                 'academicSession:id,name',
             ])
                 ->where('teacher_id', $teacher->id)
@@ -412,7 +315,6 @@ class DashboardController extends Controller
                     $q->where('academic_session_id', $activeSession->id);
                 })
                 ->orderBy('school_class_id')
-                ->orderBy('subject_id')
                 ->get();
 
             $stats = [
@@ -446,7 +348,7 @@ class DashboardController extends Controller
 
         $this->logAssignmentEvent($assignment, 'started', $request->user());
 
-        ActivityLogService::custom('Teacher Assignments', 'started', "Started assignment: {$assignment->schoolClass?->name} - {$assignment->subject?->name}");
+        ActivityLogService::custom('Teacher Assignments', 'started', "Started assignment: {$assignment->schoolClass?->name}");
 
         return redirect()->back()->with('success', 'Class marked as started.');
     }
@@ -460,7 +362,7 @@ class DashboardController extends Controller
 
         $this->logAssignmentEvent($assignment, 'completed', $request->user());
 
-        ActivityLogService::custom('Teacher Assignments', 'completed', "Completed assignment: {$assignment->schoolClass?->name} - {$assignment->subject?->name}");
+        ActivityLogService::custom('Teacher Assignments', 'completed', "Completed assignment: {$assignment->schoolClass?->name}");
 
         return redirect()->back()->with('success', 'Class marked as completed.');
     }
@@ -475,7 +377,7 @@ class DashboardController extends Controller
 
         $this->logAssignmentEvent($assignment, 'reset', $request->user());
 
-        ActivityLogService::custom('Teacher Assignments', 'reset', "Reset assignment: {$assignment->schoolClass?->name} - {$assignment->subject?->name}");
+        ActivityLogService::custom('Teacher Assignments', 'reset', "Reset assignment: {$assignment->schoolClass?->name}");
 
         return redirect()->back()->with('success', 'Assignment reset to pending.');
     }
@@ -487,8 +389,6 @@ class DashboardController extends Controller
             'teacher_id' => $assignment->teacher_id,
             'academic_session_id' => $assignment->academic_session_id,
             'school_class_id' => $assignment->school_class_id,
-            'section_id' => $assignment->section_id,
-            'subject_id' => $assignment->subject_id,
             'action' => $action,
             'log_date' => today(),
             'occurred_at' => now(),
@@ -499,9 +399,9 @@ class DashboardController extends Controller
     /**
      * Build the weekly timetable entries.
      *
-     * @param  array<int, array{class_id: int, section_id: int, subject_ids?: array<int, int>}>  $classSectionPairs
+     * @param  array<int, int>  $classIds  restrict the timetable to these classes
      */
-    private function buildTimetable(?AcademicSession $activeSession, ?int $teacherId = null, array $classSectionPairs = []): array
+    private function buildTimetable(?AcademicSession $activeSession, ?int $teacherId = null, array $classIds = []): array
     {
         $timetableDays = [
             1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday',
@@ -509,7 +409,7 @@ class DashboardController extends Controller
         ];
 
         $query = TeacherSubjectAssignment::query()
-            ->with(['teacher.user:id,name', 'schoolClass:id,name', 'section:id,name', 'subject:id,name'])
+            ->with(['teacher.user:id,name', 'schoolClass:id,name'])
             ->whereNull('deleted_at')
             ->orderBy('start_time');
 
@@ -517,21 +417,8 @@ class DashboardController extends Controller
             $query->where('teacher_id', $teacherId);
         }
 
-        if ($classSectionPairs !== []) {
-            $query->where(function ($q) use ($classSectionPairs): void {
-                foreach ($classSectionPairs as $pair) {
-                    $q->orWhere(function ($sub) use ($pair): void {
-                        $sub->where('school_class_id', $pair['class_id'])
-                            ->where('section_id', $pair['section_id']);
-
-                        // When the caller supplies subjects, only slots for those
-                        // subjects are returned (e.g. a child's own subjects).
-                        if (array_key_exists('subject_ids', $pair)) {
-                            $sub->whereIn('subject_id', $pair['subject_ids']);
-                        }
-                    });
-                }
-            });
+        if ($classIds !== []) {
+            $query->whereIn('school_class_id', $classIds);
         }
 
         return $query->get()
@@ -556,8 +443,6 @@ class DashboardController extends Controller
                     'end_time' => $assignment->end_time?->format('H:i'),
                     'teacher' => $assignment->teacher?->user?->name,
                     'class' => $assignment->schoolClass?->name,
-                    'section' => $assignment->section?->name,
-                    'subject' => $assignment->subject?->name,
                 ])->all();
             })
             ->sortBy(fn (array $entry): int => $entry['day'])
@@ -583,10 +468,6 @@ class DashboardController extends Controller
 
         if ($user->can('classes.create')) {
             $actions[] = ['label' => 'New Class', 'route' => 'classes.create', 'icon' => 'BookOpen'];
-        }
-
-        if ($user->can('subjects.create')) {
-            $actions[] = ['label' => 'New Subject', 'route' => 'subjects.create', 'icon' => 'FlaskConical'];
         }
 
         if ($user->can('school-settings.update')) {

@@ -18,7 +18,6 @@ class StudentEnrollment extends Model
         'student_id',
         'academic_session_id',
         'school_class_id',
-        'section_id',
         'roll_number',
         'enrolled_on',
         'status',
@@ -44,10 +43,5 @@ class StudentEnrollment extends Model
     public function schoolClass(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class);
-    }
-
-    public function section(): BelongsTo
-    {
-        return $this->belongsTo(Section::class);
     }
 }

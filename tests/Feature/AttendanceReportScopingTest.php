@@ -7,9 +7,7 @@ use App\Enums\RoleEnum;
 use App\Models\AcademicSession;
 use App\Models\Attendance;
 use App\Models\SchoolClass;
-use App\Models\Section;
 use App\Models\Student;
-use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherSubjectAssignment;
 use App\Models\User;
@@ -41,8 +39,8 @@ class AttendanceReportScopingTest extends TestCase
         [$teacherUser, $teacher] = $this->makeTeacher();
         [$otherUser, $otherTeacher] = $this->makeTeacher();
 
-        $ownAssignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 5, 'Mathematics', 'MATH');
-        $otherAssignment = $this->makeAssignment($otherTeacher, 'Grade 9', 'G9', 9, 'Physics', 'PHY');
+        $ownAssignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 5);
+        $otherAssignment = $this->makeAssignment($otherTeacher, 'Grade 9', 'G9', 9);
 
         $ownRecord = $this->recordAttendance($ownAssignment, 'ADM-001', $teacherUser, 'present');
         $this->recordAttendance($otherAssignment, 'ADM-002', $otherUser, 'absent');
@@ -66,8 +64,8 @@ class AttendanceReportScopingTest extends TestCase
         [$teacherUser, $teacher] = $this->makeTeacher();
         [, $otherTeacher] = $this->makeTeacher();
 
-        $ownAssignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 5, 'Mathematics', 'MATH');
-        $this->makeAssignment($otherTeacher, 'Grade 9', 'G9', 9, 'Physics', 'PHY');
+        $ownAssignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 5);
+        $this->makeAssignment($otherTeacher, 'Grade 9', 'G9', 9);
 
         $response = $this->actingAs($teacherUser)->get(route('attendance.report'));
 
@@ -81,7 +79,7 @@ class AttendanceReportScopingTest extends TestCase
     {
         [$teacherUser, $teacher] = $this->makeTeacher();
 
-        $assignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 5, 'Mathematics', 'MATH');
+        $assignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 5);
         $record = $this->recordAttendance($assignment, 'ADM-001', $teacherUser, 'late');
 
         $assignment->delete();
@@ -99,7 +97,7 @@ class AttendanceReportScopingTest extends TestCase
     public function test_teacher_without_a_teacher_record_sees_no_attendance(): void
     {
         [$otherUser, $otherTeacher] = $this->makeTeacher();
-        $assignment = $this->makeAssignment($otherTeacher, 'Grade 5', 'G5', 5, 'Mathematics', 'MATH');
+        $assignment = $this->makeAssignment($otherTeacher, 'Grade 5', 'G5', 5);
         $this->recordAttendance($assignment, 'ADM-001', $otherUser, 'present');
 
         $user = User::factory()->create();
@@ -120,8 +118,8 @@ class AttendanceReportScopingTest extends TestCase
         [$teacherUser, $teacher] = $this->makeTeacher();
         [$otherUser, $otherTeacher] = $this->makeTeacher();
 
-        $ownAssignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 5, 'Mathematics', 'MATH');
-        $otherAssignment = $this->makeAssignment($otherTeacher, 'Grade 9', 'G9', 9, 'Physics', 'PHY');
+        $ownAssignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 5);
+        $otherAssignment = $this->makeAssignment($otherTeacher, 'Grade 9', 'G9', 9);
 
         $this->recordAttendance($ownAssignment, 'ADM-001', $teacherUser, 'present');
         $this->recordAttendance($otherAssignment, 'ADM-002', $otherUser, 'absent');
@@ -160,8 +158,6 @@ class AttendanceReportScopingTest extends TestCase
         string $className,
         string $classCode,
         int $level,
-        string $subjectName,
-        string $subjectCode,
     ): TeacherSubjectAssignment {
         $class = SchoolClass::create([
             'name' => $className,
@@ -170,24 +166,10 @@ class AttendanceReportScopingTest extends TestCase
             'is_active' => true,
         ]);
 
-        $section = Section::create([
-            'name' => 'A',
-            'school_class_id' => $class->id,
-            'academic_session_id' => $this->session->id,
-        ]);
-
-        $subject = Subject::create([
-            'name' => $subjectName,
-            'code' => $subjectCode,
-            'is_active' => true,
-        ]);
-
         return TeacherSubjectAssignment::create([
             'teacher_id' => $teacher->id,
             'academic_session_id' => $this->session->id,
             'school_class_id' => $class->id,
-            'section_id' => $section->id,
-            'subject_id' => $subject->id,
         ]);
     }
 
@@ -208,8 +190,6 @@ class AttendanceReportScopingTest extends TestCase
             'teacher_subject_assignment_id' => $assignment->id,
             'academic_session_id' => $assignment->academic_session_id,
             'school_class_id' => $assignment->school_class_id,
-            'section_id' => $assignment->section_id,
-            'subject_id' => $assignment->subject_id,
             'recorded_by' => $recorder->id,
             'attendance_date' => today()->toDateString(),
             'status' => $status,

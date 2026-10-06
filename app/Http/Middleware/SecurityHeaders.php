@@ -45,7 +45,10 @@ class SecurityHeaders
     {
         $local = app()->environment('local');
 
-        $devOrigins = $local ? ' http://localhost:* http://127.0.0.1:* http://[::1]:*' : '';
+        // CSP source expressions cannot contain IPv6 literals such as
+        // http://[::1]:* — browsers flag them as invalid sources and drop
+        // them, so only the hostname and IPv4 loopback forms are listed.
+        $devOrigins = $local ? ' http://localhost:* http://127.0.0.1:*' : '';
         $devSockets = $local ? ' ws://localhost:* ws://127.0.0.1:*' : '';
         $unsafeEval = $local ? " 'unsafe-eval'" : '';
 

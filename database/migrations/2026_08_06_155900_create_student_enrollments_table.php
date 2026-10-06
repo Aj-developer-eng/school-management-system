@@ -13,7 +13,6 @@ return new class extends Migration
             $table->foreignId('student_id')->constrained('students')->cascadeOnDelete();
             $table->foreignId('academic_session_id')->constrained()->cascadeOnDelete();
             $table->foreignId('school_class_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('section_id')->constrained()->cascadeOnDelete();
             $table->string('roll_number', 20)->nullable();
             $table->date('enrolled_on')->default(now()->toDateString());
             $table->enum('status', ['active', 'completed', 'transferred', 'withdrawn'])->default('active');
@@ -23,7 +22,7 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->unique(['student_id', 'academic_session_id'], 'se_student_session_unique');
-            $table->index(['academic_session_id', 'school_class_id', 'section_id'], 'se_session_class_section_index');
+            $table->index(['academic_session_id', 'school_class_id'], 'se_session_class_index');
         });
     }
 

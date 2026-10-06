@@ -88,7 +88,7 @@ export default function Show({ assignment, students, date, activeSession }) {
             title="Mark Attendance"
             breadcrumbs={[
                 { label: 'Attendance', href: route('attendance.index') },
-                { label: `${assignment.school_class?.name} ${assignment.section?.name ?? ''}` },
+                { label: assignment.school_class?.name },
             ]}
         >
             <FlashMessages />
@@ -100,10 +100,9 @@ export default function Show({ assignment, students, date, activeSession }) {
                         <div>
                             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                                 {assignment.school_class?.name}
-                                {assignment.section?.name ? ` — ${assignment.section.name}` : ''}
                             </h2>
                             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                {assignment.subject?.name ?? 'General'} · {activeSession ?? 'Current Session'}
+                                {activeSession ?? 'Current Session'}
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
@@ -207,7 +206,7 @@ export default function Show({ assignment, students, date, activeSession }) {
                                     }) : (
                                         <tr>
                                             <td colSpan={4} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
-                                                No students enrolled in this class/section for the active session.
+                                                No students enrolled in this class for the active session.
                                             </td>
                                         </tr>
                                     )}

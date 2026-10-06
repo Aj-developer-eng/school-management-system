@@ -58,7 +58,7 @@ export default function Report({ records, summary, classes, filters, activeSessi
                             </div>
                             {scopedToTeacher && (
                                 <p className="w-full text-xs font-medium text-gray-500 dark:text-gray-400">
-                                    Showing only attendance recorded for your assigned classes and subjects.
+                                    Showing only attendance recorded for your assigned classes.
                                 </p>
                             )}
                             <div>
@@ -128,8 +128,6 @@ export default function Report({ records, summary, classes, filters, activeSessi
                                     <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Date</th>
                                     <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Student</th>
                                     <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Class</th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Section</th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Subject</th>
                                     <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Teacher</th>
                                     <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Status</th>
                                     <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Remarks</th>
@@ -154,12 +152,6 @@ export default function Report({ records, summary, classes, filters, activeSessi
                                             </td>
                                             <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                                                 {r.school_class?.name ?? '—'}
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                                                {r.section?.name ?? '—'}
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                                                {r.subject?.name ?? '—'}
                                             </td>
                                             <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                                                 {r.assignment?.teacher?.user?.name ?? '—'}
