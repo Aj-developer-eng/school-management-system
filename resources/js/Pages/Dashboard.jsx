@@ -247,6 +247,8 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
 }
 
 function TimetableSection({ timetable }) {
+    const { can } = useAuth();
+
     const byDay = {};
     (timetable ?? []).forEach((entry) => {
         const dayValue = entry.day ?? 0;
@@ -259,7 +261,20 @@ function TimetableSection({ timetable }) {
 
     return (
         <div className="animate-fade-in">
-            <SectionHeading>Weekly Timetable</SectionHeading>
+            <SectionHeading
+                action={
+                    can('teacher-assignments.view') && (
+                        <Link
+                            href={route('teacher-assignments.index')}
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300"
+                        >
+                            View Full Timetable
+                        </Link>
+                    )
+                }
+            >
+                Weekly Timetable
+            </SectionHeading>
             {days.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-gray-300 bg-white px-4 py-10 text-center dark:border-gray-700 dark:bg-gray-800">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-300">No timetable scheduled yet.</p>
@@ -281,7 +296,7 @@ function TimetableSection({ timetable }) {
                                 {byDay[day.value].length} class{byDay[day.value].length !== 1 ? 'es' : ''}
                             </span>
                         </div>
-                        <ul className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                        <ul className="max-h-72 divide-y divide-gray-100 overflow-y-auto overscroll-contain dark:divide-gray-700/60">
                             {byDay[day.value].map((entry) => (
                                 <li key={entry.key ?? entry.id} className="flex items-start gap-3 px-4 py-3">
                                     <div className="w-16 shrink-0 rounded-md bg-gray-50 px-1.5 py-1 text-center dark:bg-gray-700/50">

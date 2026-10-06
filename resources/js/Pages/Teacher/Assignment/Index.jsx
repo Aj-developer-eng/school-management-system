@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+import { Clock } from 'lucide-react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
 import CreateButton from '@/Components/Ui/CreateButton';
@@ -13,6 +15,34 @@ import { formatTimeRange } from '@/utils/format';
 export default function Index({ assignments, filters }) {
     const { can } = useAuth();
     const handleSearch = useFilter('teacher-assignments.index');
+
+    // Rows arrive sorted by class time (server-side); group them per time slot.
+    const timeGroups = useMemo(() => {
+        const groups = new Map();
+
+        (assignments?.data ?? []).forEach((row) => {
+            const key = `${row.start_time ?? ''}|${row.end_time ?? ''}`;
+
+            if (!groups.has(key)) {
+                const timeLabel = formatTimeRange(row.start_time, row.end_time);
+
+                groups.set(key, {
+                    key,
+                    label: (
+                        <span className="inline-flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                            {timeLabel === '—' ? 'No class time' : timeLabel}
+                        </span>
+                    ),
+                    rows: [],
+                });
+            }
+
+            groups.get(key).rows.push(row);
+        });
+
+        return [...groups.values()];
+    }, [assignments]);
 
     const columns = [
         { key: 'teacher', label: 'Teacher', render: (row) => row.teacher?.user?.name },
@@ -55,7 +85,7 @@ export default function Index({ assignments, filters }) {
                 <div className="p-4">
                     <SearchInput value={filters.search} onChange={handleSearch} placeholder="Search by teacher or class…" />
                 </div>
-                <DataTable columns={columns} rows={assignments} />
+                <DataTable columns={columns} rows={assignments} groups={timeGroups} />
                 <Pagination {...assignments} />
             </Card>
         </AuthenticatedLayout>

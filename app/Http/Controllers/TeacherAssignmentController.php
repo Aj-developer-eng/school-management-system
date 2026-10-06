@@ -32,6 +32,9 @@ class TeacherAssignmentController extends Controller
                         $q->where('name', 'like', "%{$search}%");
                     });
             })
+            ->orderByRaw('CASE WHEN start_time IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('start_time')
+            ->orderBy('end_time')
             ->orderByDesc('created_at')
             ->paginate(15)
             ->withQueryString();
