@@ -201,42 +201,44 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                     </div>
                 </div>
                 <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Teacher</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Class</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Time</th>
-                                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {assignmentOverview.length > 0 ? assignmentOverview.map((a) => (
-                                <tr key={a.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-indigo-50/40 dark:border-gray-700/50 dark:hover:bg-gray-700/30">
-                                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-                                        {a.teacher?.user?.name ?? '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                                        {a.school_class?.name ?? '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                                        {formatTimeRange(a.start_time, a.end_time)}
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusColors[a.status] ?? statusColors.pending}`}>
-                                            {a.status}
-                                        </span>
-                                    </td>
+                    <div className="max-h-96 overflow-y-auto overscroll-contain">
+                        <table className="w-full text-sm">
+                            <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700">
+                                <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Teacher</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Class</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Time</th>
+                                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
                                 </tr>
-                            )) : (
-                                <tr>
-                                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-                                        No teacher assignments for this session.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {assignmentOverview.length > 0 ? assignmentOverview.map((a) => (
+                                    <tr key={a.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-indigo-50/40 dark:border-gray-700/50 dark:hover:bg-gray-700/30">
+                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
+                                            {a.teacher?.user?.name ?? '—'}
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                            {a.school_class?.name ?? '—'}
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                            {formatTimeRange(a.start_time, a.end_time)}
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusColors[a.status] ?? statusColors.pending}`}>
+                                                {a.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                )) : (
+                                    <tr>
+                                        <td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                                            No teacher assignments for this session.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
