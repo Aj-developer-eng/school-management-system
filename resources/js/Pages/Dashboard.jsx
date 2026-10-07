@@ -562,6 +562,7 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                                         <span className="font-medium text-gray-700 dark:text-gray-300">
                                             {enrollment?.section?.name ?? '—'}
                                         </span>
+                                        
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-500 dark:text-gray-400">Session</span>
