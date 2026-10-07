@@ -73,7 +73,7 @@ export default function Index({
                 <Card>
                     <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-end">
                         <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Academic Session</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Category Session</label>
                             <select
                                 value={sessionId}
                                 onChange={(e) => setSessionId(e.target.value)}

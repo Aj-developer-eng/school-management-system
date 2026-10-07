@@ -42,7 +42,7 @@ class AcademicSessionController extends Controller
         AcademicSession::create($request->validated());
 
         return redirect()->route('academic-sessions.index')
-            ->with('success', 'Academic session created successfully.');
+            ->with('success', 'Category session created successfully.');
     }
 
     public function edit(AcademicSession $academicSession): Response
@@ -61,7 +61,7 @@ class AcademicSessionController extends Controller
         $academicSession->update($request->validated());
 
         return redirect()->route('academic-sessions.index')
-            ->with('success', 'Academic session updated successfully.');
+            ->with('success', 'Category session updated successfully.');
     }
 
     public function destroy(AcademicSession $academicSession): \Illuminate\Http\RedirectResponse
@@ -69,6 +69,6 @@ class AcademicSessionController extends Controller
         $academicSession->delete();
 
         return redirect()->route('academic-sessions.index')
-            ->with('success', 'Academic session deleted successfully.');
+            ->with('success', 'Category session deleted successfully.');
     }
 }

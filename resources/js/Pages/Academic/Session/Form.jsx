@@ -26,13 +26,13 @@ export default function Form({ session }) {
 
     return (
         <AuthenticatedLayout
-            title={isEdit ? 'Edit Academic Session' : 'New Academic Session'}
+            title={isEdit ? 'Edit Category Session' : 'New Category Session'}
             breadcrumbs={[
-                { label: 'Academic Sessions', href: route('academic-sessions.index') },
+                { label: 'Category Session', href: route('academic-sessions.index') },
                 { label: isEdit ? 'Edit' : 'New' },
             ]}
         >
-            <Head title={isEdit ? 'Edit Academic Session' : 'New Academic Session'} />
+            <Head title={isEdit ? 'Edit Category Session' : 'New Category Session'} />
 
             <Card className="max-w-2xl">
                 <form onSubmit={submit} className="space-y-6 p-6">

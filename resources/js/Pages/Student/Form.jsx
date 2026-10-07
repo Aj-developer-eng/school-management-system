@@ -251,7 +251,7 @@ export default function Form({ student, sessions, classes, selected_class_ids = 
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
-                            <InputLabel htmlFor="academic_session_id" value="Academic Session" required />
+                            <InputLabel htmlFor="academic_session_id" value="Category Session" required />
                             <select
                                 id="academic_session_id"
                                 value={data.academic_session_id}

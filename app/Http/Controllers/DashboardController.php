@@ -475,7 +475,7 @@ class DashboardController extends Controller
         }
 
         if ($user->can('academic-sessions.create')) {
-            $actions[] = ['label' => 'Academic Session', 'route' => 'academic-sessions.create', 'icon' => 'Calendar'];
+            $actions[] = ['label' => 'Category Session', 'route' => 'academic-sessions.create', 'icon' => 'Calendar'];
         }
 
         return $actions;

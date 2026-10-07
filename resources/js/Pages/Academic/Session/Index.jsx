@@ -48,8 +48,8 @@ export default function Index({ sessions, filters }) {
 
     return (
         <AuthenticatedLayout
-            title="Academic Sessions"
-            breadcrumbs={[{ label: 'Academic Sessions' }]}
+            title="Category Session"
+            breadcrumbs={[{ label: 'Category Session' }]}
             actions={can('academic-sessions.create') && <CreateButton routeName="academic-sessions.create" />}
         >
             <Card>

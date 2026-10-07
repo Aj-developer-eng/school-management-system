@@ -41,7 +41,7 @@ export const navigation = [
         section: 'Academics',
         items: [
             {
-                label: 'Academic Sessions',
+                label: 'Category Session',
                 routeName: 'academic-sessions.index',
                 icon: CalendarRange,
                 permission: 'academic-sessions.view',

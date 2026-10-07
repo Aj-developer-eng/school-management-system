@@ -92,7 +92,7 @@ export default function Form({ onlineClass, teachers, sessions, classes, activeS
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <InputLabel htmlFor="academic_session_id" value="Academic Session" />
+                            <InputLabel htmlFor="academic_session_id" value="Category Session" />
                             <select
                                 id="academic_session_id"
                                 value={data.academic_session_id}

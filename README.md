@@ -107,9 +107,9 @@ Several controllers scope data based on the logged-in user's role:
 
 ### 1. Academic Management
 
-- **Academic Sessions** (`/academic-sessions`) — School years with start/end dates. Only one can be active at a time (enforced via model boot). Many pages fall back to the latest session if none is active.
+- **Category Session** (`/academic-sessions`) — School years with start/end dates. Only one can be active at a time (enforced via model boot). Many pages fall back to the latest session if none is active.
 - **Classes** (`/classes`) — Grade levels (Playgroup through Class 10).
-- **Sections** (`/sections`) — Class sections (A, B) tied to academic sessions.
+- **Sections** (`/sections`) — Class sections (A, B) tied to category sessions.
 - **Subjects** (`/subjects`) — Subjects mapped to classes via `class_subject` pivot table.
 
 ### 2. Teacher Management
@@ -121,7 +121,7 @@ Several controllers scope data based on the logged-in user's role:
 ### 3. Student Management
 
 - **Students** (`/students`) — Full student records with admission numbers (auto-generated), enrollment tracking, PDF export. Subject checkboxes on the admit/edit form (pre-filled from the selected class, saved per student). Activate/deactivate toggle (hidden for Super Admin).
-- **Enrollments** — Students enrolled in class+section per academic session with roll numbers.
+- **Enrollments** — Students enrolled in class+section per category session with roll numbers.
 - **Parents** (`/parents`) — Parent accounts linked to students via `parent_student` pivot (guardian_type, is_primary_contact).
 
 ### 4. Fee Management
