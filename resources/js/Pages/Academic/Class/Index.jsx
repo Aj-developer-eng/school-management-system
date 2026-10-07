@@ -20,7 +20,11 @@ export default function Index({ classes, filters }) {
 
     const columns = [
         { key: 'name', label: 'Name' },
-        { key: 'code', label: 'Code' },
+        {
+            key: 'active_from_session',
+            label: 'Session',
+            render: (row) => row.active_from_session?.name ?? '—',
+        },
         { key: 'level', label: 'Level' },
         {
             key: 'students_count',

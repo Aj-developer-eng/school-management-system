@@ -86,7 +86,13 @@ class SchoolClassController extends Controller
 
     public function store(StoreRequest $request): \Illuminate\Http\RedirectResponse
     {
-        SchoolClass::create($request->validated());
+        $data = $request->validated();
+
+        // The form no longer collects a sort order, so new classes are
+        // appended to the end of the existing ordering.
+        $data['level'] = (int) SchoolClass::withTrashed()->max('level') + 1;
+
+        SchoolClass::create($data);
 
         return redirect()->route('classes.index')
             ->with('success', 'Class created successfully.');
