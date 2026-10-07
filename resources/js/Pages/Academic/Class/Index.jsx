@@ -37,11 +37,6 @@ export default function Index({ classes, filters }) {
             ),
         },
         {
-            key: 'active_from_session',
-            label: 'Introduced In',
-            render: (row) => row.active_from_session?.name ?? '—',
-        },
-        {
             key: 'is_active',
             label: 'Status',
             render: (row) => <StatusBadge active={row.is_active} />,
