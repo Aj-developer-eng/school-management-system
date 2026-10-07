@@ -36,6 +36,7 @@ export default function Index({ classes, filters }) {
                 </button>
             ),
         },
+        
         {
             key: 'is_active',
             label: 'Status',
