@@ -32,9 +32,30 @@ export default function Index({ students, filters }) {
     };
 
     const columns = [
-        { key: 'admission_number', label: 'Admission #' },
-        { key: 'name', label: 'Name', render: (row) => row.user?.name },
-        { key: 'email', label: 'Email', render: (row) => row.user?.email },
+        {
+            key: 'name',
+            label: 'Name',
+            render: (row) => (
+                <div>
+                    <span>{row.user?.name}</span>
+                    <small className="block text-xs text-gray-500 dark:text-gray-400">
+                        {row.admission_number}
+                    </small>
+                </div>
+            ),
+        },
+        {
+            key: 'email',
+            label: 'Contact',
+            render: (row) => (
+                <div>
+                    <span>{row.user?.email}</span>
+                    <small className="block text-xs text-gray-500 dark:text-gray-400">
+                        {row.user?.phone ?? '—'}
+                    </small>
+                </div>
+            ),
+        },
         {
             key: 'is_active',
             label: 'Status',
