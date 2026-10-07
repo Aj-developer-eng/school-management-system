@@ -6,6 +6,7 @@ use App\Http\Requests\SchoolClass\StoreRequest;
 use App\Http\Requests\SchoolClass\UpdateRequest;
 use App\Models\AcademicSession;
 use App\Models\SchoolClass;
+use App\Models\TeacherSubjectAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -67,8 +68,28 @@ class SchoolClassController extends Controller
                 ->groupBy('school_class_id')
             : collect();
 
-        $classes->getCollection()->each(function (SchoolClass $class) use ($studentsByClass): void {
+        // Load the class times (from teacher assignments) for the classes on
+        // this page so the table can show them instead of the numeric level.
+        $timesByClass = $pageClassIds->isNotEmpty()
+            ? TeacherSubjectAssignment::query()
+                ->whereIn('school_class_id', $pageClassIds)
+                ->orderByRaw('CASE WHEN start_time IS NULL THEN 1 ELSE 0 END')
+                ->orderBy('start_time')
+                ->orderBy('end_time')
+                ->get(['school_class_id', 'start_time', 'end_time'])
+                ->groupBy('school_class_id')
+            : collect();
+
+        $classes->getCollection()->each(function (SchoolClass $class) use ($studentsByClass, $timesByClass): void {
             $class->students_list = $studentsByClass->get($class->id, collect())->values();
+            $class->class_times = $timesByClass->get($class->id, collect())
+                ->map(fn (TeacherSubjectAssignment $assignment) => [
+                    'start_time' => $assignment->start_time?->format('H:i'),
+                    'end_time' => $assignment->end_time?->format('H:i'),
+                ])
+                ->filter(fn (array $time) => $time['start_time'] !== null || $time['end_time'] !== null)
+                ->unique()
+                ->values();
         });
 
         return Inertia::render('Academic/Class/Index', [

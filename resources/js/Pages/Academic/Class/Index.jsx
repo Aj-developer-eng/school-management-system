@@ -10,6 +10,7 @@ import SearchInput from '@/Components/Ui/SearchInput';
 import StatusBadge from '@/Components/Ui/StatusBadge';
 import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
+import { formatTimeRange } from '@/utils/format';
 import { Link } from '@inertiajs/react';
 import { Search, X } from 'lucide-react';
 
@@ -25,7 +26,17 @@ export default function Index({ classes, filters }) {
             label: 'Session',
             render: (row) => row.active_from_session?.name ?? '—',
         },
-        { key: 'level', label: 'Level' },
+        {
+            key: 'class_times',
+            label: 'Class Time',
+            render: (row) => {
+                const ranges = (row.class_times ?? [])
+                    .filter((time) => time.start_time || time.end_time)
+                    .map((time) => formatTimeRange(time.start_time, time.end_time));
+
+                return ranges.length > 0 ? ranges.join(', ') : '—';
+            },
+        },
         {
             key: 'students_count',
             label: 'Students',
