@@ -23,6 +23,17 @@ class SchoolClassController extends Controller
     {
         $activeSessionId = AcademicSession::active()->value('id');
 
+        // Scalar subqueries used to sort classes by their earliest class time
+        // so the index table can be displayed time-wise (grouped per slot).
+        $earliestStart = '(select min(tsa.start_time)
+            from teacher_subject_assignments tsa
+            where tsa.school_class_id = school_classes.id
+                and tsa.deleted_at is null)';
+        $earliestEnd = '(select min(tsa.end_time)
+            from teacher_subject_assignments tsa
+            where tsa.school_class_id = school_classes.id
+                and tsa.deleted_at is null)';
+
         $classes = SchoolClass::query()
             ->with('activeFromSession')
             ->select('school_classes.*')
@@ -38,6 +49,12 @@ class SchoolClassController extends Controller
                         ->orWhere('code', 'like', "%{$search}%");
                 });
             })
+            // Sort by each class's earliest class time so rows arrive grouped
+            // time-wise; classes without a class time are listed last.
+            ->orderByRaw("{$earliestStart} is null")
+            ->orderByRaw($earliestStart)
+            ->orderByRaw("{$earliestEnd} is null")
+            ->orderByRaw($earliestEnd)
             ->orderBy('level')
             ->orderBy('name')
             ->paginate(15)

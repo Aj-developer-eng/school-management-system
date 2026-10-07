@@ -102,12 +102,46 @@ class SchoolClassIndexTest extends TestCase
             );
     }
 
-    private function makeAssignment(?string $startTime, ?string $endTime): TeacherSubjectAssignment
+    public function test_classes_are_sorted_by_earliest_class_time_with_untimed_classes_last(): void
     {
+        $morning = SchoolClass::create([
+            'name' => 'Morning Class',
+            'code' => 'MC',
+            'level' => 1,
+            'is_active' => true,
+        ]);
+        $afternoon = SchoolClass::create([
+            'name' => 'Afternoon Class',
+            'code' => 'AC',
+            'level' => 2,
+            'is_active' => true,
+        ]);
+
+        $this->makeAssignment('14:00', '15:00', $afternoon);
+        $this->makeAssignment('08:00', '09:00', $morning);
+
+        // $this->class (Grade 5) has no assignments, so it must come last.
+        $this->actingAs($this->superAdmin)
+            ->get(route('classes.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Academic/Class/Index')
+                ->has('classes.data', 3)
+                ->where('classes.data.0.name', 'Morning Class')
+                ->where('classes.data.1.name', 'Afternoon Class')
+                ->where('classes.data.2.name', 'Grade 5')
+            );
+    }
+
+    private function makeAssignment(
+        ?string $startTime,
+        ?string $endTime,
+        ?SchoolClass $class = null,
+    ): TeacherSubjectAssignment {
         return TeacherSubjectAssignment::create([
             'teacher_id' => $this->teacher->id,
             'academic_session_id' => $this->session->id,
-            'school_class_id' => $this->class->id,
+            'school_class_id' => ($class ?? $this->class)->id,
             'start_time' => $startTime,
             'end_time' => $endTime,
             'days_of_week' => [1],

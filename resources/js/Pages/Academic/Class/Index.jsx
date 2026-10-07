@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
 import CreateButton from '@/Components/Ui/CreateButton';
@@ -12,12 +12,49 @@ import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
 import { formatTimeRange } from '@/utils/format';
 import { Link } from '@inertiajs/react';
-import { Search, X } from 'lucide-react';
+import { Clock, Search, X } from 'lucide-react';
 
 export default function Index({ classes, filters }) {
     const { can } = useAuth();
     const handleSearch = useFilter('classes.index');
     const [studentsClass, setStudentsClass] = useState(null);
+
+    // Rows arrive sorted by class time (server-side); group them per time slot
+    // so the table is easier to scan. Each class is grouped under its earliest
+    // class time; classes without a time land in a trailing group.
+    const timeGroups = useMemo(() => {
+        const groups = new Map();
+
+        (classes?.data ?? []).forEach((row) => {
+            const first = (row.class_times ?? []).find(
+                (time) => time.start_time || time.end_time,
+            );
+            const key = first
+                ? `${first.start_time ?? ''}|${first.end_time ?? ''}`
+                : 'no-time';
+
+            if (!groups.has(key)) {
+                const timeLabel = first
+                    ? formatTimeRange(first.start_time, first.end_time)
+                    : '—';
+
+                groups.set(key, {
+                    key,
+                    label: (
+                        <span className="inline-flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                            {timeLabel === '—' ? 'No class time' : timeLabel}
+                        </span>
+                    ),
+                    rows: [],
+                });
+            }
+
+            groups.get(key).rows.push(row);
+        });
+
+        return [...groups.values()];
+    }, [classes]);
 
     const columns = [
         { key: 'name', label: 'Name' },
@@ -80,7 +117,7 @@ export default function Index({ classes, filters }) {
                 <div className="p-4">
                     <SearchInput value={filters.search} onChange={handleSearch} placeholder="Search by name or code…" />
                 </div>
-                <DataTable columns={columns} rows={classes} />
+                <DataTable columns={columns} rows={classes} groups={timeGroups} />
                 <Pagination {...classes} />
             </Card>
 

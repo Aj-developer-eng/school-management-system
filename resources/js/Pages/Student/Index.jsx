@@ -7,6 +7,7 @@ import EditLink from '@/Components/Ui/EditLink';
 import Pagination from '@/Components/Ui/Pagination';
 import SearchInput from '@/Components/Ui/SearchInput';
 import StatusBadge from '@/Components/Ui/StatusBadge';
+import { normalizePhone } from '@/Components/Ui/WhatsAppButton';
 import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
 import { confirmAction } from '@/utils/swal';
@@ -47,14 +48,35 @@ export default function Index({ students, filters }) {
         {
             key: 'email',
             label: 'Contact',
-            render: (row) => (
-                <div>
-                    <span>{row.user?.email}</span>
-                    <small className="block text-xs text-gray-500 dark:text-gray-400">
-                        {row.user?.phone ?? '—'}
-                    </small>
-                </div>
-            ),
+            render: (row) => {
+                const phone = row.user?.phone;
+                const whatsappNumber = normalizePhone(phone);
+
+                return (
+                    <div>
+                        <span>{row.user?.email}</span>
+                        <small className="block text-xs text-gray-500 dark:text-gray-400">
+                            {phone ? (
+                                whatsappNumber ? (
+                                    <a
+                                        href={`https://wa.me/${whatsappNumber}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title="Chat on WhatsApp"
+                                        className="hover:text-green-600 hover:underline dark:hover:text-green-400"
+                                    >
+                                        {phone}
+                                    </a>
+                                ) : (
+                                    phone
+                                )
+                            ) : (
+                                '—'
+                            )}
+                        </small>
+                    </div>
+                );
+            },
         },
         {
             key: 'is_active',

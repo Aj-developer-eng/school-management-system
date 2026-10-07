@@ -7,7 +7,7 @@ const COUNTRY_CODE = '92'; // Default country code for local numbers starting wi
  * WhatsApp (wa.me) — e.g. "+92-300-1234567" -> "923001234567" and
  * "0300-1234567" -> "923001234567".
  */
-function normalizePhone(phone) {
+export function normalizePhone(phone) {
     const digits = (phone ?? '').replace(/\D/g, '');
 
     if (!digits) {
