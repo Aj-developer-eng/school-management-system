@@ -19,7 +19,6 @@ export default function Index({ parents, filters }) {
         { key: 'name', label: 'Name', render: (row) => row.user?.name },
         { key: 'email', label: 'Email', render: (row) => row.user?.email },
         { key: 'cnic', label: 'CNIC' },
-        { key: 'occupation', label: 'Occupation' },
         { key: 'children', label: 'Children', render: (row) => row.students?.length ?? 0 },
         {
             key: 'is_active',

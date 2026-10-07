@@ -36,21 +36,6 @@ export default function Index({ students, filters }) {
         { key: 'name', label: 'Name', render: (row) => row.user?.name },
         { key: 'email', label: 'Email', render: (row) => row.user?.email },
         {
-            key: 'current_class',
-            label: 'Current Class',
-            render: (row) => {
-                const enrollments = row.enrollments ?? [];
-                const classNames = [
-                    ...new Set(enrollments.map((e) => e.school_class?.name).filter(Boolean)),
-                ].join(', ');
-                const sessionNames = [
-                    ...new Set(enrollments.map((e) => e.academic_session?.name).filter(Boolean)),
-                ].join(', ');
-
-                return classNames ? `${classNames} (${sessionNames})` : '—';
-            },
-        },
-        {
             key: 'is_active',
             label: 'Status',
             render: (row) => <StatusBadge active={row.is_active} />,

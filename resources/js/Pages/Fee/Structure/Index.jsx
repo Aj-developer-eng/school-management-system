@@ -34,11 +34,6 @@ export default function Index({ feeStructures, filters, academicSessions, classe
             render: (row) => row.frequency,
         },
         {
-            key: 'academic_session',
-            label: 'Session',
-            render: (row) => row.academic_session?.name ?? '—',
-        },
-        {
             key: 'school_class',
             label: 'Class',
             render: (row) => row.school_class?.name ?? '—',
