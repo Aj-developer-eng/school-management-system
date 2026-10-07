@@ -10,7 +10,7 @@ export default function Pagination({ links, from, to, total }) {
                 <span className="font-medium">{to}</span> of{' '}
                 <span className="font-medium">{total}</span> results
             </p>
-            <nav className="flex items-center gap-1">
+            <nav className="flex flex-wrap items-center justify-center gap-1">
                 {links.map((link, index) =>
                     link.url ? (
                         <Link

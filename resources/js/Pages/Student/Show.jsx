@@ -13,8 +13,8 @@ export default function Show({ student, parents }) {
             <div className="space-y-6">
                 {/* Student info */}
                 <Card>
-                    <div className="p-6">
-                        <div className="flex items-center justify-between">
+                    <div className="p-4 sm:p-6">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 {student.name}
                             </h2>
@@ -65,8 +65,8 @@ export default function Show({ student, parents }) {
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                         {parents.length > 0 ? parents.map((parent) => (
                             <Card key={parent.id}>
-                                <div className="p-6">
-                                    <div className="flex items-center justify-between">
+                                <div className="p-4 sm:p-6">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
                                         <div className="flex items-center gap-3">
                                             <div>
                                                 <p className="font-medium text-gray-900 dark:text-gray-100">{parent.name}</p>
