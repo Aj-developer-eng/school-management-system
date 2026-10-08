@@ -4,13 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\SchoolClass\StoreRequest;
 use App\Http\Requests\SchoolClass\UpdateRequest;
+use App\Http\Requests\SchoolClass\UploadPapersRequest;
 use App\Models\AcademicSession;
+use App\Models\ClassPaper;
 use App\Models\SchoolClass;
 use App\Models\TeacherSubjectAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SchoolClassController extends Controller
 {
@@ -35,7 +39,13 @@ class SchoolClassController extends Controller
                 and tsa.deleted_at is null)';
 
         $classes = SchoolClass::query()
-            ->with('activeFromSession')
+            ->with([
+                'activeFromSession',
+                // The papers list shown in the Papers modal; the files live on
+                // the private local disk and are only served by the
+                // permission-gated classes.papers.download route.
+                'papers:id,school_class_id,original_name,mime_type,size,created_at',
+            ])
             ->select('school_classes.*')
             ->selectRaw('(select count(distinct se.student_id)
                 from student_enrollments se
@@ -158,5 +168,55 @@ class SchoolClassController extends Controller
 
         return redirect()->route('classes.index')
             ->with('success', 'Class deleted successfully.');
+    }
+
+    /**
+     * Upload one or more papers (PDF/Word) against a class.
+     *
+     * Authorization happens in UploadPapersRequest (classes.upload-papers);
+     * the files are kept on the private "local" disk so they can only be
+     * served through the permission-gated download route.
+     */
+    public function uploadPapers(UploadPapersRequest $request, SchoolClass $schoolClass): \Illuminate\Http\RedirectResponse
+    {
+        foreach ($request->file('papers') as $file) {
+            $schoolClass->papers()->create([
+                'file_path' => $file->store('class-papers', 'local'),
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+            ]);
+        }
+
+        return back()->with('success', 'Papers uploaded successfully.');
+    }
+
+    /**
+     * Download a paper that was uploaded for a class ("classes.download-papers").
+     */
+    public function downloadPaper(ClassPaper $paper): StreamedResponse
+    {
+        $class = $paper->schoolClass()->withTrashed()->firstOrFail();
+
+        $this->authorize('downloadPapers', $class);
+
+        abort_unless(Storage::disk('local')->exists($paper->file_path), 404);
+
+        return Storage::disk('local')->download($paper->file_path, $paper->original_name);
+    }
+
+    /**
+     * Remove a paper from a class ("classes.delete-papers").
+     */
+    public function destroyPaper(ClassPaper $paper): \Illuminate\Http\RedirectResponse
+    {
+        $class = $paper->schoolClass()->withTrashed()->firstOrFail();
+
+        $this->authorize('deletePapers', $class);
+
+        Storage::disk('local')->delete($paper->file_path);
+        $paper->delete();
+
+        return back()->with('success', 'Paper deleted successfully.');
     }
 }

@@ -31,4 +31,29 @@ class SchoolClassPolicy
     {
         return $user->can('classes.delete');
     }
+
+    /**
+     * Upload PDF/Word papers against a class (gated by "classes.upload-papers",
+     * which a super admin can grant to any role from /roles).
+     */
+    public function uploadPapers(User $user, SchoolClass $class): bool
+    {
+        return $user->can('classes.upload-papers');
+    }
+
+    /**
+     * Download papers uploaded for a class ("classes.download-papers").
+     */
+    public function downloadPapers(User $user, SchoolClass $class): bool
+    {
+        return $user->can('classes.download-papers');
+    }
+
+    /**
+     * Remove a paper from a class ("classes.delete-papers").
+     */
+    public function deletePapers(User $user, SchoolClass $class): bool
+    {
+        return $user->can('classes.delete-papers');
+    }
 }

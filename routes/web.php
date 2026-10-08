@@ -61,6 +61,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->parameters(['classes' => 'school_class'])
         ->names('classes');
 
+    // Class papers (PDF/Word exam papers) — permission gated via the
+    // classes.upload-papers / classes.download-papers / classes.delete-papers
+    // permissions (see SchoolClassPolicy).
+    Route::post('classes/{school_class}/papers', [SchoolClassController::class, 'uploadPapers'])
+        ->name('classes.papers.store');
+    Route::get('classes/papers/{paper}/download', [SchoolClassController::class, 'downloadPaper'])
+        ->name('classes.papers.download');
+    Route::delete('classes/papers/{paper}', [SchoolClassController::class, 'destroyPaper'])
+        ->name('classes.papers.destroy');
+
     Route::resource('teachers', TeacherController::class)
         ->except(['show'])
         ->names('teachers');
