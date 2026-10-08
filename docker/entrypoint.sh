@@ -90,7 +90,7 @@ for i in $(seq 1 30); do
 done
 
 echo "==> Running migrations..."
-php artisan migrate:fresh --seed
+php artisan migrate --force
 
 echo "==> Caching for production..."
 php artisan config:cache
