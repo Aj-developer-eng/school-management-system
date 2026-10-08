@@ -10,8 +10,9 @@ return new class extends Migration
      * Repair a drifted live schema: `teacher_subject_assignments` on the live database was
      * created by an older version of the app (the create migration is already recorded in
      * the `migrations` table, but the physical table predates the current schema), which
-     * breaks runtime queries with:
+     * breaks runtime queries with e.g.:
      * SQLSTATE[42S22]: Unknown column 'subject_id' in 'order clause'.
+     * SQLSTATE[42S22]: Unknown column 'section_id' in 'teacher_subject_assignments'.
      *
      * Every step is guarded with hasColumn / index-name checks, so this migration is a
      * no-op on healthy databases (fresh installs, dev, tests).
@@ -22,6 +23,16 @@ return new class extends Migration
             Schema::table('teacher_subject_assignments', function (Blueprint $table): void {
                 $table->foreignId('teacher_id')->nullable()->after('id')
                     ->constrained('teachers')
+                    ->cascadeOnDelete();
+            });
+        }
+
+        // section_id must be added before subject_id below (subject_id is positioned
+        // after('section_id'), and MySQL fails on AFTER <unknown column> otherwise).
+        if (! Schema::hasColumn('teacher_subject_assignments', 'section_id')) {
+            Schema::table('teacher_subject_assignments', function (Blueprint $table): void {
+                $table->foreignId('section_id')->nullable()->after('school_class_id')
+                    ->constrained()
                     ->cascadeOnDelete();
             });
         }
