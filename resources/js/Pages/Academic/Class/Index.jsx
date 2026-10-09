@@ -427,6 +427,7 @@ function PapersModal({ classItem, onClose, canUpload, canDownload, canDelete }) 
             </div>
         </div>
     );
+}
 
 function NotesModal({ classItem, onClose, canCreate }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -513,5 +514,4 @@ function NotesModal({ classItem, onClose, canCreate }) {
             </div>
         </div>
     );
-}
 }
