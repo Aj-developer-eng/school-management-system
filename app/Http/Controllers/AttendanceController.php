@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\RoleEnum;
-use App\Models\AcademicSession;
 use App\Models\Attendance;
 use App\Models\SchoolClass;
 use App\Models\Student;
@@ -26,7 +25,6 @@ class AttendanceController extends Controller
         $user = $request->user();
         $isSuperAdmin = $user->hasRole(RoleEnum::SuperAdmin->value);
         $teacher = Teacher::where('user_id', $user->id)->first();
-        $activeSession = AcademicSession::active()->first();
 
         $assignments = TeacherSubjectAssignment::with([
             'schoolClass:id,name',
@@ -41,7 +39,6 @@ class AttendanceController extends Controller
 
         return Inertia::render('Attendance/Index', [
             'assignments' => $assignments,
-            'activeSession' => $activeSession?->name,
             'isSuperAdmin' => $isSuperAdmin,
         ]);
     }
@@ -56,7 +53,6 @@ class AttendanceController extends Controller
             abort(403);
         }
 
-        $activeSession = AcademicSession::active()->first();
         $date = $request->input('date', today()->toDateString());
         // The model's date cast stores full datetimes (Y-m-d H:i:s), so the
         // lookup must bind the same format — a plain Y-m-d string never
@@ -65,9 +61,9 @@ class AttendanceController extends Controller
 
         $assignment->load(['schoolClass:id,name']);
 
-        // Use the assignment's own session (falls back to the active session
-        // when set) so attendance still works if no session is marked active.
-        $sessionId = $assignment->academic_session_id ?? $activeSession?->id;
+        // Use the assignment's own session; omit the session filter entirely
+        // so attendance can be viewed/recorded regardless of the active session.
+        $sessionId = $assignment->academic_session_id;
 
         $students = StudentEnrollment::with(['student.user:id,name'])
             ->when($sessionId, function ($q) use ($sessionId): void {
@@ -98,7 +94,6 @@ class AttendanceController extends Controller
             'assignment' => $assignment,
             'students' => $students,
             'date' => $date,
-            'activeSession' => $activeSession?->name,
         ]);
     }
 
@@ -112,8 +107,9 @@ class AttendanceController extends Controller
             abort(403);
         }
 
-        $activeSession = AcademicSession::active()->first();
-        $sessionId = $assignment->academic_session_id ?? $activeSession?->id;
+        // Use the assignment's own session; omit session restriction so
+        // attendance is not limited to the active session.
+        $sessionId = $assignment->academic_session_id;
 
         $validated = $request->validate([
             'attendance_date' => ['required', 'date'],
@@ -346,7 +342,6 @@ class AttendanceController extends Controller
             'records' => $records,
             'summary' => $summary,
             'filters' => $request->only(['date_from', 'date_to']),
-            'activeSession' => $activeSession?->name,
         ]);
     }
 }
