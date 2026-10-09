@@ -59,7 +59,7 @@ export default function Landing({ school, cms, activeSession }) {
     const c = cms ?? {};
 
     // Hero
-    const heroBadge = c.hero_badge_text || (activeSession ? `Admissions Open for ${activeSession.name}` : 'Online & on-site · Pakistan · Dubai · UK');
+    const heroBadge = c.hero_badge_text || (activeSession ? `Admissions Open for Professional & International Education` : 'Online & on-site · Pakistan · Dubai · UK');
     const heroTitle = c.hero_title || 'Global pathways to';
     const heroHighlight = c.hero_title_highlight || 'world-class';
     const heroTitleSuffix = c.hero_title_suffix || 'degrees.';
