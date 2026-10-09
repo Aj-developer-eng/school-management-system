@@ -16,7 +16,7 @@ import { useAuth } from '@/utils/authorization';
 import { formatDate, formatTimeRange } from '@/utils/format';
 import { confirmAction } from '@/utils/swal';
 import { Link, router, useForm } from '@inertiajs/react';
-import { Clock, Download, FileText, Paperclip, Search, Upload, X } from 'lucide-react';
+import { Clock, Download, FileText, Paperclip, Search, StickyNote, Upload, X } from 'lucide-react';
 
 const formatSize = (bytes) => {
     if (!bytes) return '—';
@@ -32,6 +32,7 @@ export default function Index({ classes, filters }) {
     // Track the modal by id (not by object) so it always renders the fresh
     // row from the refreshed `classes` props after an upload/delete.
     const [papersClassId, setPapersClassId] = useState(null);
+    const [notesClassId, setNotesClassId] = useState(null);
 
     const canUploadPapers = can('classes.upload-papers');
     const canDownloadPapers = can('classes.download-papers');
@@ -42,8 +43,13 @@ export default function Index({ classes, filters }) {
         'classes.delete-papers',
     ]);
 
+    const canCreateNotes = can('classes.create-notes');
+    const canManageNotes = canAny(['classes.create-notes', 'classes.view-notes']);
+
     const papersClass =
         (classes?.data ?? []).find((row) => row.id === papersClassId) ?? null;
+    const notesClass =
+        (classes?.data ?? []).find((row) => row.id === notesClassId) ?? null;
 
     // Rows arrive sorted by class time (server-side); group them per time slot
     // so the table is easier to scan. Each class is grouped under its earliest
@@ -142,9 +148,20 @@ export default function Index({ classes, filters }) {
         {
             key: 'actions',
             label: 'Actions',
-            width: '220px',
+            width: '280px',
             render: (row) => (
                 <div className="flex items-center gap-3">
+                    {canManageNotes && (
+                        <button
+                            type="button"
+                            onClick={() => setNotesClassId(row.id)}
+                            title="View / add notes"
+                            className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                        >
+                            <StickyNote className="h-3.5 w-3.5" />
+                            Notes{row.notes?.length ? ` (${row.notes.length})` : ''}
+                        </button>
+                    )}
                     {canManagePapers && (
                         <button
                             type="button"
@@ -183,6 +200,12 @@ export default function Index({ classes, filters }) {
                 canUpload={canUploadPapers}
                 canDownload={canDownloadPapers}
                 canDelete={canDeletePapers}
+            />
+
+            <NotesModal
+                classItem={notesClass}
+                onClose={() => setNotesClassId(null)}
+                canCreate={canCreateNotes}
             />
 
             <StudentsModal classItem={studentsClass} onClose={() => setStudentsClass(null)} />
@@ -404,4 +427,91 @@ function PapersModal({ classItem, onClose, canUpload, canDownload, canDelete }) 
             </div>
         </div>
     );
+
+function NotesModal({ classItem, onClose, canCreate }) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        body: '',
+    });
+
+    if (!classItem) return null;
+
+    const notes = classItem.notes ?? [];
+
+    const submit = (event) => {
+        event.preventDefault();
+        post(route('classes.notes.store', classItem.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                reset();
+                router.reload({ only: ['classes'] });
+            },
+        });
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-gray-900">
+                <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
+                    <div>
+                        <h2 className="text-sm font-semibold uppercase text-gray-500 dark:text-gray-400">
+                            Notes — {classItem.name}
+                        </h2>
+                        <p className="text-xs text-gray-400">
+                            {notes.length} note{notes.length === 1 ? '' : 's'} · visible to users with the
+                            view permission (parents of this class&apos;s students)
+                        </p>
+                    </div>
+                    <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+
+                <div className="max-h-80 overflow-y-auto p-4 pt-0">
+                    {notes.length > 0 ? (
+                        <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {notes.map((note) => (
+                                <li key={note.id} className="py-3">
+                                    <p className="whitespace-pre-line text-sm text-gray-700 dark:text-gray-300">
+                                        {note.body}
+                                    </p>
+                                    <p className="mt-1 text-xs text-gray-400">
+                                        {note.creator?.name ?? 'Unknown'} · {formatDate(note.created_at)}
+                                    </p>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <div className="flex flex-col items-center gap-1 py-6 text-center">
+                            <StickyNote className="h-6 w-6 text-gray-300" />
+                            <p className="text-sm text-gray-500 dark:text-gray-400">No notes yet.</p>
+                        </div>
+                    )}
+                </div>
+
+                {canCreate && (
+                    <form onSubmit={submit} className="space-y-3 border-t border-gray-200 p-4 dark:border-gray-700">
+                        <div>
+                            <InputLabel htmlFor="note_body" value="Add a note" />
+                            <textarea
+                                id="note_body"
+                                value={data.body}
+                                onChange={(e) => setData('body', e.target.value)}
+                                rows={3}
+                                placeholder="Write a note for this class…"
+                                className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                            />
+                            <InputError message={errors.body} className="mt-1" />
+                        </div>
+                        <div className="flex justify-end">
+                            <PrimaryButton disabled={processing || data.body.trim() === ''}>
+                                <StickyNote className="h-4 w-4" />
+                                Save Note
+                            </PrimaryButton>
+                        </div>
+                    </form>
+                )}
+            </div>
+        </div>
+    );
+}
 }

@@ -56,4 +56,22 @@ class SchoolClassPolicy
     {
         return $user->can('classes.delete-papers');
     }
+
+    /**
+     * Add a note to a class (gated by "classes.create-notes", which a super
+     * admin can grant to any role from /roles).
+     */
+    public function createNotes(User $user, SchoolClass $class): bool
+    {
+        return $user->can('classes.create-notes');
+    }
+
+    /**
+     * View the notes attached to a class ("classes.view-notes"). Parents hold
+     * this permission and are scoped to their children's classes.
+     */
+    public function viewNotes(User $user, SchoolClass $class): bool
+    {
+        return $user->can('classes.view-notes');
+    }
 }

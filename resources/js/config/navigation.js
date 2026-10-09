@@ -17,6 +17,7 @@ import {
     FileText,
     MessageSquareText,
     ScrollText,
+    StickyNote,
 } from 'lucide-react';
 
 /**
@@ -51,6 +52,12 @@ export const navigation = [
                 routeName: 'classes.index',
                 icon: School,
                 permission: 'classes.view',
+            },
+            {
+                label: 'Class Notes',
+                routeName: 'class-notes.index',
+                icon: StickyNote,
+                permission: 'classes.view-notes',
             },
             {
                 label: 'Attendance',

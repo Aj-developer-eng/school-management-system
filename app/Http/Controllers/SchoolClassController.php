@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SchoolClass\StoreNoteRequest;
 use App\Http\Requests\SchoolClass\StoreRequest;
 use App\Http\Requests\SchoolClass\UpdateRequest;
 use App\Http\Requests\SchoolClass\UploadPapersRequest;
@@ -9,6 +10,7 @@ use App\Models\AcademicSession;
 use App\Models\ClassPaper;
 use App\Models\SchoolClass;
 use App\Models\TeacherSubjectAssignment;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -44,6 +46,16 @@ class SchoolClassController extends Controller
                 // permission-gated classes.papers.download route.
                 'papers:id,school_class_id,original_name,mime_type,size,created_at',
             ])
+            // Notes are only shared with users allowed to read them
+            // ("classes.view-notes") or write them ("classes.create-notes"),
+            // so the payload never leaks notes to other roles.
+            ->when(
+                $request->user()?->can('classes.view-notes')
+                    || $request->user()?->can('classes.create-notes'),
+                fn ($query) => $query->with([
+                    'notes' => fn ($notes) => $notes->with('creator:id,name')->latest('id'),
+                ]),
+            )
             ->select('school_classes.*')
             ->selectRaw('(select count(distinct se.student_id)
                 from student_enrollments se
@@ -125,7 +137,7 @@ class SchoolClassController extends Controller
         ]);
     }
 
-    public function store(StoreRequest $request): \Illuminate\Http\RedirectResponse
+    public function store(StoreRequest $request): RedirectResponse
     {
         $data = $request->validated();
 
@@ -147,7 +159,7 @@ class SchoolClassController extends Controller
         ]);
     }
 
-    public function update(UpdateRequest $request, SchoolClass $schoolClass): \Illuminate\Http\RedirectResponse
+    public function update(UpdateRequest $request, SchoolClass $schoolClass): RedirectResponse
     {
         $schoolClass->update($request->validated());
 
@@ -155,12 +167,25 @@ class SchoolClassController extends Controller
             ->with('success', 'Class updated successfully.');
     }
 
-    public function destroy(SchoolClass $schoolClass): \Illuminate\Http\RedirectResponse
+    public function destroy(SchoolClass $schoolClass): RedirectResponse
     {
         $schoolClass->delete();
 
         return redirect()->route('classes.index')
             ->with('success', 'Class deleted successfully.');
+    }
+
+    /**
+     * Store a note against a class (authorized via StoreNoteRequest —
+     * "classes.create-notes"). Super Admin holds it via Gate::before; the
+     * super admin can grant it to any role from /roles. Parents holding
+     * "classes.view-notes" read the notes from the Class Notes page.
+     */
+    public function storeNote(StoreNoteRequest $request, SchoolClass $schoolClass): RedirectResponse
+    {
+        $schoolClass->notes()->create($request->validated());
+
+        return back()->with('success', 'Note added successfully.');
     }
 
     /**
@@ -170,7 +195,7 @@ class SchoolClassController extends Controller
      * the files are kept on the private "local" disk so they can only be
      * served through the permission-gated download route.
      */
-    public function uploadPapers(UploadPapersRequest $request, SchoolClass $schoolClass): \Illuminate\Http\RedirectResponse
+    public function uploadPapers(UploadPapersRequest $request, SchoolClass $schoolClass): RedirectResponse
     {
         foreach ($request->file('papers') as $file) {
             $schoolClass->papers()->create([
@@ -201,7 +226,7 @@ class SchoolClassController extends Controller
     /**
      * Remove a paper from a class ("classes.delete-papers").
      */
-    public function destroyPaper(ClassPaper $paper): \Illuminate\Http\RedirectResponse
+    public function destroyPaper(ClassPaper $paper): RedirectResponse
     {
         $class = $paper->schoolClass()->withTrashed()->firstOrFail();
 

@@ -18,6 +18,8 @@ enum PermissionEnum: string
     case UploadClassPapers = 'classes.upload-papers';
     case DownloadClassPapers = 'classes.download-papers';
     case DeleteClassPapers = 'classes.delete-papers';
+    case CreateClassNotes = 'classes.create-notes';
+    case ViewClassNotes = 'classes.view-notes';
 
     // Teachers
     case ViewTeachers = 'teachers.view';

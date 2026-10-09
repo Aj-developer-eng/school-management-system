@@ -48,4 +48,12 @@ class SchoolClass extends Model
     {
         return $this->hasMany(ClassPaper::class);
     }
+
+    /**
+     * Notes attached to this class (viewable via "classes.view-notes").
+     */
+    public function notes(): HasMany
+    {
+        return $this->hasMany(ClassNote::class);
+    }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\AcademicSessionController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\ClassNoteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\FeeConcessionController;
@@ -70,6 +71,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('classes.papers.download');
     Route::delete('classes/papers/{paper}', [SchoolClassController::class, 'destroyPaper'])
         ->name('classes.papers.destroy');
+
+    // Class notes — permission gated via the classes.create-notes /
+    // classes.view-notes permissions (see SchoolClassPolicy). Parents hold
+    // view-notes and are scoped to their children's classes on the index.
+    Route::post('classes/{school_class}/notes', [SchoolClassController::class, 'storeNote'])
+        ->name('classes.notes.store');
+    Route::get('class-notes', [ClassNoteController::class, 'index'])
+        ->name('class-notes.index')
+        ->middleware('can:classes.view-notes');
 
     Route::resource('teachers', TeacherController::class)
         ->except(['show'])

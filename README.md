@@ -10,7 +10,7 @@ A comprehensive school management system built with Laravel 12, React 18, Inerti
 | Frontend | React 18, Inertia.js |
 | Styling | TailwindCSS 3, Vite 7 |
 | Auth | Laravel Breeze (email verification) |
-| Authorization | Spatie Laravel Permission (8 roles, 41 permissions) |
+| Authorization | Spatie Laravel Permission (8 roles, 43 permissions) |
 | Media | Spatie Media Library (logos, profile images) |
 | PDF | Barryvdh DomPDF (invoice PDFs, student records) |
 | Icons | lucide-react |
@@ -108,7 +108,7 @@ Several controllers scope data based on the logged-in user's role:
 ### 1. Academic Management
 
 - **Category Session** (`/academic-sessions`) — School years with start/end dates. Only one can be active at a time (enforced via model boot). Many pages fall back to the latest session if none is active.
-- **Classes** (`/classes`) — Grade levels (Playgroup through Class 10).
+- **Classes** (`/classes`) — Grade levels (Playgroup through Class 10). Each class has a Notes action: users holding `classes.create-notes` (Super Admin by default) attach notes that parents read on `/class-notes` via the `classes.view-notes` permission (parents are scoped to their children's classes). Exam papers (PDF/Word) can be uploaded per class through the permission-gated papers permissions.
 - **Sections** (`/sections`) — Class sections (A, B) tied to category sessions.
 - **Subjects** (`/subjects`) — Subjects mapped to classes via `class_subject` pivot table.
 
@@ -293,7 +293,7 @@ Migrations are in `database/migrations/` with timestamp prefixes. Key tables:
 | Seeder | Command | Description |
 |--------|---------|-------------|
 | `DatabaseSeeder` | `php artisan db:seed` | Runs RolesAndPermissions + SuperAdmin |
-| `RolesAndPermissionsSeeder` | — | Creates 8 roles, 41 permissions, assigns to roles |
+| `RolesAndPermissionsSeeder` | — | Creates 8 roles, 43 permissions, assigns to roles |
 | `SuperAdminSeeder` | — | Creates superadmin & principal accounts |
 | `DemoDataSeeder` | `php artisan db:seed --class=DemoDataSeeder` | Full demo data (sessions, classes, teachers, students, parents, fees) |
 
