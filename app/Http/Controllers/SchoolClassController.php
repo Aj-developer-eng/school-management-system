@@ -25,8 +25,6 @@ class SchoolClassController extends Controller
 
     public function index(Request $request): Response
     {
-        $activeSessionId = AcademicSession::active()->value('id');
-
         // Scalar subqueries used to sort classes by their earliest class time
         // so the index table can be displayed time-wise (grouped per slot).
         $earliestStart = '(select min(tsa.start_time)
@@ -50,9 +48,7 @@ class SchoolClassController extends Controller
             ->selectRaw('(select count(distinct se.student_id)
                 from student_enrollments se
                 where se.school_class_id = school_classes.id
-                    and se.deleted_at is null'
-                    .($activeSessionId ? ' and se.academic_session_id = '.(int) $activeSessionId : '')
-                    .') as students_count')
+                    and se.deleted_at is null) as students_count')
             ->when($request->search, function ($query, $search): void {
                 $query->where(function ($q) use ($search): void {
                     $q->where('name', 'like', "%{$search}%")
@@ -81,9 +77,6 @@ class SchoolClassController extends Controller
                 ->whereIn('se.school_class_id', $pageClassIds)
                 ->whereNull('se.deleted_at')
                 ->whereNull('st.deleted_at')
-                ->when($activeSessionId, function ($q) use ($activeSessionId): void {
-                    $q->where('se.academic_session_id', $activeSessionId);
-                })
                 ->groupBy('se.school_class_id', 'st.id', 'u.name', 'st.admission_number')
                 ->orderBy('u.name')
                 ->get([
