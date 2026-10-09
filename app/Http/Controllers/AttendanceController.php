@@ -36,9 +36,6 @@ class AttendanceController extends Controller
                 $q->where('teacher_id', $teacher?->id);
             })
             ->whereNull('deleted_at')
-            ->when($activeSession, function ($q) use ($activeSession): void {
-                $q->where('academic_session_id', $activeSession->id);
-            })
             ->orderBy('school_class_id')
             ->get();
 
@@ -180,8 +177,6 @@ class AttendanceController extends Controller
             $scopedClassIds = $scopedAssignments->reject->trashed()->pluck('school_class_id')->unique()->values();
         }
 
-        $activeSession = AcademicSession::active()->first();
-
         $classes = SchoolClass::where('is_active', true)
             ->when($scopedClassIds, function ($q) use ($scopedClassIds): void {
                 $q->whereIn('id', $scopedClassIds);
@@ -200,9 +195,6 @@ class AttendanceController extends Controller
             })
             ->when($scopedAssignmentIds, function ($q) use ($scopedAssignmentIds): void {
                 $q->whereIn('teacher_subject_assignment_id', $scopedAssignmentIds);
-            })
-            ->when($activeSession, function ($q) use ($activeSession): void {
-                $q->where('academic_session_id', $activeSession->id);
             });
 
         if ($request->filled('class_id')) {
@@ -239,7 +231,6 @@ class AttendanceController extends Controller
             'summary' => $summary,
             'classes' => $classes,
             'filters' => $request->only(['class_id', 'date_from', 'date_to', 'status']),
-            'activeSession' => $activeSession?->name,
             'isScoped' => $scopedStudentIds !== null,
             'scopedToTeacher' => $scopedAssignments !== null,
         ]);
@@ -308,8 +299,6 @@ class AttendanceController extends Controller
             abort(403);
         }
 
-        $activeSession = AcademicSession::active()->first();
-
         $student->load('user:id,name');
 
         $records = Attendance::with([
@@ -318,9 +307,6 @@ class AttendanceController extends Controller
             'recorder:id,name',
         ])
             ->where('student_id', $student->id)
-            ->when($activeSession, function ($q) use ($activeSession): void {
-                $q->where('academic_session_id', $activeSession->id);
-            })
             ->when($request->filled('date_from'), function ($q) use ($request): void {
                 $q->where('attendance_date', '>=', $request->input('date_from'));
             })

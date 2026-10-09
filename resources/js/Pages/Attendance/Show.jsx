@@ -206,7 +206,7 @@ export default function Show({ assignment, students, date, activeSession }) {
                                     }) : (
                                         <tr>
                                             <td colSpan={4} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
-                                                No students enrolled in this class for the active session.
+                                                No students enrolled in this class.
                                             </td>
                                         </tr>
                                     )}
