@@ -14,9 +14,6 @@ import StatusBadge from '@/Components/Ui/StatusBadge';
 import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
 import { confirmAction } from '@/utils/swal';
-import { router } from '@inertiajs/react';
-import { CheckCircle2, XCircle } from 'lucide-react';
-import { useMemo, useState } from 'react';
 
 export default function Index({ sessions, filters }) {
     const { can } = useAuth();
