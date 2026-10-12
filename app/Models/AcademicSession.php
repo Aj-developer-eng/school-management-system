@@ -6,7 +6,6 @@ use App\Traits\HasAuditFields;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AcademicSession extends Model
@@ -31,21 +30,14 @@ class AcademicSession extends Model
         ];
     }
 
-    protected static function booted(): void
-    {
-        static::saving(function (self $session): void {
-            if ($session->is_active) {
-                static::withoutTimestamps(function () use ($session): void {
-                    static::where('id', '!=', $session->id)
-                        ->where('is_active', true)
-                        ->update(['is_active' => false]);
-                });
-            }
-        });
-    }
-
+    /**
+     * Multiple category sessions may be active at the same time (bulk
+     * activation is available on /academic-sessions). Pages that need a
+     * single "current" session rely on the ordering below so
+     * active()->first() resolves to the session with the latest start date.
+     */
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('is_active', true);
+        return $query->where('is_active', true)->orderByDesc('start_date');
     }
 }

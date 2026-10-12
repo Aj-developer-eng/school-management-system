@@ -53,6 +53,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::patch('academic-sessions/bulk-activation', [AcademicSessionController::class, 'bulkActivation'])
+        ->name('academic-sessions.bulk-activation');
+
+    // Registered after the bulk-activation route above so "bulk-activation"
+    // is never captured as an {academicSession} id.
     Route::resource('academic-sessions', AcademicSessionController::class)
         ->except(['show'])
         ->names('academic-sessions');
