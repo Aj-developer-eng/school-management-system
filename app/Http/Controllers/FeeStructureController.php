@@ -8,6 +8,7 @@ use App\Models\AcademicSession;
 use App\Models\FeeStructure;
 use App\Models\SchoolClass;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -50,7 +51,7 @@ class FeeStructureController extends Controller
     {
         return Inertia::render('Fee/Structure/Form', [
             'academicSessions' => AcademicSession::orderByDesc('start_date')->get(['id', 'name', 'is_active']),
-            'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+            'classes' => $this->classOptions(),
         ]);
     }
 
@@ -67,7 +68,7 @@ class FeeStructureController extends Controller
         return Inertia::render('Fee/Structure/Form', [
             'feeStructure' => $feeStructure,
             'academicSessions' => AcademicSession::orderByDesc('start_date')->get(['id', 'name', 'is_active']),
-            'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+            'classes' => $this->classOptions(),
         ]);
     }
 
@@ -85,5 +86,23 @@ class FeeStructureController extends Controller
 
         return redirect()->route('fee-structures.index')
             ->with('success', 'Fee structure deleted successfully.');
+    }
+
+    /**
+     * Options for the searchable class picker on the create/edit form.
+     * `keywords` lets the picker match on the class code as well as the name shown in the label.
+     *
+     * @return Collection<int, array{value: int, label: string, keywords: string}>
+     */
+    private function classOptions(): Collection
+    {
+        return SchoolClass::where('is_active', true)
+            ->orderBy('level')
+            ->get(['id', 'name', 'code'])
+            ->map(fn (SchoolClass $class): array => [
+                'value' => $class->id,
+                'label' => $class->name.' ('.$class->code.')',
+                'keywords' => trim($class->name.' '.$class->code),
+            ]);
     }
 }

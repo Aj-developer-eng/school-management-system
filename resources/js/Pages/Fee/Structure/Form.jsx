@@ -3,6 +3,7 @@ import Card from '@/Components/Ui/Card';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SearchableSelect from '@/Components/Ui/SearchableSelect';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
 
@@ -32,7 +33,6 @@ export default function Form({ feeStructure, academicSessions, classes }) {
     };
 
     const activeSessions = academicSessions?.filter((s) => s.is_active) ?? academicSessions ?? [];
-    const classOptions = Object.entries(classes ?? {});
 
     return (
         <AuthenticatedLayout
@@ -95,17 +95,14 @@ export default function Form({ feeStructure, academicSessions, classes }) {
 
                         <div>
                             <InputLabel htmlFor="school_class_id" value="Class" />
-                            <select
+                            <SearchableSelect
                                 id="school_class_id"
                                 value={data.school_class_id}
-                                onChange={(e) => setData('school_class_id', e.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
-                            >
-                                <option value="">Select class…</option>
-                                {classOptions.map(([id, name]) => (
-                                    <option key={id} value={id}>{name}</option>
-                                ))}
-                            </select>
+                                onChange={(value) => setData('school_class_id', value)}
+                                options={classes ?? []}
+                                placeholder="Search class by name or code…"
+                                emptyMessage="No classes match your search"
+                            />
                             <InputError message={errors.school_class_id} className="mt-2" />
                         </div>
                     </div>
