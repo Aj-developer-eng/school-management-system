@@ -40,12 +40,57 @@ class FeeInvoiceService
                 'status' => InvoiceStatusEnum::Unpaid,
             ]);
 
+            // Optional concession captured on the invoice form. It is recorded
+            // against this invoice and added on top of any concessions already
+            // applied above (which were calculated before this row existed).
+            $concession = $data['concession'] ?? null;
+            if (is_array($concession) && $concession !== []) {
+                $concessionAmount += $this->storeInvoiceConcession($invoice, $feeStructure, $concession);
+                $invoice->concession_amount = min($concessionAmount, (float) $feeStructure->amount);
+            }
+
             $invoice->recalculate();
 
             $this->notifyInvoiceCreated($invoice, $student);
 
             return $invoice;
         });
+    }
+
+    /**
+     * Persist a concession (submitted from the invoice form) against the given
+     * invoice and return its monetary value.
+     */
+    private function storeInvoiceConcession(FeeInvoice $invoice, FeeStructure $feeStructure, array $data): float
+    {
+        $percentage = $this->toFloatOrNull($data['percentage'] ?? null);
+        $flatAmount = $this->toFloatOrNull($data['flat_amount'] ?? null);
+
+        FeeConcession::create([
+            'student_id' => $invoice->student_id,
+            'fee_structure_id' => $feeStructure->id,
+            'fee_invoice_id' => $invoice->id,
+            'concession_type' => $data['concession_type'],
+            'percentage' => $percentage,
+            'flat_amount' => $flatAmount,
+            'reason' => $data['reason'] ?? null,
+            'is_active' => array_key_exists('is_active', $data) ? (bool) $data['is_active'] : true,
+        ]);
+
+        if ($percentage !== null) {
+            return (float) $feeStructure->amount * $percentage / 100;
+        }
+
+        return $flatAmount ?? 0.0;
+    }
+
+    private function toFloatOrNull(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (float) $value;
     }
 
     /**

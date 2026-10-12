@@ -5,11 +5,15 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SearchableSelect from '@/Components/Ui/SearchableSelect';
 import TextInput from '@/Components/TextInput';
+import { useAuth } from '@/utils/authorization';
 import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
+const CONCESSION_TYPES = ['scholarship', 'sibling_discount', 'staff_child', 'financial_aid'];
+
 export default function Form({ students, feeStructures, invoice }) {
     const isEdit = Boolean(invoice);
+    const { can } = useAuth();
 
     const toDateInput = (value) => {
         if (!value) return '';
@@ -30,10 +34,19 @@ export default function Form({ students, feeStructures, invoice }) {
                   fee_structure_id: '',
                   issue_date: new Date().toISOString().split('T')[0],
                   due_date: '',
+                  concession: {
+                      concession_type: 'scholarship',
+                      percentage: '',
+                      flat_amount: '',
+                      reason: '',
+                      is_active: true,
+                  },
               },
     );
 
     const [selectedStructure, setSelectedStructure] = useState(null);
+    const [includeConcession, setIncludeConcession] = useState(false);
+    const [discountMode, setDiscountMode] = useState('percentage');
 
     const handleStructureChange = (e) => {
         const id = e.target.value;
@@ -42,12 +55,40 @@ export default function Form({ students, feeStructures, invoice }) {
         setSelectedStructure(structure ?? null);
     };
 
+    const structureAmount = selectedStructure ? Number(selectedStructure.amount) : 0;
+    const enteredPercentage = Number(data.concession?.percentage) || 0;
+    const enteredFlatAmount = Number(data.concession?.flat_amount) || 0;
+    const concessionPreview = Math.min(
+        discountMode === 'percentage'
+            ? (structureAmount * enteredPercentage) / 100
+            : enteredFlatAmount,
+        structureAmount,
+    );
+    const payablePreview = Math.max(structureAmount - concessionPreview, 0);
+    const concessionTypeLabel = (data.concession?.concession_type ?? 'scholarship')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+
     const submit = (event) => {
         event.preventDefault();
         if (isEdit) {
             put(route('fee-invoices.update', invoice.id));
         } else {
-            post(route('fee-invoices.store'));
+            // Only send the concession payload when the section is enabled, and
+            // clear the value of the inactive discount mode so exactly one of
+            // percentage / flat_amount is submitted.
+            const { concession, ...invoiceData } = data;
+            const payload = {
+                ...invoiceData,
+                concession: {
+                    ...concession,
+                    percentage: discountMode === 'percentage' ? concession.percentage : '',
+                    flat_amount: discountMode === 'flat' ? concession.flat_amount : '',
+                },
+            };
+            post(route('fee-invoices.store'), {
+                data: includeConcession ? payload : invoiceData,
+            });
         }
     };
 
@@ -175,9 +216,128 @@ export default function Form({ students, feeStructures, invoice }) {
                                         {' · '}Session: {selectedStructure.academic_session?.name}
                                         {' · '}Class: {selectedStructure.school_class?.name}
                                     </p>
+                                    {includeConcession && concessionPreview > 0 && (
+                                        <p className="mt-1 text-amber-600 dark:text-amber-400">
+                                            Concession ({concessionTypeLabel}):{' '}
+                                            <span className="font-semibold">- Rs {concessionPreview.toLocaleString()}</span>
+                                            {' · '}Payable:{' '}
+                                            <span className="font-semibold">Rs {payablePreview.toLocaleString()}</span>
+                                        </p>
+                                    )}
                                     <p className="mt-1 text-gray-500 dark:text-gray-400">
                                         Concessions (if any) will be auto-applied based on the student's active concessions.
                                     </p>
+                                </div>
+                            )}
+                            {can('fee-concessions.create') && (
+                                <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                                    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                                        <input
+                                            type="checkbox"
+                                            checked={includeConcession}
+                                            onChange={(e) => setIncludeConcession(e.target.checked)}
+                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        Add fee concession
+                                    </label>
+                                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        Optionally apply a scholarship, sibling discount, staff child, or financial aid
+                                        concession to this invoice.
+                                    </p>
+                                    {includeConcession && (
+                                        <div className="mt-4 space-y-4">
+                                            <div>
+                                                <InputLabel htmlFor="concession_type" value="Concession Type" />
+                                                <select
+                                                    id="concession_type"
+                                                    value={data.concession.concession_type}
+                                                    onChange={(e) => setData('concession.concession_type', e.target.value)}
+                                                    className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                                                >
+                                                    {CONCESSION_TYPES.map((type) => (
+                                                        <option key={type} value={type}>
+                                                            {type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <InputError message={errors['concession.concession_type']} className="mt-2" />
+                                            </div>
+                                            <div>
+                                                <InputLabel value="Discount Type" />
+                                                <div className="mt-2 flex gap-4">
+                                                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                                        <input
+                                                            type="radio"
+                                                            checked={discountMode === 'percentage'}
+                                                            onChange={() => setDiscountMode('percentage')}
+                                                            className="text-indigo-600 focus:ring-indigo-500"
+                                                        />
+                                                        Percentage (%)
+                                                    </label>
+                                                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                                        <input
+                                                            type="radio"
+                                                            checked={discountMode === 'flat'}
+                                                            onChange={() => setDiscountMode('flat')}
+                                                            className="text-indigo-600 focus:ring-indigo-500"
+                                                        />
+                                                        Flat Amount (Rs)
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            {discountMode === 'percentage' ? (
+                                                <div>
+                                                    <InputLabel htmlFor="concession_percentage" value="Percentage (%)" />
+                                                    <TextInput
+                                                        id="concession_percentage"
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        step="0.01"
+                                                        value={data.concession.percentage}
+                                                        onChange={(e) => setData('concession.percentage', e.target.value)}
+                                                        className="mt-1 block w-full"
+                                                    />
+                                                    <InputError message={errors['concession.percentage']} className="mt-2" />
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <InputLabel htmlFor="concession_flat_amount" value="Flat Amount (Rs)" />
+                                                    <TextInput
+                                                        id="concession_flat_amount"
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={data.concession.flat_amount}
+                                                        onChange={(e) => setData('concession.flat_amount', e.target.value)}
+                                                        className="mt-1 block w-full"
+                                                    />
+                                                    <InputError message={errors['concession.flat_amount']} className="mt-2" />
+                                                </div>
+                                            )}
+                                            <div>
+                                                <InputLabel htmlFor="concession_reason" value="Reason" />
+                                                <textarea
+                                                    id="concession_reason"
+                                                    value={data.concession.reason}
+                                                    onChange={(e) => setData('concession.reason', e.target.value)}
+                                                    rows={2}
+                                                    className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                                                />
+                                                <InputError message={errors['concession.reason']} className="mt-2" />
+                                            </div>
+                                            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={data.concession.is_active}
+                                                    onChange={(e) => setData('concession.is_active', e.target.checked)}
+                                                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                />
+                                                Active
+                                            </label>
+                                            <InputError message={errors.concession} className="mt-2" />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </>

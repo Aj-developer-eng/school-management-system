@@ -102,6 +102,10 @@ class FeeInvoiceController extends Controller
 
         ActivityLogService::custom('Fee Invoices', 'created', 'Created a new fee invoice');
 
+        if (is_array($request->input('concession')) && $request->input('concession') !== []) {
+            ActivityLogService::custom('Fee Concessions', 'created', 'Created a concession while creating an invoice');
+        }
+
         return redirect()->route('fee-invoices.index')
             ->with('success', 'Invoice created successfully.');
     }
