@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleEnum;
 use App\Http\Requests\TeacherAssignment\StoreRequest;
 use App\Http\Requests\TeacherAssignment\UpdateRequest;
 use App\Models\AcademicSession;
 use App\Models\SchoolClass;
 use App\Models\Teacher;
 use App\Models\TeacherSubjectAssignment;
+use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,15 +25,23 @@ class TeacherAssignmentController extends Controller
 
     public function index(Request $request): Response
     {
+        // Teachers only see their own class assignments; other permitted roles
+        // (null) are not scoped. A teacher without a linked Teacher record is
+        // scoped to nothing.
+        $scopedTeacherIds = $this->scopedTeacherIds($request->user());
+
         $assignments = TeacherSubjectAssignment::query()
             ->with(['teacher.user', 'academicSession', 'schoolClass'])
+            ->when($scopedTeacherIds !== null, fn ($query) => $query->whereIn('teacher_id', $scopedTeacherIds))
             ->when($request->search, function ($query, $search): void {
-                $query->whereHas('teacher.user', function ($q) use ($search): void {
-                    $q->where('name', 'like', "%{$search}%");
-                })
-                    ->orWhereHas('schoolClass', function ($q) use ($search): void {
-                        $q->where('name', 'like', "%{$search}%");
-                    });
+                $query->where(function ($q) use ($search): void {
+                    $q->whereHas('teacher.user', function ($qq) use ($search): void {
+                        $qq->where('name', 'like', "%{$search}%");
+                    })
+                        ->orWhereHas('schoolClass', function ($qq) use ($search): void {
+                            $qq->where('name', 'like', "%{$search}%");
+                        });
+                });
             })
             ->orderByRaw('CASE WHEN start_time IS NULL THEN 1 ELSE 0 END')
             ->orderBy('start_time')
@@ -98,5 +109,23 @@ class TeacherAssignmentController extends Controller
             'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
             'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
         ]);
+    }
+
+    /**
+     * Return the teacher IDs the current user is allowed to view assignments for.
+     * Teachers are scoped to their own assignments. A teacher without a linked
+     * Teacher record is scoped to nothing. Other staff roles are not scoped (null).
+     *
+     * @return Collection<int, int>|null
+     */
+    private function scopedTeacherIds(User $user): ?Collection
+    {
+        if (! $user->hasRole(RoleEnum::Teacher->value)) {
+            return null;
+        }
+
+        $teacherId = Teacher::where('user_id', $user->id)->value('id');
+
+        return $teacherId !== null ? collect([$teacherId]) : collect();
     }
 }

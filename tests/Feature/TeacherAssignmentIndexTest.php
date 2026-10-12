@@ -24,6 +24,8 @@ class TeacherAssignmentIndexTest extends TestCase
 
     private Teacher $teacher;
 
+    private User $teacherUser;
+
     private User $superAdmin;
 
     protected function setUp(): void
@@ -53,6 +55,7 @@ class TeacherAssignmentIndexTest extends TestCase
             'user_id' => $teacherUser->id,
             'employee_code' => 'EMP-'.$teacherUser->id,
         ]);
+        $this->teacherUser = $teacherUser;
 
         $this->superAdmin = User::factory()->create();
         $this->superAdmin->assignRole(Role::findOrCreate(RoleEnum::SuperAdmin->value, 'web'));
@@ -88,12 +91,122 @@ class TeacherAssignmentIndexTest extends TestCase
             );
     }
 
-    private function makeAssignment(?string $startTime, ?string $endTime): TeacherSubjectAssignment
+    public function test_teacher_only_sees_class_assignments_for_themselves(): void
     {
+        $otherClass = SchoolClass::create([
+            'name' => 'Grade 9',
+            'code' => 'G9',
+            'level' => 9,
+            'is_active' => true,
+        ]);
+        $otherTeacher = $this->makeTeacher('Unrelated Teacher');
+
+        $this->makeAssignment('08:00', '09:00');
+        $this->makeAssignment('10:00', '11:00', $otherTeacher, $otherClass);
+
+        $this->actingAs($this->teacherUser)
+            ->get(route('teacher-assignments.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Teacher/Assignment/Index')
+                ->has('assignments.data', 1)
+                ->where('assignments.data.0.teacher.id', $this->teacher->id)
+                ->where('assignments.data.0.school_class.name', 'Grade 5')
+            );
+    }
+
+    public function test_super_admin_sees_class_assignments_for_every_teacher(): void
+    {
+        $otherTeacher = $this->makeTeacher('Unrelated Teacher');
+
+        $this->makeAssignment('08:00', '09:00');
+        $this->makeAssignment('10:00', '11:00', $otherTeacher);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('teacher-assignments.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Teacher/Assignment/Index')
+                ->has('assignments.data', 2)
+            );
+    }
+
+    public function test_search_cannot_surface_other_teachers_assignments_for_a_scoped_teacher(): void
+    {
+        $otherClass = SchoolClass::create([
+            'name' => 'Grade 9',
+            'code' => 'G9',
+            'level' => 9,
+            'is_active' => true,
+        ]);
+        $otherTeacher = $this->makeTeacher('Unrelated Teacher');
+
+        $this->makeAssignment('08:00', '09:00');
+        $this->makeAssignment('10:00', '11:00', $otherTeacher, $otherClass);
+
+        // Searching another teacher's class name or teacher name must not leak their rows.
+        $this->actingAs($this->teacherUser)
+            ->get(route('teacher-assignments.index', ['search' => 'Grade 9']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('assignments.data', 0));
+
+        $this->actingAs($this->teacherUser)
+            ->get(route('teacher-assignments.index', ['search' => 'Unrelated']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('assignments.data', 0));
+
+        // Unscoped staff can still find the same rows by class and teacher name.
+        $this->actingAs($this->superAdmin)
+            ->get(route('teacher-assignments.index', ['search' => 'Grade 9']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('assignments.data', 1)
+                ->where('assignments.data.0.school_class.name', 'Grade 9')
+            );
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('teacher-assignments.index', ['search' => 'Unrelated']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('assignments.data', 1));
+    }
+
+    public function test_teacher_without_a_teacher_record_sees_no_assignments(): void
+    {
+        $this->makeAssignment('08:00', '09:00');
+
+        $userWithoutTeacherRecord = User::factory()->create();
+        $userWithoutTeacherRecord->assignRole(Role::findOrCreate(RoleEnum::Teacher->value, 'web'));
+
+        $this->actingAs($userWithoutTeacherRecord)
+            ->get(route('teacher-assignments.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Teacher/Assignment/Index')
+                ->has('assignments.data', 0)
+            );
+    }
+
+    private function makeTeacher(string $name): Teacher
+    {
+        $user = User::factory()->create(['name' => $name]);
+        $user->assignRole(Role::findOrCreate(RoleEnum::Teacher->value, 'web'));
+
+        return Teacher::create([
+            'user_id' => $user->id,
+            'employee_code' => 'EMP-'.$user->id,
+        ]);
+    }
+
+    private function makeAssignment(
+        ?string $startTime,
+        ?string $endTime,
+        ?Teacher $teacher = null,
+        ?SchoolClass $class = null,
+    ): TeacherSubjectAssignment {
         return TeacherSubjectAssignment::create([
-            'teacher_id' => $this->teacher->id,
+            'teacher_id' => ($teacher ?? $this->teacher)->id,
             'academic_session_id' => $this->session->id,
-            'school_class_id' => $this->class->id,
+            'school_class_id' => ($class ?? $this->class)->id,
             'start_time' => $startTime,
             'end_time' => $endTime,
             'days_of_week' => [1],
