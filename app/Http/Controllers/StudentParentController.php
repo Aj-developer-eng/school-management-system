@@ -20,7 +20,12 @@ class StudentParentController extends Controller
     {
         $this->authorize('viewAny', StudentParent::class);
 
-        $query = StudentParent::query()->with(['user', 'students.user']);
+        $query = StudentParent::query()->with([
+            'user',
+            'students.user',
+            'students.enrollments.academicSession',
+            'students.enrollments.schoolClass',
+        ]);
 
         if ($request->search) {
             $query->whereHas('user', function ($q) use ($request): void {
