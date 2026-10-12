@@ -3,6 +3,7 @@ import Card from '@/Components/Ui/Card';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SearchableSelect from '@/Components/Ui/SearchableSelect';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
@@ -60,43 +61,37 @@ export default function Form({ concession, students, feeStructures, feeInvoices 
                 <form onSubmit={submit} className="space-y-6 p-6">
                     <div>
                         <InputLabel htmlFor="student_id" value="Student" />
-                        <select
+                        <SearchableSelect
                             id="student_id"
                             value={data.student_id}
-                            onChange={(e) => setData('student_id', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
-                        >
-                            <option value="">Select student…</option>
-                            {(students ?? []).map((s) => (
-                                <option key={s.id} value={s.id}>
-                                    {s.user?.name} ({s.admission_number})
-                                </option>
-                            ))}
-                        </select>
+                            // Changing student invalidates the picked invoice — clear it
+                            // rather than keep one belonging to the previous student.
+                            onChange={(value) => setData({ ...data, student_id: value, fee_invoice_id: '' })}
+                            options={students ?? []}
+                            placeholder="Search student by name or admission #…"
+                            emptyMessage="No students match your search"
+                        />
                         <InputError message={errors.student_id} className="mt-2" />
                     </div>
 
                     <div>
                         <InputLabel htmlFor="fee_invoice_id" value="Invoice (required — concession is applied to this invoice)" />
-                        <select
+                        <SearchableSelect
                             id="fee_invoice_id"
                             value={data.fee_invoice_id}
-                            onChange={(e) => {
-                                const inv = filteredInvoices.find((i) => i.id === Number(e.target.value));
-                                setData('fee_invoice_id', e.target.value);
+                            // Picking an invoice keeps the form consistent by syncing
+                            // the selected student to the invoice's student.
+                            onChange={(value) => {
+                                const inv = filteredInvoices.find((i) => String(i.value) === String(value));
+                                setData('fee_invoice_id', value);
                                 if (inv) {
                                     setData('student_id', String(inv.student_id));
                                 }
                             }}
-                            className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
-                        >
-                            <option value="">Select an invoice…</option>
-                            {filteredInvoices.map((inv) => (
-                                <option key={inv.id} value={inv.id}>
-                                    {inv.invoice_number} — {inv.student?.user?.name} — Rs {Number(inv.total_amount).toLocaleString()} ({inv.status})
-                                </option>
-                            ))}
-                        </select>
+                            options={filteredInvoices}
+                            placeholder="Search invoice by number or student…"
+                            emptyMessage="No invoices match your search"
+                        />
                         <InputError message={errors.fee_invoice_id} className="mt-2" />
                         {data.student_id && filteredInvoices.length === 0 && (
                             <p className="mt-1 text-xs text-amber-600">No invoices found for this student.</p>

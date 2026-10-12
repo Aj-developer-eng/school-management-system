@@ -10,6 +10,7 @@ use App\Models\FeeStructure;
 use App\Models\Student;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,12 +46,9 @@ class FeeConcessionController extends Controller
     public function create(): Response
     {
         return Inertia::render('Fee/Concession/Form', [
-            'students' => Student::with('user:id,name')->whereNull('deleted_at')->get(['id', 'user_id', 'admission_number']),
+            'students' => $this->studentOptions(),
             'feeStructures' => FeeStructure::where('is_active', true)->get(['id', 'name']),
-            'feeInvoices' => FeeInvoice::with('student.user:id,name', 'feeStructure:id,name')
-                ->whereNull('deleted_at')
-                ->orderByDesc('id')
-                ->get(['id', 'invoice_number', 'student_id', 'fee_structure_id', 'total_amount', 'status']),
+            'feeInvoices' => $this->invoiceOptions(),
         ]);
     }
 
@@ -75,12 +73,9 @@ class FeeConcessionController extends Controller
 
         return Inertia::render('Fee/Concession/Form', [
             'concession' => $feeConcession,
-            'students' => Student::with('user:id,name')->whereNull('deleted_at')->get(['id', 'user_id', 'admission_number']),
+            'students' => $this->studentOptions(),
             'feeStructures' => FeeStructure::where('is_active', true)->get(['id', 'name']),
-            'feeInvoices' => FeeInvoice::with('student.user:id,name', 'feeStructure:id,name')
-                ->whereNull('deleted_at')
-                ->orderByDesc('id')
-                ->get(['id', 'invoice_number', 'student_id', 'fee_structure_id', 'total_amount', 'status']),
+            'feeInvoices' => $this->invoiceOptions(),
         ]);
     }
 
@@ -120,6 +115,48 @@ class FeeConcessionController extends Controller
 
         return redirect()->route('fee-concessions.index')
             ->with('success', 'Concession deleted successfully.');
+    }
+
+    /**
+     * Students formatted for the searchable picker: the label shows the
+     * student name with the admission number, and `keywords` lets the list
+     * be filtered by either.
+     *
+     * @return Collection<int, array{value: int, label: string, keywords: string}>
+     */
+    private function studentOptions(): Collection
+    {
+        return Student::with('user:id,name')
+            ->whereNull('deleted_at')
+            ->orderBy('admission_number')
+            ->get(['id', 'user_id', 'admission_number'])
+            ->map(fn (Student $student) => [
+                'value' => $student->id,
+                'label' => ($student->user?->name ?? 'Unknown').' ('.$student->admission_number.')',
+                'keywords' => trim(($student->user?->name ?? '').' '.$student->admission_number),
+            ]);
+    }
+
+    /**
+     * Invoices formatted for the searchable picker, newest first. Each option
+     * also carries the student_id so the form can sync the selected student,
+     * and keywords allow matching on the invoice number, student name or fee
+     * structure.
+     *
+     * @return Collection<int, array{value: int, label: string, keywords: string, student_id: int}>
+     */
+    private function invoiceOptions(): Collection
+    {
+        return FeeInvoice::with('student.user:id,name', 'feeStructure:id,name')
+            ->whereNull('deleted_at')
+            ->orderByDesc('id')
+            ->get(['id', 'invoice_number', 'student_id', 'fee_structure_id', 'total_amount', 'status'])
+            ->map(fn (FeeInvoice $invoice) => [
+                'value' => $invoice->id,
+                'label' => $invoice->invoice_number.' — '.($invoice->student?->user?->name ?? 'Unknown').' — Rs '.number_format((float) $invoice->total_amount).' ('.$invoice->status->value.')',
+                'keywords' => trim($invoice->invoice_number.' '.($invoice->student?->user?->name ?? '').' '.($invoice->feeStructure?->name ?? '')),
+                'student_id' => $invoice->student_id,
+            ]);
     }
 
     private function recalculateInvoiceConcession(int $invoiceId): void
