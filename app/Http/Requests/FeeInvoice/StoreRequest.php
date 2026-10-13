@@ -17,7 +17,8 @@ class StoreRequest extends FormRequest
     {
         return [
             'student_id' => ['required', 'exists:students,id'],
-            'fee_structure_id' => ['required', 'exists:fee_structures,id'],
+            'fee_structure_ids' => ['required', 'array', 'min:1'],
+            'fee_structure_ids.*' => ['integer', 'distinct', 'exists:fee_structures,id'],
             'issue_date' => ['required', 'date'],
             'due_date' => ['required', 'date', 'after_or_equal:issue_date'],
             // Optional concession recorded in the same step as the invoice.
