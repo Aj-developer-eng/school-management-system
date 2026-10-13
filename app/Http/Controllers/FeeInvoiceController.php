@@ -98,12 +98,29 @@ class FeeInvoiceController extends Controller
 
     public function store(StoreRequest $request, FeeInvoiceService $service): RedirectResponse
     {
-        $service->createInvoice($request->validated());
+        $validated = $request->validated();
 
-        ActivityLogService::custom('Fee Invoices', 'created', 'Created a new fee invoice');
+        // One invoice is created per selected fee structure, all sharing the
+        // same student and issue/due dates.
+        $count = 0;
+        foreach ($validated['fee_structure_ids'] as $feeStructureId) {
+            $service->createInvoice([
+                'student_id' => $validated['student_id'],
+                'fee_structure_id' => (int) $feeStructureId,
+                'issue_date' => $validated['issue_date'],
+                'due_date' => $validated['due_date'],
+            ]);
+            $count++;
+        }
+
+        ActivityLogService::custom('Fee Invoices', 'created', "Created {$count} invoice(s)");
+
+        $message = $count === 1
+            ? 'Invoice created successfully.'
+            : "{$count} invoices created successfully.";
 
         return redirect()->route('fee-invoices.index')
-            ->with('success', 'Invoice created successfully.');
+            ->with('success', $message);
     }
 
     public function show(FeeInvoice $feeInvoice): Response

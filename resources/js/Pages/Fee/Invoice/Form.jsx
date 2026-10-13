@@ -3,10 +3,10 @@ import Card from '@/Components/Ui/Card';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SearchableMultiSelect from '@/Components/Ui/SearchableMultiSelect';
 import SearchableSelect from '@/Components/Ui/SearchableSelect';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
-import { useState } from 'react';
 
 export default function Form({ students, feeStructures, invoice }) {
     const isEdit = Boolean(invoice);
@@ -27,20 +27,15 @@ export default function Form({ students, feeStructures, invoice }) {
               }
             : {
                   student_id: '',
-                  fee_structure_id: '',
+                  fee_structure_ids: [],
                   issue_date: new Date().toISOString().split('T')[0],
                   due_date: '',
               },
     );
 
-    const [selectedStructure, setSelectedStructure] = useState(null);
-
-    const handleStructureChange = (e) => {
-        const id = e.target.value;
-        setData('fee_structure_id', id);
-        const structure = feeStructures?.find((s) => String(s.id) === id);
-        setSelectedStructure(structure ?? null);
-    };
+    const selectedStructures = (feeStructures ?? []).filter((s) =>
+        (data.fee_structure_ids ?? []).includes(String(s.id)),
+    );
 
     const submit = (event) => {
         event.preventDefault();
@@ -150,33 +145,45 @@ export default function Form({ students, feeStructures, invoice }) {
                             </div>
 
                             <div>
-                                <InputLabel htmlFor="fee_structure_id" value="Fee Structure" />
-                                <select
-                                    id="fee_structure_id"
-                                    value={data.fee_structure_id}
-                                    onChange={handleStructureChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
-                                >
-                                    <option value="">Select fee structure…</option>
-                                    {(feeStructures ?? []).map((s) => (
-                                        <option key={s.id} value={s.id}>
-                                            {s.name} — {s.academic_session?.name} / {s.school_class?.name} (Rs {Number(s.amount).toLocaleString()})
-                                        </option>
-                                    ))}
-                                </select>
-                                <InputError message={errors.fee_structure_id} className="mt-2" />
+                                <InputLabel htmlFor="fee_structure_ids" value="Fee Structures" />
+                                <SearchableMultiSelect
+                                    id="fee_structure_ids"
+                                    values={data.fee_structure_ids}
+                                    onChange={(values) => setData('fee_structure_ids', values)}
+                                    options={(feeStructures ?? []).map((s) => ({
+                                        value: String(s.id),
+                                        label: `${s.name} — ${s.academic_session?.name} / ${s.school_class?.name} (Rs ${Number(s.amount).toLocaleString()})`,
+                                        keywords: [s.name, s.academic_session?.name, s.school_class?.name]
+                                            .filter(Boolean)
+                                            .join(' '),
+                                    }))}
+                                    placeholder="Search and select one or more fee structures…"
+                                    emptyMessage="No fee structures match your search"
+                                />
+                                <InputError message={errors.fee_structure_ids} className="mt-2" />
                             </div>
 
-                            {selectedStructure && (
+                            {selectedStructures.length > 0 && (
                                 <div className="rounded-lg bg-indigo-50 p-4 text-sm dark:bg-indigo-500/10">
-                                    <p className="font-medium text-indigo-700 dark:text-indigo-300">Invoice Summary</p>
-                                    <p className="mt-1 text-gray-600 dark:text-gray-400">
-                                        Amount: <span className="font-semibold">Rs {Number(selectedStructure.amount).toLocaleString()}</span>
-                                        {' · '}Session: {selectedStructure.academic_session?.name}
-                                        {' · '}Class: {selectedStructure.school_class?.name}
+                                    <p className="font-medium text-indigo-700 dark:text-indigo-300">
+                                        Invoice Summary ({selectedStructures.length} invoice{selectedStructures.length === 1 ? '' : 's'})
+                                    </p>
+                                    <ul className="mt-1 space-y-1">
+                                        {selectedStructures.map((s) => (
+                                            <li key={s.id} className="text-gray-600 dark:text-gray-400">
+                                                {s.name} · {s.school_class?.name} · {s.academic_session?.name} —{' '}
+                                                <span className="font-semibold">Rs {Number(s.amount).toLocaleString()}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <p className="mt-2 text-gray-600 dark:text-gray-400">
+                                        Total:{' '}
+                                        <span className="font-semibold">
+                                            Rs {selectedStructures.reduce((sum, s) => sum + Number(s.amount), 0).toLocaleString()}
+                                        </span>
                                     </p>
                                     <p className="mt-1 text-gray-500 dark:text-gray-400">
-                                        Concessions (if any) will be auto-applied based on the student's active concessions.
+                                        One invoice will be created per selected fee structure. Concessions (if any) will be auto-applied based on the student's active concessions.
                                     </p>
                                 </div>
                             )}
@@ -211,7 +218,7 @@ export default function Form({ students, feeStructures, invoice }) {
 
                     <div className="flex justify-end">
                         <PrimaryButton disabled={processing}>
-                            {isEdit ? 'Update Invoice' : 'Create Invoice'}
+                            {isEdit ? 'Update Invoice' : selectedStructures.length > 1 ? `Create ${selectedStructures.length} Invoices` : 'Create Invoice'}
                         </PrimaryButton>
                     </div>
                 </form>
