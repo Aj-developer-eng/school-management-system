@@ -328,6 +328,7 @@ export default function Form({ students, feeStructures, invoice }) {
                                                 </div>
                                             )}
                                             <div>
+                                            
                                                 <InputLabel htmlFor="concession_reason" value="Reason" />
                                                 <textarea
                                                     id="concession_reason"
