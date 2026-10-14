@@ -211,7 +211,6 @@ export default function Index({
                                     <tr className="border-b border-gray-200 dark:border-gray-700">
                                         <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Invoice #</th>
                                         <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Student</th>
-                                        <th className="py-2 text-left font-medium text-gray-500 dark:text-gray-400">Class</th>
                                         <th className="py-2 text-right font-medium text-gray-500 dark:text-gray-400">Total</th>
                                         <th className="py-2 text-right font-medium text-gray-500 dark:text-gray-400">Paid</th>
                                         <th className="py-2 text-right font-medium text-gray-500 dark:text-gray-400">Balance</th>
