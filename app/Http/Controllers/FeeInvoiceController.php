@@ -104,59 +104,43 @@ class FeeInvoiceController extends Controller
             ? $validated['concession']
             : null;
 
-        // A percentage applies to each structure independently (equivalent to
-        // a percentage of the total shown in the preview). A flat amount is a
-        // single discount shared across the selected structures, so it is
-        // consumed invoice-by-invoice in order, capped at each structure's
-        // amount — mirroring the preview's min(flat, total) cap.
-        $flatRemaining = $concession !== null && filled($concession['flat_amount'] ?? null)
-            ? (float) $concession['flat_amount']
-            : null;
+        $feeStructureIds = array_map('intval', $validated['fee_structure_ids']);
 
-        // One invoice is created per selected fee structure, all sharing the
-        // same student and issue/due dates. The submitted concession (if any)
-        // is attached to each invoice as its own fee_concessions row.
-        $count = 0;
-        foreach ($validated['fee_structure_ids'] as $feeStructureId) {
-            $invoiceConcession = $concession;
-
-            if ($flatRemaining !== null) {
-                $structureAmount = (float) FeeStructure::findOrFail($feeStructureId)->amount;
-                $share = min($flatRemaining, $structureAmount);
-
-                $invoiceConcession = $share > 0
-                    ? [...$concession, 'flat_amount' => (string) $share]
-                    : null;
-                $flatRemaining -= $share;
-            }
-
+        // A single selection keeps the legacy single-structure invoice
+        // (fee_structure_id set). Multiple selections produce ONE combined
+        // invoice whose total is the sum of the structures — the submitted
+        // concession (percentage of total or flat amount capped at the total)
+        // is recorded once against that invoice, matching the form preview.
+        if (count($feeStructureIds) === 1) {
             $service->createInvoice([
                 'student_id' => $validated['student_id'],
-                'fee_structure_id' => (int) $feeStructureId,
+                'fee_structure_id' => $feeStructureIds[0],
                 'issue_date' => $validated['issue_date'],
                 'due_date' => $validated['due_date'],
-                'concession' => $invoiceConcession,
+                'concession' => $concession,
             ]);
-            $count++;
+        } else {
+            $service->createCombinedInvoice([
+                'student_id' => $validated['student_id'],
+                'issue_date' => $validated['issue_date'],
+                'due_date' => $validated['due_date'],
+                'concession' => $concession,
+            ], $feeStructureIds);
         }
 
-        ActivityLogService::custom('Fee Invoices', 'created', "Created {$count} invoice(s)");
-
-        $message = $count === 1
-            ? 'Invoice created successfully.'
-            : "{$count} invoices created successfully.";
+        ActivityLogService::custom('Fee Invoices', 'created', 'Created invoice');
 
         if (is_array($request->input('concession')) && $request->input('concession') !== []) {
             ActivityLogService::custom('Fee Concessions', 'created', 'Created a concession while creating an invoice');
         }
 
         return redirect()->route('fee-invoices.index')
-            ->with('success', $message);
+            ->with('success', 'Invoice created successfully.');
     }
 
     public function show(FeeInvoice $feeInvoice): Response
     {
-        $feeInvoice->load(['student.user', 'academicSession', 'schoolClass', 'feeStructure', 'payments' => function ($q): void {
+        $feeInvoice->load(['student.user', 'academicSession', 'schoolClass', 'feeStructure', 'feeStructures', 'payments' => function ($q): void {
             $q->latest();
         }, 'concessions' => function ($q): void {
             $q->whereNull('deleted_at')->latest();
@@ -169,7 +153,7 @@ class FeeInvoiceController extends Controller
 
     public function edit(FeeInvoice $feeInvoice): Response
     {
-        $feeInvoice->load(['student.user', 'academicSession', 'schoolClass', 'feeStructure']);
+        $feeInvoice->load(['student.user', 'academicSession', 'schoolClass', 'feeStructure', 'feeStructures']);
 
         return Inertia::render('Fee/Invoice/Form', [
             'invoice' => $feeInvoice,
@@ -252,7 +236,7 @@ class FeeInvoiceController extends Controller
     {
         $this->authorize($ability, $feeInvoice);
 
-        $feeInvoice->load(['student.user', 'academicSession', 'schoolClass', 'feeStructure', 'payments' => function ($q): void {
+        $feeInvoice->load(['student.user', 'academicSession', 'schoolClass', 'feeStructure', 'feeStructures', 'payments' => function ($q): void {
             $q->latest();
         }, 'concessions' => function ($q): void {
             $q->whereNull('deleted_at')->latest();

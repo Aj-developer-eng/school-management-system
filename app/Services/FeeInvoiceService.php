@@ -58,17 +58,76 @@ class FeeInvoiceService
     }
 
     /**
-     * Persist a concession (submitted from the invoice form) against the given
-     * invoice and return its monetary value.
+     * Create one invoice combining several fee structures. The invoice total
+     * is the sum of the structures' amounts, the student's existing
+     * concessions are computed per structure (so structure-specific ones only
+     * touch their own amount) and capped at the combined total, and the
+     * structures are recorded on the fee_invoice_fee_structures pivot.
      */
-    private function storeInvoiceConcession(FeeInvoice $invoice, FeeStructure $feeStructure, array $data): float
+    public function createCombinedInvoice(array $data, array $feeStructureIds): FeeInvoice
+    {
+        return DB::transaction(function () use ($data, $feeStructureIds): FeeInvoice {
+            $feeStructures = FeeStructure::whereIn('id', $feeStructureIds)->orderBy('id')->get();
+            $student = Student::with(['user', 'parents.user'])->findOrFail($data['student_id']);
+
+            $totalAmount = (float) $feeStructures->sum(fn (FeeStructure $structure): float => (float) $structure->amount);
+
+            $concessionAmount = 0.0;
+            foreach ($feeStructures as $structure) {
+                $concessionAmount += $this->calculateConcession($student, $structure);
+            }
+            $concessionAmount = min($concessionAmount, $totalAmount);
+
+            // All structures share one session/class — enforced by StoreRequest.
+            $firstStructure = $feeStructures->first();
+
+            $invoice = FeeInvoice::create([
+                'student_id' => $data['student_id'],
+                'academic_session_id' => $firstStructure->academic_session_id,
+                'school_class_id' => $firstStructure->school_class_id,
+                'fee_structure_id' => null,
+                'invoice_number' => $this->invoiceNumberGenerator->generate($firstStructure->academic_session_id),
+                'issue_date' => $data['issue_date'],
+                'due_date' => $data['due_date'],
+                'total_amount' => $totalAmount,
+                'concession_amount' => $concessionAmount,
+                'paid_amount' => 0,
+                'status' => InvoiceStatusEnum::Unpaid,
+            ]);
+
+            $invoice->feeStructures()->attach($feeStructures->pluck('id'));
+
+            // Optional concession captured on the invoice form. A percentage
+            // applies to the combined total; a flat amount applies once and
+            // is capped at the combined total — both match the preview.
+            $concession = $data['concession'] ?? null;
+            if (is_array($concession) && $concession !== []) {
+                $concessionAmount += $this->storeInvoiceConcession($invoice, null, $concession);
+                $invoice->concession_amount = min($concessionAmount, $totalAmount);
+            }
+
+            $invoice->recalculate();
+
+            $this->notifyInvoiceCreated($invoice, $student);
+
+            return $invoice;
+        });
+    }
+
+    /**
+     * Persist a concession (submitted from the invoice form) against the given
+     * invoice and return its monetary value. When $feeStructure is null the
+     * concession applies to the whole invoice and its value is based on the
+     * invoice's combined total_amount.
+     */
+    private function storeInvoiceConcession(FeeInvoice $invoice, ?FeeStructure $feeStructure, array $data): float
     {
         $percentage = $this->toFloatOrNull($data['percentage'] ?? null);
         $flatAmount = $this->toFloatOrNull($data['flat_amount'] ?? null);
 
         FeeConcession::create([
             'student_id' => $invoice->student_id,
-            'fee_structure_id' => $feeStructure->id,
+            'fee_structure_id' => $feeStructure?->id,
             'fee_invoice_id' => $invoice->id,
             'concession_type' => $data['concession_type'],
             'percentage' => $percentage,
@@ -77,8 +136,10 @@ class FeeInvoiceService
             'is_active' => array_key_exists('is_active', $data) ? (bool) $data['is_active'] : true,
         ]);
 
+        $baseAmount = $feeStructure !== null ? (float) $feeStructure->amount : (float) $invoice->total_amount;
+
         if ($percentage !== null) {
-            return (float) $feeStructure->amount * $percentage / 100;
+            return $baseAmount * $percentage / 100;
         }
 
         return $flatAmount ?? 0.0;
@@ -128,9 +189,14 @@ class FeeInvoiceService
 
         $count = 0;
         foreach ($enrollments as $enrollment) {
+            // Combined invoices link structures via the pivot, so the
+            // duplicate check looks there too.
             $existing = FeeInvoice::where('student_id', $enrollment->student_id)
-                ->where('fee_structure_id', $feeStructure->id)
                 ->whereNull('deleted_at')
+                ->where(function ($query) use ($feeStructure): void {
+                    $query->where('fee_structure_id', $feeStructure->id)
+                        ->orWhereHas('feeStructures', fn ($q) => $q->where('fee_structures.id', $feeStructure->id));
+                })
                 ->exists();
 
             if ($existing) {

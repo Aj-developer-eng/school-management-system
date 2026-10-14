@@ -172,7 +172,12 @@ export default function Form({ students, feeStructures, invoice }) {
                                 </p>
 
                                 <p className="mt-1 text-gray-500 dark:text-gray-400">
-                                    Fee Structure: {invoice.fee_structure?.name}
+                                    Fee Structure:{' '}
+                                    {invoice.fee_structure?.name ??
+                                        invoice.fee_structures
+                                            ?.map((s) => s.name)
+                                            .join(', ') ??
+                                        '—'}
                                 </p>
                             </div>
 
@@ -336,12 +341,7 @@ export default function Form({ students, feeStructures, invoice }) {
                             {selectedStructures.length > 0 && (
                                 <div className="rounded-lg bg-indigo-50 p-4 text-sm dark:bg-indigo-500/10">
                                     <p className="font-medium text-indigo-700 dark:text-indigo-300">
-                                        Invoice Summary (
-                                        {selectedStructures.length} invoice
-                                        {selectedStructures.length === 1
-                                            ? ''
-                                            : 's'}
-                                        )
+                                        Invoice Summary
                                     </p>
 
                                     <ul className="mt-2 space-y-2">
@@ -398,10 +398,11 @@ export default function Form({ students, feeStructures, invoice }) {
                                     </div>
 
                                     <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                                        One invoice will be created per
-                                        selected fee structure. Any existing
-                                        active student concessions may also be
-                                        applied by the server.
+                                        {selectedStructures.length > 1
+                                            ? `All ${selectedStructures.length} selected fee structures will be combined into a single invoice.`
+                                            : 'One invoice will be created.'}{' '}
+                                        Any existing active student concessions
+                                        may also be applied by the server.
                                     </p>
                                 </div>
                             )}
@@ -699,9 +700,7 @@ export default function Form({ students, feeStructures, invoice }) {
                         >
                             {isEdit
                                 ? 'Update Invoice'
-                                : selectedStructures.length > 1
-                                  ? `Create ${selectedStructures.length} Invoices`
-                                  : 'Create Invoice'}
+                                : 'Create Invoice'}
                         </PrimaryButton>
                     </div>
                 </form>

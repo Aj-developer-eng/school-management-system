@@ -116,7 +116,15 @@
 
         <div class="section">
             <p class="section-title">Fee Details</p>
-            <p style="font-size: 14px; margin-bottom: 12px;">{{ $invoice->feeStructure->name }}</p>
+            @if ($invoice->feeStructures->isNotEmpty())
+                <p style="font-size: 14px; margin-bottom: 12px;">
+                    @foreach ($invoice->feeStructures as $structure)
+                        {{ $structure->name }} (Rs {{ number_format((float) $structure->amount, 2) }})@if (!$loop->last), @endif
+                    @endforeach
+                </p>
+            @else
+                <p style="font-size: 14px; margin-bottom: 12px;">{{ $invoice->feeStructure?->name ?? '—' }}</p>
+            @endif
 
             <table class="amounts-table">
                 <tr>
