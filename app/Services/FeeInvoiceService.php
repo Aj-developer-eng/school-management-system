@@ -78,7 +78,10 @@ class FeeInvoiceService
             }
             $concessionAmount = min($concessionAmount, $totalAmount);
 
-            // All structures share one session/class — enforced by StoreRequest.
+            // The invoice row carries a single session/class (used for the
+            // invoice-number series). When the selected structures span
+            // sessions or classes, the first structure's values are used; the
+            // pivot still records every structure individually.
             $firstStructure = $feeStructures->first();
 
             $invoice = FeeInvoice::create([

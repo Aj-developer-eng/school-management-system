@@ -370,6 +370,54 @@ class FeeInvoiceConcessionTest extends TestCase
         $this->assertDatabaseCount('fee_concessions', 2);
     }
 
+    public function test_structures_from_different_sessions_or_classes_are_combined_into_one_invoice(): void
+    {
+        $otherSession = AcademicSession::create([
+            'name' => '2027-2028',
+            'start_date' => now()->addYear()->startOfYear(),
+            'end_date' => now()->addYear()->endOfYear(),
+            'is_active' => false,
+        ]);
+
+        $otherClass = SchoolClass::create([
+            'name' => 'Grade 6',
+            'code' => 'G6',
+            'level' => 6,
+            'is_active' => true,
+        ]);
+
+        $otherStructure = FeeStructure::create([
+            'academic_session_id' => $otherSession->id,
+            'school_class_id' => $otherClass->id,
+            'name' => '2027-2028 Transport Fee',
+            'fee_type' => FeeTypeEnum::Monthly,
+            'amount' => 2000,
+            'frequency' => FeeFrequencyEnum::Monthly,
+            'is_active' => true,
+        ]);
+
+        // No same-session/class restriction: the structures are still
+        // combined into one invoice. The first selected structure provides
+        // the session/class stored on the invoice row.
+        $response = $this->actingAs($this->makeSuperAdmin())
+            ->post(route('fee-invoices.store'), $this->validPayload([
+                'fee_structure_ids' => [$this->feeStructure->id, $otherStructure->id],
+            ]));
+
+        $response->assertRedirect(route('fee-invoices.index'))
+            ->assertSessionHas('success');
+
+        $invoice = FeeInvoice::sole();
+
+        $this->assertEqualsWithDelta(7000.0, (float) $invoice->total_amount, 0.01);
+        $this->assertSame($this->session->id, $invoice->academic_session_id);
+        $this->assertSame($this->class->id, $invoice->school_class_id);
+        $this->assertEqualsCanonicalizing(
+            [$this->feeStructure->id, $otherStructure->id],
+            $invoice->feeStructures->pluck('id')->all(),
+        );
+    }
+
     private function validPayload(array $overrides = []): array
     {
         return array_merge([

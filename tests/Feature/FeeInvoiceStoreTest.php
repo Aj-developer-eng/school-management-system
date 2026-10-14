@@ -60,7 +60,7 @@ class FeeInvoiceStoreTest extends TestCase
         ]);
     }
 
-    public function test_selecting_multiple_fee_structures_creates_one_invoice_per_structure(): void
+    public function test_selecting_multiple_fee_structures_creates_one_combined_invoice(): void
     {
         $response = $this->actingAs($this->makeSuperAdmin())->post(route('fee-invoices.store'), [
             'student_id' => $this->student->id,
@@ -70,21 +70,17 @@ class FeeInvoiceStoreTest extends TestCase
         ]);
 
         $response->assertRedirect(route('fee-invoices.index'));
-        $response->assertSessionHas('success', '2 invoices created successfully.');
+        $response->assertSessionHas('success', 'Invoice created successfully.');
 
-        $invoices = $this->student->invoices()->orderBy('id')->get();
+        // Both structures are combined into a single invoice.
+        $invoice = $this->student->invoices()->sole();
 
-        $this->assertCount(2, $invoices);
-        $this->assertSame(
+        $this->assertNull($invoice->fee_structure_id);
+        $this->assertEqualsWithDelta(6500.0, (float) $invoice->total_amount, 0.01);
+        $this->assertEqualsCanonicalizing(
             [$this->tuitionStructure->id, $this->transportStructure->id],
-            array_map('intval', $invoices->pluck('fee_structure_id')->all()),
+            $invoice->feeStructures->pluck('id')->all(),
         );
-        $this->assertSame(
-            [5000.0, 1500.0],
-            $invoices->pluck('total_amount')->map(fn ($amount): float => (float) $amount)->all(),
-        );
-        // Each invoice gets its own unique invoice number.
-        $this->assertNotSame($invoices[0]->invoice_number, $invoices[1]->invoice_number);
     }
 
     public function test_selecting_a_single_fee_structure_keeps_the_single_invoice_message(): void

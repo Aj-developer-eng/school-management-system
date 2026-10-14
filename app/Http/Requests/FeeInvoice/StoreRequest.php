@@ -3,7 +3,6 @@
 namespace App\Http\Requests\FeeInvoice;
 
 use App\Enums\ConcessionTypeEnum;
-use App\Models\FeeStructure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -37,24 +36,6 @@ class StoreRequest extends FormRequest
     public function after(): array
     {
         return [
-            // A combined invoice carries a single session and class, so all
-            // selected structures must share both.
-            function ($validator): void {
-                $structureIds = array_map('intval', $this->input('fee_structure_ids', []));
-
-                if (count($structureIds) < 2) {
-                    return;
-                }
-
-                $structures = FeeStructure::whereIn('id', $structureIds)->get(['id', 'academic_session_id', 'school_class_id']);
-
-                $sameSession = $structures->pluck('academic_session_id')->unique()->count() === 1;
-                $sameClass = $structures->pluck('school_class_id')->unique()->count() === 1;
-
-                if (! $sameSession || ! $sameClass) {
-                    $validator->errors()->add('fee_structure_ids', 'All selected fee structures must belong to the same academic session and class so they can be combined into one invoice.');
-                }
-            },
             function ($validator): void {
                 if (! $this->filled('concession')) {
                     return;

@@ -7,6 +7,7 @@ use App\Traits\HasAuditFields;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -61,6 +62,16 @@ class FeeInvoice extends Model
     public function feeStructure(): BelongsTo
     {
         return $this->belongsTo(FeeStructure::class);
+    }
+
+    /**
+     * Every fee structure this invoice was built from. Combined invoices
+     * (created from several selected structures) list them all here; legacy
+     * single-structure invoices only have fee_structure_id set.
+     */
+    public function feeStructures(): BelongsToMany
+    {
+        return $this->belongsToMany(FeeStructure::class, 'fee_invoice_fee_structures')->withTimestamps();
     }
 
     /**
