@@ -44,11 +44,6 @@ export default function Index({ invoices, filters }) {
             render: (row) => row.student?.user?.name ?? '—',
         },
         {
-            key: 'school_class',
-            label: 'Class',
-            render: (row) => row.school_class?.name ?? '—',
-        },
-        {
             key: 'total_amount',
             label: 'Total',
             render: (row) => `Rs ${Number(row.total_amount).toLocaleString()}`,
