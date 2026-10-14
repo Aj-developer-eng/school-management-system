@@ -99,16 +99,43 @@ class FeeInvoiceController extends Controller
     public function store(StoreRequest $request, FeeInvoiceService $service): RedirectResponse
     {
         $validated = $request->validated();
+        $concession = is_array($validated['concession'] ?? null)
+            && $validated['concession'] !== []
+            ? $validated['concession']
+            : null;
+
+        // A percentage applies to each structure independently (equivalent to
+        // a percentage of the total shown in the preview). A flat amount is a
+        // single discount shared across the selected structures, so it is
+        // consumed invoice-by-invoice in order, capped at each structure's
+        // amount — mirroring the preview's min(flat, total) cap.
+        $flatRemaining = $concession !== null && filled($concession['flat_amount'] ?? null)
+            ? (float) $concession['flat_amount']
+            : null;
 
         // One invoice is created per selected fee structure, all sharing the
-        // same student and issue/due dates.
+        // same student and issue/due dates. The submitted concession (if any)
+        // is attached to each invoice as its own fee_concessions row.
         $count = 0;
         foreach ($validated['fee_structure_ids'] as $feeStructureId) {
+            $invoiceConcession = $concession;
+
+            if ($flatRemaining !== null) {
+                $structureAmount = (float) FeeStructure::findOrFail($feeStructureId)->amount;
+                $share = min($flatRemaining, $structureAmount);
+
+                $invoiceConcession = $share > 0
+                    ? [...$concession, 'flat_amount' => (string) $share]
+                    : null;
+                $flatRemaining -= $share;
+            }
+
             $service->createInvoice([
                 'student_id' => $validated['student_id'],
                 'fee_structure_id' => (int) $feeStructureId,
                 'issue_date' => $validated['issue_date'],
                 'due_date' => $validated['due_date'],
+                'concession' => $invoiceConcession,
             ]);
             $count++;
         }

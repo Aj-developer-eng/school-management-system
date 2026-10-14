@@ -27,7 +27,7 @@ export default function Form({ students, feeStructures, invoice }) {
         return String(value).split('T')[0];
     };
 
-    const { data, setData, post, put, processing, errors } = useForm(
+    const { data, setData, transform, post, put, processing, errors } = useForm(
         isEdit
             ? {
                   total_amount: Number(invoice.total_amount),
@@ -100,27 +100,31 @@ export default function Form({ students, feeStructures, invoice }) {
 
         const { concession, ...invoiceData } = data;
 
-        const payload = {
-            ...invoiceData,
-            concession: {
-                ...concession,
-                percentage:
-                    discountMode === 'percentage'
-                        ? concession.percentage
-                        : '',
-                flat_amount:
-                    discountMode === 'flat'
-                        ? concession.flat_amount
-                        : '',
-            },
-        };
+        const payload = includeConcession
+            ? {
+                  ...invoiceData,
+                  concession: {
+                      ...concession,
+                      percentage:
+                          discountMode === 'percentage'
+                              ? concession.percentage
+                              : '',
+                      flat_amount:
+                          discountMode === 'flat'
+                              ? concession.flat_amount
+                              : '',
+                  },
+              }
+            : invoiceData;
 
-        post(
-            route('fee-invoices.store'),
-            {
-                data: includeConcession ? payload : invoiceData,
-            },
-        );
+        // Inertia's useForm always submits its own `data`; extra keys passed
+        // to post() are visit options, so `{ data: payload }` is ignored.
+        // Shape the body with transform() instead — otherwise the
+        // always-present, empty `concession` object reaches StoreRequest and
+        // fails validation with "Either percentage or flat amount is required."
+        transform(() => payload);
+
+        post(route('fee-invoices.store'));
     };
 
     const balance = isEdit

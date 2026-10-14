@@ -238,11 +238,143 @@ class FeeInvoiceConcessionTest extends TestCase
         $this->assertDatabaseCount('fee_concessions', 2);
     }
 
+    public function test_invoice_can_be_created_for_multiple_fee_structures_without_a_concession(): void
+    {
+        // Regression: with several structures selected, the form used to
+        // submit an empty `concession` object and fail validation with
+        // "Either percentage or flat amount is required."
+        $transport = FeeStructure::create([
+            'academic_session_id' => $this->session->id,
+            'school_class_id' => $this->class->id,
+            'name' => '2026-2027 Transport Fee',
+            'fee_type' => FeeTypeEnum::Monthly,
+            'amount' => 2000,
+            'frequency' => FeeFrequencyEnum::Monthly,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->makeSuperAdmin())
+            ->post(route('fee-invoices.store'), $this->validPayload([
+                'fee_structure_ids' => [$this->feeStructure->id, $transport->id],
+            ]))
+            ->assertRedirect(route('fee-invoices.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseCount('fee_invoices', 2);
+        $this->assertDatabaseCount('fee_concessions', 0);
+    }
+
+    public function test_concession_is_attached_to_each_invoice_when_multiple_structures_are_selected(): void
+    {
+        $transport = FeeStructure::create([
+            'academic_session_id' => $this->session->id,
+            'school_class_id' => $this->class->id,
+            'name' => '2026-2027 Transport Fee',
+            'fee_type' => FeeTypeEnum::Monthly,
+            'amount' => 2000,
+            'frequency' => FeeFrequencyEnum::Monthly,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->makeSuperAdmin())
+            ->post(route('fee-invoices.store'), $this->validPayload([
+                'fee_structure_ids' => [$this->feeStructure->id, $transport->id],
+                'concession' => [
+                    'concession_type' => 'scholarship',
+                    'percentage' => '10',
+                    'reason' => 'Merit scholarship',
+                    'is_active' => true,
+                ],
+            ]))
+            ->assertRedirect(route('fee-invoices.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseCount('fee_invoices', 2);
+        $this->assertDatabaseCount('fee_concessions', 2);
+
+        // 10% of Rs 5,000 and 10% of Rs 2,000.
+        $tuition = FeeInvoice::where('fee_structure_id', $this->feeStructure->id)->sole();
+        $bus = FeeInvoice::where('fee_structure_id', $transport->id)->sole();
+
+        $this->assertEqualsWithDelta(500.0, (float) $tuition->concession_amount, 0.01);
+        $this->assertEqualsWithDelta(200.0, (float) $bus->concession_amount, 0.01);
+    }
+
+    public function test_flat_concession_is_shared_once_across_multiple_structures(): void
+    {
+        $transport = FeeStructure::create([
+            'academic_session_id' => $this->session->id,
+            'school_class_id' => $this->class->id,
+            'name' => '2026-2027 Transport Fee',
+            'fee_type' => FeeTypeEnum::Monthly,
+            'amount' => 2000,
+            'frequency' => FeeFrequencyEnum::Monthly,
+            'is_active' => true,
+        ]);
+
+        // Rs 1,200 total discount over a Rs 7,000 combined total: it is
+        // consumed by the first invoice (Rs 5,000 structure) in full, and the
+        // second invoice receives nothing — not Rs 1,200 twice.
+        $this->actingAs($this->makeSuperAdmin())
+            ->post(route('fee-invoices.store'), $this->validPayload([
+                'fee_structure_ids' => [$this->feeStructure->id, $transport->id],
+                'concession' => [
+                    'concession_type' => 'sibling_discount',
+                    'flat_amount' => '1200',
+                    'is_active' => true,
+                ],
+            ]))
+            ->assertRedirect(route('fee-invoices.index'))
+            ->assertSessionHas('success');
+
+        $tuition = FeeInvoice::where('fee_structure_id', $this->feeStructure->id)->sole();
+        $bus = FeeInvoice::where('fee_structure_id', $transport->id)->sole();
+
+        $this->assertEqualsWithDelta(1200.0, (float) $tuition->concession_amount, 0.01);
+        $this->assertEqualsWithDelta(0.0, (float) $bus->concession_amount, 0.01);
+        $this->assertEqualsWithDelta(3800.0, (float) $tuition->balance, 0.01);
+        $this->assertEqualsWithDelta(2000.0, (float) $bus->balance, 0.01);
+    }
+
+    public function test_flat_concession_larger_than_first_structure_spills_into_the_next(): void
+    {
+        $transport = FeeStructure::create([
+            'academic_session_id' => $this->session->id,
+            'school_class_id' => $this->class->id,
+            'name' => '2026-2027 Transport Fee',
+            'fee_type' => FeeTypeEnum::Monthly,
+            'amount' => 2000,
+            'frequency' => FeeFrequencyEnum::Monthly,
+            'is_active' => true,
+        ]);
+
+        // Rs 6,000 flat over Rs 5,000 + Rs 2,000: fully applied, capped at
+        // the Rs 7,000 combined total (same cap the preview shows).
+        $this->actingAs($this->makeSuperAdmin())
+            ->post(route('fee-invoices.store'), $this->validPayload([
+                'fee_structure_ids' => [$this->feeStructure->id, $transport->id],
+                'concession' => [
+                    'concession_type' => 'sibling_discount',
+                    'flat_amount' => '6000',
+                    'is_active' => true,
+                ],
+            ]))
+            ->assertRedirect(route('fee-invoices.index'))
+            ->assertSessionHas('success');
+
+        $tuition = FeeInvoice::where('fee_structure_id', $this->feeStructure->id)->sole();
+        $bus = FeeInvoice::where('fee_structure_id', $transport->id)->sole();
+
+        $this->assertEqualsWithDelta(5000.0, (float) $tuition->concession_amount, 0.01);
+        $this->assertEqualsWithDelta(1000.0, (float) $bus->concession_amount, 0.01);
+        $this->assertDatabaseCount('fee_concessions', 2);
+    }
+
     private function validPayload(array $overrides = []): array
     {
         return array_merge([
             'student_id' => $this->student->id,
-            'fee_structure_id' => $this->feeStructure->id,
+            'fee_structure_ids' => [$this->feeStructure->id],
             'issue_date' => now()->toDateString(),
             'due_date' => now()->addDays(14)->toDateString(),
         ], $overrides);
