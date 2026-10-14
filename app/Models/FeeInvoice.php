@@ -74,15 +74,6 @@ class FeeInvoice extends Model
         return $this->belongsToMany(FeeStructure::class, 'fee_invoice_fee_structures')->withTimestamps();
     }
 
-    /**
-     * All fee structures combined into this invoice. Empty for legacy
-     * single-structure invoices that only set fee_structure_id.
-     */
-    public function feeStructures(): BelongsToMany
-    {
-        return $this->belongsToMany(FeeStructure::class, 'fee_invoice_fee_structures')->withTimestamps();
-    }
-
     public function payments(): HasMany
     {
         return $this->hasMany(FeePayment::class);
