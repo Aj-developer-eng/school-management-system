@@ -123,7 +123,7 @@
                     @endforeach
                 </p>
             @else
-                <p style="font-size: 14px; margin-bottom: 12px;">{{ $invoice->feeStructure?->name ?? '—' }}</p>
+                <p style="font-size: 14px; margin-bottom: 12px;">{{ $invoice->feeStructure?->name ?? 'Custom Amount' }}</p>
             @endif
 
             <table class="amounts-table">

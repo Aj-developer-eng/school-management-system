@@ -39,6 +39,7 @@ export default function Form({ students, feeStructures, invoice }) {
             : {
                   student_id: '',
                   fee_structure_ids: [],
+                  custom_amount: '',
                   issue_date: new Date().toISOString().split('T')[0],
                   due_date: '',
                   concession: {
@@ -53,6 +54,9 @@ export default function Form({ students, feeStructures, invoice }) {
 
     const [includeConcession, setIncludeConcession] = useState(false);
     const [discountMode, setDiscountMode] = useState('percentage');
+    // Where the invoice total comes from: selected fee structures (default) or
+    // a custom amount typed directly on the form (create mode only).
+    const [amountMode, setAmountMode] = useState('structures');
 
     // Resolve all selected fee structures from the selected IDs.
     const selectedStructures = (data.fee_structure_ids ?? [])
@@ -69,20 +73,31 @@ export default function Form({ students, feeStructures, invoice }) {
         0,
     );
 
+    // The amount typed in "Custom Amount" mode (create only — the field is
+    // absent in edit mode, so this stays 0 there).
+    const customAmount = Number(data.custom_amount ?? 0) || 0;
+
+    // The amount the invoice is based on — the fee structures total or the
+    // custom amount — driving the summary and concession/payable preview.
+    const baseAmount =
+        amountMode === 'custom' ? customAmount : structureAmount;
+
+    // Structure selections must not leak into the custom-mode summary while
+    // the mode toggle keeps them in state.
+    const summaryStructures =
+        amountMode === 'structures' ? selectedStructures : [];
+
     const enteredPercentage = Number(data.concession?.percentage) || 0;
     const enteredFlatAmount = Number(data.concession?.flat_amount) || 0;
 
     const concessionPreview = Math.min(
         discountMode === 'percentage'
-            ? (structureAmount * enteredPercentage) / 100
+            ? (baseAmount * enteredPercentage) / 100
             : enteredFlatAmount,
-        structureAmount,
+        baseAmount,
     );
 
-    const payablePreview = Math.max(
-        structureAmount - concessionPreview,
-        0,
-    );
+    const payablePreview = Math.max(baseAmount - concessionPreview, 0);
 
     const concessionTypeLabel = (
         data.concession?.concession_type ?? 'scholarship'
@@ -100,22 +115,36 @@ export default function Form({ students, feeStructures, invoice }) {
 
         const { concession, ...invoiceData } = data;
 
-        const payload = includeConcession
-            ? {
-                  ...invoiceData,
-                  concession: {
-                      ...concession,
-                      percentage:
-                          discountMode === 'percentage'
-                              ? concession.percentage
-                              : '',
-                      flat_amount:
-                          discountMode === 'flat'
-                              ? concession.flat_amount
-                              : '',
-                  },
-              }
-            : invoiceData;
+        // Submit only the chosen amount source: an empty `fee_structure_ids`
+        // array would fail StoreRequest's min:1 rule, and structures mode must
+        // not send the untouched custom amount (it would trip the "not both"
+        // rule).
+        const amountSource =
+            amountMode === 'custom'
+                ? { custom_amount: data.custom_amount }
+                : { fee_structure_ids: data.fee_structure_ids };
+
+        const payload = {
+            student_id: invoiceData.student_id,
+            issue_date: invoiceData.issue_date,
+            due_date: invoiceData.due_date,
+            ...amountSource,
+            ...(includeConcession
+                ? {
+                      concession: {
+                          ...concession,
+                          percentage:
+                              discountMode === 'percentage'
+                                  ? concession.percentage
+                                  : '',
+                          flat_amount:
+                              discountMode === 'flat'
+                                  ? concession.flat_amount
+                                  : '',
+                      },
+                  }
+                : {}),
+        };
 
         // Inertia's useForm always submits its own `data`; extra keys passed
         // to post() are visit options, so `{ data: payload }` is ignored.
@@ -173,11 +202,11 @@ export default function Form({ students, feeStructures, invoice }) {
 
                                 <p className="mt-1 text-gray-500 dark:text-gray-400">
                                     Fee Structure:{' '}
-                                    {invoice.fee_structure?.name ??
+                                    {invoice.fee_structure?.name ||
                                         invoice.fee_structures
                                             ?.map((s) => s.name)
-                                            .join(', ') ??
-                                        '—'}
+                                            .join(', ') ||
+                                        'Custom Amount'}
                                 </p>
                             </div>
 
@@ -292,65 +321,137 @@ export default function Form({ students, feeStructures, invoice }) {
                             </div>
 
                             <div>
-                                <InputLabel
-                                    htmlFor="fee_structure_ids"
-                                    value="Fee Structures"
-                                />
-                                <SearchableMultiSelect
-                                    id="fee_structure_ids"
-                                    values={data.fee_structure_ids}
-                                    onChange={(values) =>
-                                        setData('fee_structure_ids', values)
-                                    }
-                                    options={(feeStructures ?? []).map(
-                                        (structure) => ({
-                                            value: String(structure.id),
-                                            label: [
-                                                structure.name,
-                                                [
+                                <InputLabel value="Amount Source" />
+                                <div className="mt-2 flex flex-wrap gap-5">
+                                    <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                        <input
+                                            type="radio"
+                                            name="amount_source"
+                                            value="structures"
+                                            checked={
+                                                amountMode === 'structures'
+                                            }
+                                            onChange={() =>
+                                                setAmountMode('structures')
+                                            }
+                                            className="text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        Fee Structures
+                                    </label>
+                                    <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                        <input
+                                            type="radio"
+                                            name="amount_source"
+                                            value="custom"
+                                            checked={amountMode === 'custom'}
+                                            onChange={() =>
+                                                setAmountMode('custom')
+                                            }
+                                            className="text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        Custom Amount
+                                    </label>
+                                </div>
+                            </div>
+
+                            {amountMode === 'structures' ? (
+                                <div>
+                                    <InputLabel
+                                        htmlFor="fee_structure_ids"
+                                        value="Fee Structures"
+                                    />
+                                    <SearchableMultiSelect
+                                        id="fee_structure_ids"
+                                        values={data.fee_structure_ids}
+                                        onChange={(values) =>
+                                            setData('fee_structure_ids', values)
+                                        }
+                                        options={(feeStructures ?? []).map(
+                                            (structure) => ({
+                                                value: String(structure.id),
+                                                label: [
+                                                    structure.name,
+                                                    [
+                                                        structure
+                                                            .academic_session
+                                                            ?.name,
+                                                        structure.school_class
+                                                            ?.name,
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(' / '),
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(' — ') +
+                                                    ` (Rs ${Number(
+                                                        structure.amount,
+                                                    ).toLocaleString()})`,
+                                                keywords: [
+                                                    structure.name,
                                                     structure.academic_session
                                                         ?.name,
                                                     structure.school_class
                                                         ?.name,
                                                 ]
                                                     .filter(Boolean)
-                                                    .join(' / '),
-                                            ]
-                                                .filter(Boolean)
-                                                .join(' — ') +
-                                                ` (Rs ${Number(
-                                                    structure.amount,
-                                                ).toLocaleString()})`,
-                                            keywords: [
-                                                structure.name,
-                                                structure.academic_session?.name,
-                                                structure.school_class?.name,
-                                            ]
-                                                .filter(Boolean)
-                                                .join(' '),
-                                        }),
-                                    )}
-                                    placeholder="Search and select one or more fee structures…"
-                                    emptyMessage="No fee structures match your search"
-                                />
-                                <InputError
-                                    message={errors.fee_structure_ids}
-                                    className="mt-2"
-                                />
-                                <InputError
-                                    message={errors['fee_structure_ids.0']}
-                                    className="mt-2"
-                                />
-                            </div>
+                                                    .join(' '),
+                                            }),
+                                        )}
+                                        placeholder="Search and select one or more fee structures…"
+                                        emptyMessage="No fee structures match your search"
+                                    />
+                                    <InputError
+                                        message={errors.fee_structure_ids}
+                                        className="mt-2"
+                                    />
+                                    <InputError
+                                        message={errors['fee_structure_ids.0']}
+                                        className="mt-2"
+                                    />
+                                </div>
+                            ) : (
+                                <div>
+                                    <InputLabel
+                                        htmlFor="custom_amount"
+                                        value="Amount (Rs)"
+                                    />
+                                    <TextInput
+                                        id="custom_amount"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={data.custom_amount}
+                                        onChange={(event) =>
+                                            setData(
+                                                'custom_amount',
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="mt-1 block w-full"
+                                        placeholder="e.g. 2500"
+                                    />
+                                    <InputError
+                                        message={errors.custom_amount}
+                                        className="mt-2"
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        The invoice charges this exact amount and
+                                        links no fee structure. Standing
+                                        concessions are not applied automatically
+                                        — use the concession option below to
+                                        record a discount.
+                                    </p>
+                                </div>
+                            )}
 
-                            {selectedStructures.length > 0 && (
+                            {baseAmount > 0 && (
                                 <div className="rounded-lg bg-indigo-50 p-4 text-sm dark:bg-indigo-500/10">
                                     <p className="font-medium text-indigo-700 dark:text-indigo-300">
                                         Invoice Summary
                                     </p>
 
                                     <ul className="mt-2 space-y-2">
-                                        {selectedStructures.map((structure) => (
+                                        {summaryStructures.map((structure) => (
                                             <li
                                                 key={structure.id}
                                                 className="text-gray-600 dark:text-gray-400"
@@ -379,7 +480,7 @@ export default function Form({ students, feeStructures, invoice }) {
                                             Total:{' '}
                                             <span className="font-semibold">
                                                 Rs{' '}
-                                                {formatAmount(structureAmount)}
+                                                {formatAmount(baseAmount)}
                                             </span>
                                         </p>
 
@@ -405,11 +506,24 @@ export default function Form({ students, feeStructures, invoice }) {
                                     </div>
 
                                     <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                                        {selectedStructures.length > 1
-                                            ? `All ${selectedStructures.length} selected fee structures will be combined into a single invoice.`
-                                            : 'One invoice will be created.'}{' '}
-                                        Any existing active student concessions
-                                        may also be applied by the server.
+                                        {amountMode === 'custom' ? (
+                                            <>
+                                                The exact amount above becomes
+                                                the invoice total. No fee
+                                                structure is linked, and
+                                                standing concessions are not
+                                                applied automatically.
+                                            </>
+                                        ) : (
+                                            <>
+                                                {selectedStructures.length > 1
+                                                    ? `All ${selectedStructures.length} selected fee structures will be combined into a single invoice.`
+                                                    : 'One invoice will be created.'}{' '}
+                                                Any existing active student
+                                                concessions may also be applied
+                                                by the server.
+                                            </>
+                                        )}
                                     </p>
                                 </div>
                             )}
@@ -702,7 +816,9 @@ export default function Form({ students, feeStructures, invoice }) {
                                 processing ||
                                 (!isEdit &&
                                     (!data.student_id ||
-                                        selectedStructures.length === 0))
+                                        (amountMode === 'custom'
+                                            ? !(customAmount > 0)
+                                            : selectedStructures.length === 0)))
                             }
                         >
                             {isEdit

@@ -40,11 +40,11 @@ export default function Show({ invoice }) {
                             </p>
                             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                 Fee:{' '}
-                                {invoice.fee_structure?.name ??
+                                {invoice.fee_structure?.name ||
                                     invoice.fee_structures
                                         ?.map((s) => s.name)
-                                        .join(', ') ??
-                                    '—'}
+                                        .join(', ') ||
+                                    'Custom Amount'}
                             </p>
                         </div>
                         <div className="text-right">

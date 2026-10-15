@@ -17,8 +17,13 @@ class StoreRequest extends FormRequest
     {
         return [
             'student_id' => ['required', 'exists:students,id'],
-            'fee_structure_ids' => ['required', 'array', 'min:1'],
+            // The invoice total comes from either a set of fee structures or a
+            // manually entered custom amount — the two are mutually exclusive
+            // (enforced in after()), so each is only required without the other.
+            'fee_structure_ids' => ['required_without:custom_amount', 'array', 'min:1'],
             'fee_structure_ids.*' => ['integer', 'distinct', 'exists:fee_structures,id'],
+            // Ad-hoc charge with no fee structure linked; decimal(10,2) column.
+            'custom_amount' => ['nullable', 'numeric', 'gt:0', 'max:99999999.99'],
             'issue_date' => ['required', 'date'],
             'due_date' => ['required', 'date', 'after_or_equal:issue_date'],
             // Optional concession recorded in the same step as the invoice.
@@ -36,6 +41,13 @@ class StoreRequest extends FormRequest
     public function after(): array
     {
         return [
+            // The invoice total comes from exactly one source: fee structures
+            // or a custom amount typed on the form.
+            function ($validator): void {
+                if ($this->filled('custom_amount') && $this->filled('fee_structure_ids')) {
+                    $validator->errors()->add('custom_amount', 'Choose fee structures or a custom amount, not both.');
+                }
+            },
             function ($validator): void {
                 if (! $this->filled('concession')) {
                     return;

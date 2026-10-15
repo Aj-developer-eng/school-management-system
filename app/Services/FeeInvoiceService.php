@@ -137,6 +137,52 @@ class FeeInvoiceService
     }
 
     /**
+     * Create an invoice for an amount typed directly on the form (no fee
+     * structure linked and no pivot rows). The total is stored exactly as
+     * provided; the student's standing concessions are NOT auto-applied here —
+     * only the optional concession submitted with the form is recorded (based
+     * on the invoice total, capped at that total). Session and class resolve
+     * from the student's enrollment / the active session.
+     */
+    public function createCustomInvoice(array $data): FeeInvoice
+    {
+        return DB::transaction(function () use ($data): FeeInvoice {
+            $student = Student::with(['user', 'parents.user'])->findOrFail($data['student_id']);
+            $totalAmount = (float) $data['custom_amount'];
+
+            $academicSessionId = $this->resolveAcademicSessionId(null, $student);
+
+            $invoice = FeeInvoice::create([
+                'student_id' => $data['student_id'],
+                'academic_session_id' => $academicSessionId,
+                'school_class_id' => $this->studentClassId($student, $academicSessionId),
+                'fee_structure_id' => null,
+                'invoice_number' => $this->invoiceNumberGenerator->generate($academicSessionId),
+                'issue_date' => $data['issue_date'],
+                'due_date' => $data['due_date'],
+                'total_amount' => $totalAmount,
+                'concession_amount' => 0,
+                'paid_amount' => 0,
+                'status' => InvoiceStatusEnum::Unpaid,
+            ]);
+
+            // Optional concession captured on the invoice form. With no fee
+            // structure attached, storeInvoiceConcession bases it on the
+            // invoice total; the cap keeps it from exceeding that total.
+            $concession = $data['concession'] ?? null;
+            if (is_array($concession) && $concession !== []) {
+                $invoice->concession_amount = min($this->storeInvoiceConcession($invoice, null, $concession), $totalAmount);
+            }
+
+            $invoice->recalculate();
+
+            $this->notifyInvoiceCreated($invoice, $student);
+
+            return $invoice;
+        });
+    }
+
+    /**
      * Persist a concession (submitted from the invoice form) against the given
      * invoice and return its monetary value. When $feeStructure is null the
      * concession applies to the whole invoice and its value is based on the
@@ -306,14 +352,15 @@ class FeeInvoiceService
     }
 
     /**
-     * Resolve the academic session for a new invoice. The fee structure's own
-     * session wins; structures saved without one fall back to the student's
-     * most recent enrollment and finally to the active session (the invoice
-     * number series is keyed by session, so a session is always required).
+     * Resolve the academic session for a new invoice. A linked fee structure's
+     * own session wins; custom invoices (no structure) and structures saved
+     * without a session fall back to the student's most recent enrollment and
+     * finally to the active session (the invoice number series is keyed by
+     * session, so a session is always required).
      */
-    private function resolveAcademicSessionId(FeeStructure $feeStructure, ?Student $student = null): int
+    private function resolveAcademicSessionId(?FeeStructure $feeStructure, ?Student $student = null): int
     {
-        $sessionId = $feeStructure->academic_session_id
+        $sessionId = $feeStructure?->academic_session_id
             ?? ($student !== null ? $this->studentEnrollmentSessionId($student) : null)
             ?? AcademicSession::active()->first()?->id;
 

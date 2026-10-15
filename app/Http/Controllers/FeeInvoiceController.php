@@ -104,14 +104,26 @@ class FeeInvoiceController extends Controller
             ? $validated['concession']
             : null;
 
-        $feeStructureIds = array_map('intval', $validated['fee_structure_ids']);
+        $feeStructureIds = array_map('intval', $validated['fee_structure_ids'] ?? []);
+        $customAmount = $validated['custom_amount'] ?? null;
 
-        // A single selection keeps the legacy single-structure invoice
-        // (fee_structure_id set). Multiple selections produce ONE combined
-        // invoice whose total is the sum of the structures — the submitted
-        // concession (percentage of total or flat amount capped at the total)
-        // is recorded once against that invoice, matching the form preview.
-        if (count($feeStructureIds) === 1) {
+        // A custom amount charges the typed value with no fee structure linked
+        // (StoreRequest keeps custom_amount and fee_structure_ids mutually
+        // exclusive). A single selection keeps the legacy single-structure
+        // invoice (fee_structure_id set). Multiple selections produce ONE
+        // combined invoice whose total is the sum of the structures — the
+        // submitted concession (percentage of total or flat amount capped at
+        // the total) is recorded once against that invoice, matching the form
+        // preview.
+        if ($customAmount !== null) {
+            $service->createCustomInvoice([
+                'student_id' => $validated['student_id'],
+                'custom_amount' => $customAmount,
+                'issue_date' => $validated['issue_date'],
+                'due_date' => $validated['due_date'],
+                'concession' => $concession,
+            ]);
+        } elseif (count($feeStructureIds) === 1) {
             $service->createInvoice([
                 'student_id' => $validated['student_id'],
                 'fee_structure_id' => $feeStructureIds[0],
