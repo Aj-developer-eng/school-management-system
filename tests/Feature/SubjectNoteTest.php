@@ -64,7 +64,6 @@ class SubjectNoteTest extends TestCase
         $this->class = SchoolClass::create([
             'name' => 'Grade 5',
             'code' => 'G5',
-            'level' => 5,
             'is_active' => true,
         ]);
 

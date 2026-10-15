@@ -11,7 +11,6 @@ export default function Form({ class: item, sessions }) {
     const { data, setData, post, put, processing, errors } = useForm({
         name: item?.name ?? '',
         code: item?.code ?? '',
-        level: item?.level ?? '',
         description: item?.description ?? '',
         active_from_session_id: item?.active_from_session_id ?? '',
         is_active: item?.is_active ?? true,
@@ -65,36 +64,22 @@ export default function Form({ class: item, sessions }) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <div>
-                            <InputLabel htmlFor="level" value="Level (sort order)" />
-                            <TextInput
-                                id="level"
-                                type="number"
-                                value={data.level}
-                                onChange={(event) => setData('level', event.target.value)}
-                                className="mt-1 block w-full"
-                            />
-                            <InputError message={errors.level} className="mt-2" />
-                        </div>
-
-                        <div>
-                            <InputLabel htmlFor="active_from_session_id" value="Introduced In Session" />
-                            <select
-                                id="active_from_session_id"
-                                value={data.active_from_session_id}
-                                onChange={(event) => setData('active_from_session_id', event.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
-                            >
-                                <option value="">—</option>
-                                {sessionOptions.map(([id, name]) => (
-                                    <option key={id} value={id}>
-                                        {name}
-                                    </option>
-                                ))}
-                            </select>
-                            <InputError message={errors.active_from_session_id} className="mt-2" />
-                        </div>
+                    <div>
+                        <InputLabel htmlFor="active_from_session_id" value="Introduced In Session" />
+                        <select
+                            id="active_from_session_id"
+                            value={data.active_from_session_id}
+                            onChange={(event) => setData('active_from_session_id', event.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                        >
+                            <option value="">—</option>
+                            {sessionOptions.map(([id, name]) => (
+                                <option key={id} value={id}>
+                                    {name}
+                                </option>
+                            ))}
+                        </select>
+                        <InputError message={errors.active_from_session_id} className="mt-2" />
                     </div>
 
                     <div>

@@ -193,7 +193,7 @@ class AttendanceController extends Controller
             ->when($scopedClassIds, function ($q) use ($scopedClassIds): void {
                 $q->whereIn('id', $scopedClassIds);
             })
-            ->orderBy('level')
+            ->orderBy('name')
             ->pluck('name', 'id');
 
         $query = Attendance::query()

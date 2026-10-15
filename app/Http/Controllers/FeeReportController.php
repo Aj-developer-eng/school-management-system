@@ -90,7 +90,7 @@ class FeeReportController extends Controller
                 DB::raw('sum(fee_invoices.paid_amount) as total_collected'),
             )
             ->groupBy('school_classes.id', 'school_classes.name')
-            ->orderBy('school_classes.level')
+            ->orderBy('school_classes.name')
             ->get()
             ->map(fn ($row) => [
                 'class_name' => $row->class_name,
@@ -118,7 +118,7 @@ class FeeReportController extends Controller
             'classWiseSummary' => $classWiseSummary,
             'filters' => $request->only(['academic_session_id', 'school_class_id']),
             'academicSessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
-            'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+            'classes' => SchoolClass::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
             'isScoped' => $isScoped,
             'isSuperAdmin' => $isSuperAdmin,
         ]);

@@ -47,7 +47,7 @@ class SectionController extends Controller
             'sections' => $sections,
             'filters' => $request->only(['search', 'academic_session_id', 'school_class_id']),
             'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
-            'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+            'classes' => SchoolClass::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
         ]);
     }
 
@@ -143,7 +143,7 @@ class SectionController extends Controller
     {
         return [
             'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
-            'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+            'classes' => SchoolClass::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
             'categories' => SectionCategory::where('is_active', true)
                 ->orderBy('name')
                 ->pluck('name', 'id'),

@@ -21,7 +21,6 @@ export default function Index({ classes, filters }) {
     const columns = [
         { key: 'name', label: 'Name' },
         { key: 'code', label: 'Code' },
-        { key: 'level', label: 'Level' },
         {
             key: 'students_count',
             label: 'Students',

@@ -42,7 +42,7 @@ class FeeStructureController extends Controller
             'feeStructures' => $feeStructures,
             'filters' => $request->only(['search', 'academic_session_id', 'school_class_id']),
             'academicSessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
-            'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+            'classes' => SchoolClass::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
         ]);
     }
 
@@ -50,7 +50,7 @@ class FeeStructureController extends Controller
     {
         return Inertia::render('Fee/Structure/Form', [
             'academicSessions' => AcademicSession::orderByDesc('start_date')->get(['id', 'name', 'is_active']),
-            'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+            'classes' => SchoolClass::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
         ]);
     }
 
@@ -67,7 +67,7 @@ class FeeStructureController extends Controller
         return Inertia::render('Fee/Structure/Form', [
             'feeStructure' => $feeStructure,
             'academicSessions' => AcademicSession::orderByDesc('start_date')->get(['id', 'name', 'is_active']),
-            'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+            'classes' => SchoolClass::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
         ]);
     }
 

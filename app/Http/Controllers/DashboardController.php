@@ -81,7 +81,7 @@ class DashboardController extends Controller
                 ->whereNull('student_enrollments.deleted_at')
                 ->select('school_classes.name as label', DB::raw('count(*) as value'))
                 ->groupBy('school_classes.id', 'school_classes.name')
-                ->orderBy('school_classes.level')
+                ->orderBy('school_classes.name')
                 ->get()
             : collect();
 

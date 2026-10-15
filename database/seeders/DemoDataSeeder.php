@@ -81,19 +81,19 @@ class DemoDataSeeder extends Seeder
         );
 
         $classDefinitions = [
-            ['name' => 'Playgroup', 'code' => 'PG', 'level' => 0],
-            ['name' => 'Nursery', 'code' => 'NUR', 'level' => 1],
-            ['name' => 'Prep', 'code' => 'PREP', 'level' => 2],
-            ['name' => 'Class 1', 'code' => 'C1', 'level' => 3],
-            ['name' => 'Class 2', 'code' => 'C2', 'level' => 4],
-            ['name' => 'Class 3', 'code' => 'C3', 'level' => 5],
-            ['name' => 'Class 4', 'code' => 'C4', 'level' => 6],
-            ['name' => 'Class 5', 'code' => 'C5', 'level' => 7],
-            ['name' => 'Class 6', 'code' => 'C6', 'level' => 8],
-            ['name' => 'Class 7', 'code' => 'C7', 'level' => 9],
-            ['name' => 'Class 8', 'code' => 'C8', 'level' => 10],
-            ['name' => 'Class 9', 'code' => 'C9', 'level' => 11],
-            ['name' => 'Class 10', 'code' => 'C10', 'level' => 12],
+            ['name' => 'Playgroup', 'code' => 'PG'],
+            ['name' => 'Nursery', 'code' => 'NUR'],
+            ['name' => 'Prep', 'code' => 'PREP'],
+            ['name' => 'Class 1', 'code' => 'C1'],
+            ['name' => 'Class 2', 'code' => 'C2'],
+            ['name' => 'Class 3', 'code' => 'C3'],
+            ['name' => 'Class 4', 'code' => 'C4'],
+            ['name' => 'Class 5', 'code' => 'C5'],
+            ['name' => 'Class 6', 'code' => 'C6'],
+            ['name' => 'Class 7', 'code' => 'C7'],
+            ['name' => 'Class 8', 'code' => 'C8'],
+            ['name' => 'Class 9', 'code' => 'C9'],
+            ['name' => 'Class 10', 'code' => 'C10'],
         ];
 
         $classes = [];
@@ -102,7 +102,6 @@ class DemoDataSeeder extends Seeder
                 ['code' => $definition['code']],
                 [
                     'name' => $definition['name'],
-                    'level' => $definition['level'],
                     'active_from_session_id' => $session2025->id,
                     'is_active' => true,
                 ],
@@ -113,11 +112,11 @@ class DemoDataSeeder extends Seeder
             if (in_array($code, ['PG', 'NUR', 'PREP', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10'])) {
                 Section::updateOrCreate(
                     ['name' => 'A', 'school_class_id' => $class->id, 'academic_session_id' => $session2025->id],
-                    ['capacity' => 30, 'room_number' => 'R'.$class->level.'A', 'is_active' => true],
+                    ['capacity' => 30, 'room_number' => 'R'.$code.'A', 'is_active' => true],
                 );
                 Section::updateOrCreate(
                     ['name' => 'B', 'school_class_id' => $class->id, 'academic_session_id' => $session2025->id],
-                    ['capacity' => 30, 'room_number' => 'R'.$class->level.'B', 'is_active' => true],
+                    ['capacity' => 30, 'room_number' => 'R'.$code.'B', 'is_active' => true],
                 );
             }
         }

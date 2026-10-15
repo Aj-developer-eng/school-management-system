@@ -21,7 +21,6 @@ class SchoolClass extends Model
     protected $fillable = [
         'name',
         'code',
-        'level',
         'description',
         'active_from_session_id',
         'is_active',
@@ -30,7 +29,6 @@ class SchoolClass extends Model
     protected function casts(): array
     {
         return [
-            'level' => 'integer',
             'is_active' => 'boolean',
         ];
     }

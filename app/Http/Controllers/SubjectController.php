@@ -118,7 +118,7 @@ class SubjectController extends Controller
     public function create(): Response
     {
         return Inertia::render('Academic/Subject/Form', [
-            'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+            'classes' => SchoolClass::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
         ]);
     }
 
@@ -137,7 +137,7 @@ class SubjectController extends Controller
 
         return Inertia::render('Academic/Subject/Form', [
             'subject' => $subject,
-            'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+            'classes' => SchoolClass::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
         ]);
     }
 

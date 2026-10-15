@@ -95,7 +95,7 @@ class TeacherAssignmentController extends Controller
                 ->get()
                 ->map(fn (Teacher $teacher) => ['id' => $teacher->id, 'label' => $teacher->user->name]),
             'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
-            'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+            'classes' => SchoolClass::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
         ]);
     }
 

@@ -37,7 +37,6 @@ class SchoolClassController extends Controller
                         ->orWhere('code', 'like', "%{$search}%");
                 });
             })
-            ->orderBy('level')
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();

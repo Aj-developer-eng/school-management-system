@@ -41,8 +41,8 @@ class AttendanceReportScopingTest extends TestCase
         [$teacherUser, $teacher] = $this->makeTeacher();
         [$otherUser, $otherTeacher] = $this->makeTeacher();
 
-        $ownAssignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 5, 'Mathematics', 'MATH');
-        $otherAssignment = $this->makeAssignment($otherTeacher, 'Grade 9', 'G9', 9, 'Physics', 'PHY');
+        $ownAssignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 'Mathematics', 'MATH');
+        $otherAssignment = $this->makeAssignment($otherTeacher, 'Grade 9', 'G9', 'Physics', 'PHY');
 
         $ownRecord = $this->recordAttendance($ownAssignment, 'ADM-001', $teacherUser, 'present');
         $this->recordAttendance($otherAssignment, 'ADM-002', $otherUser, 'absent');
@@ -66,8 +66,8 @@ class AttendanceReportScopingTest extends TestCase
         [$teacherUser, $teacher] = $this->makeTeacher();
         [, $otherTeacher] = $this->makeTeacher();
 
-        $ownAssignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 5, 'Mathematics', 'MATH');
-        $this->makeAssignment($otherTeacher, 'Grade 9', 'G9', 9, 'Physics', 'PHY');
+        $ownAssignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 'Mathematics', 'MATH');
+        $this->makeAssignment($otherTeacher, 'Grade 9', 'G9', 'Physics', 'PHY');
 
         $response = $this->actingAs($teacherUser)->get(route('attendance.report'));
 
@@ -81,7 +81,7 @@ class AttendanceReportScopingTest extends TestCase
     {
         [$teacherUser, $teacher] = $this->makeTeacher();
 
-        $assignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 5, 'Mathematics', 'MATH');
+        $assignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 'Mathematics', 'MATH');
         $record = $this->recordAttendance($assignment, 'ADM-001', $teacherUser, 'late');
 
         $assignment->delete();
@@ -99,7 +99,7 @@ class AttendanceReportScopingTest extends TestCase
     public function test_teacher_without_a_teacher_record_sees_no_attendance(): void
     {
         [$otherUser, $otherTeacher] = $this->makeTeacher();
-        $assignment = $this->makeAssignment($otherTeacher, 'Grade 5', 'G5', 5, 'Mathematics', 'MATH');
+        $assignment = $this->makeAssignment($otherTeacher, 'Grade 5', 'G5', 'Mathematics', 'MATH');
         $this->recordAttendance($assignment, 'ADM-001', $otherUser, 'present');
 
         $user = User::factory()->create();
@@ -120,8 +120,8 @@ class AttendanceReportScopingTest extends TestCase
         [$teacherUser, $teacher] = $this->makeTeacher();
         [$otherUser, $otherTeacher] = $this->makeTeacher();
 
-        $ownAssignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 5, 'Mathematics', 'MATH');
-        $otherAssignment = $this->makeAssignment($otherTeacher, 'Grade 9', 'G9', 9, 'Physics', 'PHY');
+        $ownAssignment = $this->makeAssignment($teacher, 'Grade 5', 'G5', 'Mathematics', 'MATH');
+        $otherAssignment = $this->makeAssignment($otherTeacher, 'Grade 9', 'G9', 'Physics', 'PHY');
 
         $this->recordAttendance($ownAssignment, 'ADM-001', $teacherUser, 'present');
         $this->recordAttendance($otherAssignment, 'ADM-002', $otherUser, 'absent');
@@ -159,14 +159,12 @@ class AttendanceReportScopingTest extends TestCase
         Teacher $teacher,
         string $className,
         string $classCode,
-        int $level,
         string $subjectName,
         string $subjectCode,
     ): TeacherSubjectAssignment {
         $class = SchoolClass::create([
             'name' => $className,
             'code' => $classCode,
-            'level' => $level,
             'is_active' => true,
         ]);
 

@@ -293,7 +293,7 @@ class StudentController extends Controller
         return Inertia::render('Student/Form', [
             'student' => $student,
             'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
-            'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
+            'classes' => SchoolClass::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
             'sections' => Section::orderBy('name')
                 ->get()
                 ->map(fn (Section $section) => [
