@@ -260,11 +260,22 @@ class FeeInvoiceConcessionTest extends TestCase
             ->assertRedirect(route('fee-invoices.index'))
             ->assertSessionHas('success');
 
-        $this->assertDatabaseCount('fee_invoices', 2);
+        // Multiple selections produce ONE combined invoice (fee_structure_id
+        // stays null; the structures live on the pivot) and no concession.
+        $this->assertDatabaseCount('fee_invoices', 1);
         $this->assertDatabaseCount('fee_concessions', 0);
+
+        $invoice = FeeInvoice::sole();
+        $this->assertEqualsWithDelta(7000.0, (float) $invoice->total_amount, 0.01);
+        $this->assertEqualsWithDelta(0.0, (float) $invoice->concession_amount, 0.01);
+        $this->assertNull($invoice->fee_structure_id);
+        $this->assertEqualsCanonicalizing(
+            [$this->feeStructure->id, $transport->id],
+            $invoice->feeStructures->pluck('id')->all(),
+        );
     }
 
-    public function test_concession_is_attached_to_each_invoice_when_multiple_structures_are_selected(): void
+    public function test_concession_is_attached_to_the_combined_invoice_when_multiple_structures_are_selected(): void
     {
         $transport = FeeStructure::create([
             'academic_session_id' => $this->session->id,
@@ -289,15 +300,19 @@ class FeeInvoiceConcessionTest extends TestCase
             ->assertRedirect(route('fee-invoices.index'))
             ->assertSessionHas('success');
 
-        $this->assertDatabaseCount('fee_invoices', 2);
-        $this->assertDatabaseCount('fee_concessions', 2);
+        // One combined invoice: 10% applies to the Rs 7,000 combined total
+        // (not 10% per structure on separate invoices), recorded once.
+        $this->assertDatabaseCount('fee_invoices', 1);
+        $this->assertDatabaseCount('fee_concessions', 1);
 
-        // 10% of Rs 5,000 and 10% of Rs 2,000.
-        $tuition = FeeInvoice::where('fee_structure_id', $this->feeStructure->id)->sole();
-        $bus = FeeInvoice::where('fee_structure_id', $transport->id)->sole();
+        $invoice = FeeInvoice::sole();
+        $this->assertEqualsWithDelta(7000.0, (float) $invoice->total_amount, 0.01);
+        $this->assertEqualsWithDelta(700.0, (float) $invoice->concession_amount, 0.01);
+        $this->assertEqualsWithDelta(6300.0, (float) $invoice->balance, 0.01);
 
-        $this->assertEqualsWithDelta(500.0, (float) $tuition->concession_amount, 0.01);
-        $this->assertEqualsWithDelta(200.0, (float) $bus->concession_amount, 0.01);
+        $concession = FeeConcession::sole();
+        $this->assertEquals($invoice->id, $concession->fee_invoice_id);
+        $this->assertNull($concession->fee_structure_id);
     }
 
     public function test_flat_concession_is_shared_once_across_multiple_structures(): void
@@ -313,8 +328,8 @@ class FeeInvoiceConcessionTest extends TestCase
         ]);
 
         // Rs 1,200 total discount over a Rs 7,000 combined total: it is
-        // consumed by the first invoice (Rs 5,000 structure) in full, and the
-        // second invoice receives nothing — not Rs 1,200 twice.
+        // applied once against the single combined invoice — never
+        // Rs 1,200 twice (once per structure).
         $this->actingAs($this->makeSuperAdmin())
             ->post(route('fee-invoices.store'), $this->validPayload([
                 'fee_structure_ids' => [$this->feeStructure->id, $transport->id],
@@ -327,16 +342,18 @@ class FeeInvoiceConcessionTest extends TestCase
             ->assertRedirect(route('fee-invoices.index'))
             ->assertSessionHas('success');
 
-        $tuition = FeeInvoice::where('fee_structure_id', $this->feeStructure->id)->sole();
-        $bus = FeeInvoice::where('fee_structure_id', $transport->id)->sole();
+        // One combined invoice with the Rs 1,200 applied once — the flat
+        // amount is never doubled across structures.
+        $this->assertDatabaseCount('fee_invoices', 1);
+        $this->assertDatabaseCount('fee_concessions', 1);
 
-        $this->assertEqualsWithDelta(1200.0, (float) $tuition->concession_amount, 0.01);
-        $this->assertEqualsWithDelta(0.0, (float) $bus->concession_amount, 0.01);
-        $this->assertEqualsWithDelta(3800.0, (float) $tuition->balance, 0.01);
-        $this->assertEqualsWithDelta(2000.0, (float) $bus->balance, 0.01);
+        $invoice = FeeInvoice::sole();
+        $this->assertEqualsWithDelta(7000.0, (float) $invoice->total_amount, 0.01);
+        $this->assertEqualsWithDelta(1200.0, (float) $invoice->concession_amount, 0.01);
+        $this->assertEqualsWithDelta(5800.0, (float) $invoice->balance, 0.01);
     }
 
-    public function test_flat_concession_larger_than_first_structure_spills_into_the_next(): void
+    public function test_flat_concession_larger_than_one_structure_applies_to_the_combined_total(): void
     {
         $transport = FeeStructure::create([
             'academic_session_id' => $this->session->id,
@@ -362,12 +379,15 @@ class FeeInvoiceConcessionTest extends TestCase
             ->assertRedirect(route('fee-invoices.index'))
             ->assertSessionHas('success');
 
-        $tuition = FeeInvoice::where('fee_structure_id', $this->feeStructure->id)->sole();
-        $bus = FeeInvoice::where('fee_structure_id', $transport->id)->sole();
+        // One combined invoice: the Rs 6,000 applies once against the
+        // Rs 7,000 combined total (capped at the total, same as the preview).
+        $this->assertDatabaseCount('fee_invoices', 1);
+        $this->assertDatabaseCount('fee_concessions', 1);
 
-        $this->assertEqualsWithDelta(5000.0, (float) $tuition->concession_amount, 0.01);
-        $this->assertEqualsWithDelta(1000.0, (float) $bus->concession_amount, 0.01);
-        $this->assertDatabaseCount('fee_concessions', 2);
+        $invoice = FeeInvoice::sole();
+        $this->assertEqualsWithDelta(7000.0, (float) $invoice->total_amount, 0.01);
+        $this->assertEqualsWithDelta(6000.0, (float) $invoice->concession_amount, 0.01);
+        $this->assertEqualsWithDelta(1000.0, (float) $invoice->balance, 0.01);
     }
 
     public function test_structures_from_different_sessions_or_classes_are_combined_into_one_invoice(): void

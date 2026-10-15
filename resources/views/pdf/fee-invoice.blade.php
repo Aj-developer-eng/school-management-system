@@ -101,11 +101,11 @@
                 </div>
                 <div>
                     <p class="label">Class</p>
-                    <p class="value">{{ $invoice->schoolClass->name }}</p>
+                    <p class="value">{{ $invoice->schoolClass?->name ?? '—' }}</p>
                 </div>
                 <div>
                     <p class="label">Session</p>
-                    <p class="value">{{ $invoice->academicSession->name }}</p>
+                    <p class="value">{{ $invoice->academicSession?->name ?? '—' }}</p>
                 </div>
                 <div>
                     <p class="label">Admission No.</p>

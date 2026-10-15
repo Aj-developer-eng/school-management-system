@@ -9,6 +9,7 @@ use App\Models\AcademicSession;
 use App\Models\FeeStructure;
 use App\Models\SchoolClass;
 use App\Models\Student;
+use App\Models\StudentEnrollment;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -114,6 +115,77 @@ class FeeInvoiceStoreTest extends TestCase
         ])->assertSessionHasErrors('fee_structure_ids.0');
 
         $this->assertSame(0, $this->student->invoices()->count());
+    }
+
+    public function test_invoice_for_sessionless_classless_structure_falls_back_to_active_session(): void
+    {
+        $structure = FeeStructure::create([
+            'academic_session_id' => null,
+            'school_class_id' => null,
+            'name' => 'School-wide Fee',
+            'fee_type' => FeeTypeEnum::Miscellaneous,
+            'amount' => 900,
+            'frequency' => FeeFrequencyEnum::OneTime,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($this->makeSuperAdmin())->post(route('fee-invoices.store'), [
+            'student_id' => $this->student->id,
+            'fee_structure_ids' => [$structure->id],
+            'issue_date' => now()->toDateString(),
+            'due_date' => now()->addDays(14)->toDateString(),
+        ]);
+
+        $response->assertRedirect(route('fee-invoices.index'));
+        $response->assertSessionHas('success', 'Invoice created successfully.');
+
+        $invoice = $this->student->invoices()->sole();
+
+        // The student has no enrollment, so the active session is used and no
+        // class is inherited from the structure.
+        $this->assertEquals($this->session->id, $invoice->academic_session_id);
+        $this->assertNull($invoice->school_class_id);
+        $this->assertStringStartsWith("INV-{$this->session->id}-", (string) $invoice->invoice_number);
+    }
+
+    public function test_invoice_for_sessionless_structure_uses_the_students_enrollment(): void
+    {
+        $previousSession = AcademicSession::create([
+            'name' => '2025-2026',
+            'start_date' => now()->subYear()->startOfYear(),
+            'end_date' => now()->subYear()->endOfYear(),
+            'is_active' => false,
+        ]);
+
+        StudentEnrollment::create([
+            'student_id' => $this->student->id,
+            'academic_session_id' => $previousSession->id,
+            'school_class_id' => $this->class->id,
+        ]);
+
+        $structure = FeeStructure::create([
+            'academic_session_id' => null,
+            'school_class_id' => null,
+            'name' => 'School-wide Fee',
+            'fee_type' => FeeTypeEnum::Miscellaneous,
+            'amount' => 900,
+            'frequency' => FeeFrequencyEnum::OneTime,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->makeSuperAdmin())->post(route('fee-invoices.store'), [
+            'student_id' => $this->student->id,
+            'fee_structure_ids' => [$structure->id],
+            'issue_date' => now()->toDateString(),
+            'due_date' => now()->addDays(14)->toDateString(),
+        ])->assertSessionHas('success', 'Invoice created successfully.');
+
+        $invoice = $this->student->invoices()->sole();
+
+        // The student's enrollment session (and class) fill the gaps.
+        $this->assertEquals($previousSession->id, $invoice->academic_session_id);
+        $this->assertEquals($this->class->id, $invoice->school_class_id);
+        $this->assertStringStartsWith("INV-{$previousSession->id}-", (string) $invoice->invoice_number);
     }
 
     private function makeFeeStructure(string $name, float $amount): FeeStructure

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\InvoiceStatusEnum;
+use App\Models\AcademicSession;
 use App\Models\FeeConcession;
 use App\Models\FeeInvoice;
 use App\Models\FeeStructure;
@@ -11,6 +12,7 @@ use App\Models\StudentEnrollment;
 use App\Models\StudentParent;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class FeeInvoiceService
 {
@@ -26,12 +28,18 @@ class FeeInvoiceService
 
             $concessionAmount = $this->calculateConcession($student, $feeStructure);
 
+            // Structures saved without a session/class fall back to the student's
+            // enrollment (and finally the active session) so the invoice row —
+            // whose invoice-number series is keyed by session — always belongs
+            // to a session.
+            $academicSessionId = $this->resolveAcademicSessionId($feeStructure, $student);
+
             $invoice = FeeInvoice::create([
                 'student_id' => $data['student_id'],
-                'academic_session_id' => $feeStructure->academic_session_id,
-                'school_class_id' => $feeStructure->school_class_id,
+                'academic_session_id' => $academicSessionId,
+                'school_class_id' => $feeStructure->school_class_id ?? $this->studentClassId($student, $academicSessionId),
                 'fee_structure_id' => $feeStructure->id,
-                'invoice_number' => $this->invoiceNumberGenerator->generate($feeStructure->academic_session_id),
+                'invoice_number' => $this->invoiceNumberGenerator->generate($academicSessionId),
                 'issue_date' => $data['issue_date'],
                 'due_date' => $data['due_date'],
                 'total_amount' => $feeStructure->amount,
@@ -68,6 +76,15 @@ class FeeInvoiceService
     {
         return DB::transaction(function () use ($data, $feeStructureIds): FeeInvoice {
             $feeStructures = FeeStructure::whereIn('id', $feeStructureIds)->orderBy('id')->get();
+
+            // `exists` counts soft-deleted rows, so the request can pass
+            // validation while nothing loadable remains.
+            if ($feeStructures->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'fee_structure_ids' => 'The selected fee structures are not available.',
+                ]);
+            }
+
             $student = Student::with(['user', 'parents.user'])->findOrFail($data['student_id']);
 
             $totalAmount = (float) $feeStructures->sum(fn (FeeStructure $structure): float => (float) $structure->amount);
@@ -81,15 +98,17 @@ class FeeInvoiceService
             // The invoice row carries a single session/class (used for the
             // invoice-number series). When the selected structures span
             // sessions or classes, the first structure's values are used; the
-            // pivot still records every structure individually.
+            // pivot still records every structure individually. Missing values
+            // fall back to the student's enrollment / the active session.
             $firstStructure = $feeStructures->first();
+            $academicSessionId = $this->resolveAcademicSessionId($firstStructure, $student);
 
             $invoice = FeeInvoice::create([
                 'student_id' => $data['student_id'],
-                'academic_session_id' => $firstStructure->academic_session_id,
-                'school_class_id' => $firstStructure->school_class_id,
+                'academic_session_id' => $academicSessionId,
+                'school_class_id' => $firstStructure->school_class_id ?? $this->studentClassId($student, $academicSessionId),
                 'fee_structure_id' => null,
-                'invoice_number' => $this->invoiceNumberGenerator->generate($firstStructure->academic_session_id),
+                'invoice_number' => $this->invoiceNumberGenerator->generate($academicSessionId),
                 'issue_date' => $data['issue_date'],
                 'due_date' => $data['due_date'],
                 'total_amount' => $totalAmount,
@@ -185,8 +204,16 @@ class FeeInvoiceService
     {
         $feeStructure = FeeStructure::findOrFail($feeStructureId);
 
-        $enrollments = StudentEnrollment::where('academic_session_id', $feeStructure->academic_session_id)
-            ->where('school_class_id', $feeStructure->school_class_id)
+        // A structure saved without a session targets the active session; one
+        // without a class targets every class in that session (school-wide).
+        $academicSessionId = $feeStructure->academic_session_id ?? AcademicSession::active()->first()?->id;
+
+        if ($academicSessionId === null) {
+            return 0;
+        }
+
+        $enrollments = StudentEnrollment::where('academic_session_id', $academicSessionId)
+            ->when($feeStructure->school_class_id, fn ($query, $classId) => $query->where('school_class_id', $classId))
             ->whereNull('deleted_at')
             ->get();
 
@@ -276,5 +303,53 @@ class FeeInvoiceService
         }
 
         return min($totalConcession, (float) $feeStructure->amount);
+    }
+
+    /**
+     * Resolve the academic session for a new invoice. The fee structure's own
+     * session wins; structures saved without one fall back to the student's
+     * most recent enrollment and finally to the active session (the invoice
+     * number series is keyed by session, so a session is always required).
+     */
+    private function resolveAcademicSessionId(FeeStructure $feeStructure, ?Student $student = null): int
+    {
+        $sessionId = $feeStructure->academic_session_id
+            ?? ($student !== null ? $this->studentEnrollmentSessionId($student) : null)
+            ?? AcademicSession::active()->first()?->id;
+
+        if ($sessionId === null) {
+            throw ValidationException::withMessages([
+                'academic_session_id' => 'No academic session is available for this invoice. Assign a session to the fee structure or activate an academic session.',
+            ]);
+        }
+
+        return $sessionId;
+    }
+
+    /**
+     * The session of the student's most recent enrollment, if any.
+     */
+    private function studentEnrollmentSessionId(Student $student): ?int
+    {
+        $sessionId = $student->enrollments()
+            ->whereNull('deleted_at')
+            ->latest('id')
+            ->value('academic_session_id');
+
+        return $sessionId === null ? null : (int) $sessionId;
+    }
+
+    /**
+     * The class the student is enrolled in for the given session, if any —
+     * used when the fee structure was saved without a class.
+     */
+    private function studentClassId(Student $student, int $academicSessionId): ?int
+    {
+        $classId = $student->enrollments()
+            ->where('academic_session_id', $academicSessionId)
+            ->whereNull('deleted_at')
+            ->value('school_class_id');
+
+        return $classId === null ? null : (int) $classId;
     }
 }

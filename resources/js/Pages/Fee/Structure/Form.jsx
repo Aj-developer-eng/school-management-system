@@ -76,7 +76,7 @@ export default function Form({ feeStructure, academicSessions, classes }) {
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
-                            <InputLabel htmlFor="academic_session_id" value="Category Session" />
+                            <InputLabel htmlFor="academic_session_id" value="Category Session (optional)" />
                             <select
                                 id="academic_session_id"
                                 value={data.academic_session_id}
@@ -90,11 +90,15 @@ export default function Form({ feeStructure, academicSessions, classes }) {
                                     </option>
                                 ))}
                             </select>
+                            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                Leave blank — the student&apos;s enrolled session (or the
+                                active session) will be used on invoices.
+                            </p>
                             <InputError message={errors.academic_session_id} className="mt-2" />
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="school_class_id" value="Class" />
+                            <InputLabel htmlFor="school_class_id" value="Class (optional)" />
                             <SearchableSelect
                                 id="school_class_id"
                                 value={data.school_class_id}
@@ -103,6 +107,9 @@ export default function Form({ feeStructure, academicSessions, classes }) {
                                 placeholder="Search class by name or code…"
                                 emptyMessage="No classes match your search"
                             />
+                            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                Leave blank to apply school-wide (all classes).
+                            </p>
                             <InputError message={errors.school_class_id} className="mt-2" />
                         </div>
                     </div>

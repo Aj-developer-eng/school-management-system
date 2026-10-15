@@ -167,8 +167,8 @@ export default function Form({ students, feeStructures, invoice }) {
 
                                 <p className="mt-1 text-gray-500 dark:text-gray-400">
                                     Student: {invoice.student?.user?.name} ·{' '}
-                                    {invoice.school_class?.name} ·{' '}
-                                    {invoice.academic_session?.name}
+                                    {invoice.school_class?.name ?? '—'} ·{' '}
+                                    {invoice.academic_session?.name ?? '—'}
                                 </p>
 
                                 <p className="mt-1 text-gray-500 dark:text-gray-400">
@@ -305,17 +305,22 @@ export default function Form({ students, feeStructures, invoice }) {
                                     options={(feeStructures ?? []).map(
                                         (structure) => ({
                                             value: String(structure.id),
-                                            label: `${
-                                                structure.name
-                                            } — ${
-                                                structure.academic_session?.name ??
-                                                ''
-                                            } / ${
-                                                structure.school_class?.name ??
-                                                ''
-                                            } (Rs ${Number(
-                                                structure.amount,
-                                            ).toLocaleString()})`,
+                                            label: [
+                                                structure.name,
+                                                [
+                                                    structure.academic_session
+                                                        ?.name,
+                                                    structure.school_class
+                                                        ?.name,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(' / '),
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' — ') +
+                                                ` (Rs ${Number(
+                                                    structure.amount,
+                                                ).toLocaleString()})`,
                                             keywords: [
                                                 structure.name,
                                                 structure.academic_session?.name,
@@ -350,12 +355,14 @@ export default function Form({ students, feeStructures, invoice }) {
                                                 key={structure.id}
                                                 className="text-gray-600 dark:text-gray-400"
                                             >
-                                                {structure.name} ·{' '}
-                                                {structure.school_class?.name} ·{' '}
-                                                {
+                                                {[
+                                                    structure.name,
+                                                    structure.school_class?.name,
                                                     structure.academic_session
-                                                        ?.name
-                                                }{' '}
+                                                        ?.name,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(' · ')}{' '}
                                                 —{' '}
                                                 <span className="font-semibold">
                                                     Rs{' '}
