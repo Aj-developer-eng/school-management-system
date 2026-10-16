@@ -109,6 +109,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->parameters(['teacher-assignments' => 'teacher_assignment'])
         ->names('teacher-assignments');
 
+    // Registered before the students resource so `{student}` does not swallow it.
+    Route::get('students/next-roll-number', [StudentController::class, 'nextRollNumber'])
+        ->name('students.next-roll-number');
+
     Route::resource('students', StudentController::class)
         ->names('students');
 

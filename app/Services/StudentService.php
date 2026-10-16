@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\Hash;
 
 class StudentService
 {
-    public function __construct(private readonly AdmissionNumberGenerator $admissionNumbers) {}
+    public function __construct(
+        private readonly AdmissionNumberGenerator $admissionNumbers,
+        private readonly RollNumberGenerator $rollNumbers,
+    ) {}
 
     public function create(array $data): Student
     {
@@ -47,12 +50,19 @@ class StudentService
                 'is_active' => true,
             ]);
 
+            // Roll numbers are server-generated and unique per class for the
+            // session; any client-supplied value is ignored.
+            $rollNumber = $this->rollNumbers->next(
+                (int) $data['academic_session_id'],
+                (int) $data['school_class_id'],
+            );
+
             StudentEnrollment::create([
                 'student_id' => $student->id,
                 'academic_session_id' => $data['academic_session_id'],
                 'school_class_id' => $data['school_class_id'],
                 'section_id' => $data['section_id'] ?? null,
-                'roll_number' => $data['roll_number'] ?? null,
+                'roll_number' => $rollNumber,
                 'enrolled_on' => $data['enrolled_on'] ?? now()->toDateString(),
                 'status' => 'active',
             ]);

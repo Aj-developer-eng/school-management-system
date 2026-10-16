@@ -56,6 +56,36 @@ export default function Form({ student, sessions, classes, sections, subjects = 
         }
     }, [data.academic_session_id, data.school_class_id, sections]);
 
+    // Roll numbers are auto-generated server-side on create. Preview the next
+    // value for the selected session/class and keep it in the (read-only) field;
+    // the authoritative number is still assigned inside the store transaction.
+    useEffect(() => {
+        if (isEdit || !data.academic_session_id || !data.school_class_id) {
+            return;
+        }
+
+        let active = true;
+
+        fetch(
+            `${route('students.next-roll-number')}?academic_session_id=${data.academic_session_id}&school_class_id=${data.school_class_id}`,
+        )
+            .then((res) => res.json())
+            .then((json) => {
+                if (active) {
+                    setData('roll_number', json.roll_number ?? '');
+                }
+            })
+            .catch(() => {
+                if (active) {
+                    setData('roll_number', '');
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [isEdit, data.academic_session_id, data.school_class_id]);
+
     const selectedSubjectIds = data.subject_ids ?? [];
 
     // Subjects mapped to the selected class; subjects that are already selected
@@ -355,14 +385,24 @@ export default function Form({ student, sessions, classes, sections, subjects = 
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="roll_number" value="Roll Number" required/>
+                            <InputLabel htmlFor="roll_number" value="Roll Number" required={isEdit}/>
                             <TextInput
                                 id="roll_number"
                                 value={data.roll_number}
                                 onChange={(event) => setData('roll_number', event.target.value)}
-                                className="mt-1 block w-full"
-                                required
+                                readOnly={!isEdit}
+                                required={isEdit}
+                                className={`mt-1 block w-full ${
+                                    !isEdit
+                                        ? 'cursor-default bg-gray-50 dark:bg-gray-900 dark:text-gray-400'
+                                        : ''
+                                }`}
                             />
+                            {!isEdit && (
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Auto-generated and unique per class. It is assigned when the student is saved.
+                                </p>
+                            )}
                             <InputError message={errors.roll_number} className="mt-2" />
                         </div>
                     </div>

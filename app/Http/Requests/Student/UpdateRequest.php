@@ -36,7 +36,21 @@ class UpdateRequest extends FormRequest
             'academic_session_id' => ['required', 'exists:academic_sessions,id'],
             'school_class_id' => ['required', 'exists:school_classes,id'],
             'section_id' => ['nullable', 'exists:sections,id'],
-            'roll_number' => ['required', 'string', 'max:20'],
+            // Roll numbers are auto-generated on create but remain editable on
+            // edit; they must stay unique within the class for the session.
+            'roll_number' => [
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('student_enrollments', 'roll_number')
+                    ->where('academic_session_id', $this->input('academic_session_id'))
+                    ->where('school_class_id', $this->input('school_class_id'))
+                    ->ignore(
+                        $student->enrollments()
+                            ->where('academic_session_id', $this->input('academic_session_id'))
+                            ->value('id')
+                    ),
+            ],
             'enrolled_on' => ['nullable', 'date'],
             'subject_ids' => ['nullable', 'array'],
             'subject_ids.*' => ['integer', 'exists:subjects,id'],

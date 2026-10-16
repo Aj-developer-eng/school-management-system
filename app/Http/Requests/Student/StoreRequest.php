@@ -31,7 +31,9 @@ class StoreRequest extends FormRequest
             'academic_session_id' => ['required', 'exists:academic_sessions,id'],
             'school_class_id' => ['required', 'exists:school_classes,id'],
             'section_id' => ['nullable', 'exists:sections,id'],
-            'roll_number' => ['required', 'string', 'max:20'],
+            // Roll numbers are generated server-side (unique per class/session);
+            // any submitted value is ignored, so it is not required here.
+            'roll_number' => ['nullable', 'string', 'max:20'],
             'enrolled_on' => ['nullable', 'date'],
             'subject_ids' => ['nullable', 'array'],
             'subject_ids.*' => ['integer', 'exists:subjects,id'],

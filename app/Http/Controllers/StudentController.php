@@ -13,16 +13,21 @@ use App\Models\Student;
 use App\Models\Subject;
 use App\Models\TestResult;
 use App\Services\ActivityLogService;
+use App\Services\RollNumberGenerator;
 use App\Services\SchoolSettingsService;
 use App\Services\StudentService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class StudentController extends Controller
 {
-    public function __construct(private readonly StudentService $students) {}
+    public function __construct(
+        private readonly StudentService $students,
+        private readonly RollNumberGenerator $rollNumbers,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -53,6 +58,30 @@ class StudentController extends Controller
     {
         $this->authorize('create', Student::class);
         return $this->renderForm();
+    }
+
+    /**
+     * Return the next roll number for a class in an academic session.
+     *
+     * Used by the create form to display the auto-generated roll number in a
+     * read-only field. The preview does not consume the number; the authoritative
+     * value is generated inside the store transaction.
+     */
+    public function nextRollNumber(Request $request): JsonResponse
+    {
+        $this->authorize('create', Student::class);
+
+        $data = $request->validate([
+            'academic_session_id' => ['required', 'exists:academic_sessions,id'],
+            'school_class_id' => ['required', 'exists:school_classes,id'],
+        ]);
+
+        return response()->json([
+            'roll_number' => $this->rollNumbers->preview(
+                (int) $data['academic_session_id'],
+                (int) $data['school_class_id'],
+            ),
+        ]);
     }
 
     public function store(StoreRequest $request): \Illuminate\Http\RedirectResponse
