@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Parent\StoreRequest;
 use App\Http\Requests\Parent\UpdateRequest;
+use App\Models\AcademicSession;
 use App\Models\Student;
 use App\Models\StudentParent;
 use App\Services\StudentParentService;
@@ -20,7 +21,23 @@ class StudentParentController extends Controller
     {
         $this->authorize('viewAny', StudentParent::class);
 
-        $query = StudentParent::query()->with(['user', 'students.user']);
+        $activeSession = AcademicSession::active()->first();
+
+        $query = StudentParent::query()->with([
+            'user',
+            'students.user',
+            // Current enrollment details for the children hover preview.
+            'students.enrollments' => function ($q) use ($activeSession): void {
+                $q->with(['schoolClass:id,name', 'section:id,name', 'academicSession:id,name'])
+                    ->whereNull('deleted_at');
+
+                if ($activeSession) {
+                    $q->where('academic_session_id', $activeSession->id);
+                }
+
+                $q->latest('enrolled_on');
+            },
+        ]);
 
         if ($request->search) {
             $query->whereHas('user', function ($q) use ($request): void {
