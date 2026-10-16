@@ -40,7 +40,7 @@ export default function Form({ class: item, sessions }) {
             <Card className="max-w-2xl">
                 <form onSubmit={submit} className="space-y-6 p-6">
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <div>
+                        <div className={isEdit ? '' : 'sm:col-span-2'}>
                             <InputLabel htmlFor="name" value="Class Name" />
                             <TextInput
                                 id="name"
@@ -52,16 +52,18 @@ export default function Form({ class: item, sessions }) {
                             <InputError message={errors.name} className="mt-2" />
                         </div>
 
-                        <div>
-                            <InputLabel htmlFor="code" value="Code" />
-                            <TextInput
-                                id="code"
-                                value={data.code}
-                                onChange={(event) => setData('code', event.target.value)}
-                                className="mt-1 block w-full"
-                            />
-                            <InputError message={errors.code} className="mt-2" />
-                        </div>
+                        {isEdit && (
+                            <div>
+                                <InputLabel htmlFor="code" value="Code" />
+                                <TextInput
+                                    id="code"
+                                    value={data.code}
+                                    onChange={(event) => setData('code', event.target.value)}
+                                    className="mt-1 block w-full"
+                                />
+                                <InputError message={errors.code} className="mt-2" />
+                            </div>
+                        )}
                     </div>
 
                     <div>

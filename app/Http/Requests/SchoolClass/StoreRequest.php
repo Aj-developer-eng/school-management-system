@@ -15,7 +15,7 @@ class StoreRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:100'],
-            'code' => ['required', 'string', 'max:20', 'unique:school_classes,code'],
+            'code' => ['nullable', 'string', 'max:20', 'unique:school_classes,code'],
             'description' => ['nullable', 'string', 'max:500'],
             'active_from_session_id' => ['nullable', 'exists:academic_sessions,id'],
             'is_active' => ['sometimes', 'boolean'],
@@ -25,6 +25,7 @@ class StoreRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
+            'code' => filled($this->input('code')) ? $this->input('code') : null,
             'is_active' => $this->boolean('is_active'),
         ]);
     }

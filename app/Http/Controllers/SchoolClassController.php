@@ -87,7 +87,13 @@ class SchoolClassController extends Controller
 
     public function store(StoreRequest $request): \Illuminate\Http\RedirectResponse
     {
-        SchoolClass::create($request->validated());
+        $data = $request->validated();
+
+        if (blank($data['code'] ?? null)) {
+            $data['code'] = $this->generateUniqueCode($data['name']);
+        }
+
+        SchoolClass::create($data);
 
         return redirect()->route('classes.index')
             ->with('success', 'Class created successfully.');
@@ -115,5 +121,28 @@ class SchoolClassController extends Controller
 
         return redirect()->route('classes.index')
             ->with('success', 'Class deleted successfully.');
+    }
+
+    /**
+     * Generate a unique class code (max 20 chars) derived from the class name,
+     * since the code field is no longer entered on the create form.
+     */
+    private function generateUniqueCode(string $name): string
+    {
+        $base = strtoupper(substr((string) preg_replace('/[^A-Za-z0-9]/', '', $name), 0, 12));
+
+        if ($base === '') {
+            $base = 'CLASS';
+        }
+
+        $code = $base;
+        $suffix = 1;
+
+        while (SchoolClass::withTrashed()->where('code', $code)->exists()) {
+            $suffix++;
+            $code = substr($base, 0, 20 - strlen((string) $suffix)).$suffix;
+        }
+
+        return $code;
     }
 }
