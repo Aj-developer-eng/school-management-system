@@ -5,11 +5,13 @@ namespace Tests\Feature;
 use App\Enums\GenderEnum;
 use App\Enums\RoleEnum;
 use App\Models\AcademicSession;
+use App\Models\RollNumberCounter;
 use App\Models\SchoolClass;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Services\RollNumberGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -76,7 +78,7 @@ class StudentRollNumberTest extends TestCase
 
         $student = Student::query()->latest('id')->firstOrFail();
 
-        $this->assertSame('1', $student->enrollments()->first()->roll_number);
+        $this->assertSame('0001', $student->enrollments()->first()->roll_number);
     }
 
     public function test_roll_numbers_increment_per_class_and_stay_unique(): void
@@ -89,7 +91,7 @@ class StudentRollNumberTest extends TestCase
 
         $rollNumbers = StudentEnrollment::query()->pluck('roll_number')->sort()->values()->all();
 
-        $this->assertSame(['1', '2'], $rollNumbers);
+        $this->assertSame(['0001', '0002'], $rollNumbers);
     }
 
     public function test_roll_numbers_are_scoped_per_class(): void
@@ -106,7 +108,7 @@ class StudentRollNumberTest extends TestCase
             ->assertRedirect(route('students.index'));
 
         $this->assertSame(
-            '1',
+            '0001',
             StudentEnrollment::query()
                 ->where('school_class_id', $this->otherClass->id)
                 ->value('roll_number'),
@@ -123,7 +125,24 @@ class StudentRollNumberTest extends TestCase
 
         $student = Student::query()->latest('id')->firstOrFail();
 
-        $this->assertSame('2', $student->enrollments()->first()->roll_number);
+        $this->assertSame('0002', $student->enrollments()->first()->roll_number);
+    }
+
+    public function test_roll_numbers_are_four_digit_padded_and_widen_past_9999(): void
+    {
+        $generator = app(RollNumberGenerator::class);
+
+        $this->assertSame('0001', $generator->preview($this->session->id, $this->class->id));
+
+        RollNumberCounter::create([
+            'academic_session_id' => $this->session->id,
+            'school_class_id' => $this->class->id,
+            'last_number' => 9999,
+        ]);
+
+        // Past 9999 the padded format naturally widens to five digits.
+        $this->assertSame('10000', $generator->preview($this->session->id, $this->class->id));
+        $this->assertSame('10000', $generator->next($this->session->id, $this->class->id));
     }
 
     public function test_next_roll_number_preview_returns_the_next_value_without_consuming_it(): void
@@ -133,16 +152,16 @@ class StudentRollNumberTest extends TestCase
             'school_class_id' => $this->class->id,
         ]);
 
-        $this->actingAs($this->admin)->get($uri)->assertOk()->assertJson(['roll_number' => '1']);
-        $this->actingAs($this->admin)->get($uri)->assertOk()->assertJson(['roll_number' => '1']);
+        $this->actingAs($this->admin)->get($uri)->assertOk()->assertJson(['roll_number' => '0001']);
+        $this->actingAs($this->admin)->get($uri)->assertOk()->assertJson(['roll_number' => '0001']);
 
-        // The preview must not consume a number: the stored student gets "1".
+        // The preview must not consume a number: the stored student gets "0001".
         $this->actingAs($this->admin)->post(route('students.store'), $this->studentPayload())
             ->assertRedirect(route('students.index'));
 
         $student = Student::query()->latest('id')->firstOrFail();
 
-        $this->assertSame('1', $student->enrollments()->first()->roll_number);
+        $this->assertSame('0001', $student->enrollments()->first()->roll_number);
     }
 
     public function test_next_roll_number_requires_create_permission(): void
@@ -168,7 +187,7 @@ class StudentRollNumberTest extends TestCase
         [, $second] = Student::query()->with('user')->orderBy('id')->get();
 
         $this->actingAs($this->admin)
-            ->put(route('students.update', $second), $this->updatePayload($second, ['roll_number' => '1']))
+            ->put(route('students.update', $second), $this->updatePayload($second, ['roll_number' => '0001']))
             ->assertSessionHasErrors('roll_number');
     }
 
@@ -180,10 +199,10 @@ class StudentRollNumberTest extends TestCase
         $student = Student::query()->latest('id')->firstOrFail();
 
         $this->actingAs($this->admin)
-            ->put(route('students.update', $student), $this->updatePayload($student, ['roll_number' => '1']))
+            ->put(route('students.update', $student), $this->updatePayload($student, ['roll_number' => '0001']))
             ->assertRedirect(route('students.index'));
 
-        $this->assertSame('1', $student->enrollments()->first()->roll_number);
+        $this->assertSame('0001', $student->enrollments()->first()->roll_number);
     }
 
     private function enrollStudent(string $admissionNumber, string $rollNumber): Student

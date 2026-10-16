@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\RollNumberCounter;
 use App\Models\StudentEnrollment;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class RollNumberGenerator
@@ -36,7 +37,7 @@ class RollNumberGenerator
             $counter->last_number = $number;
             $counter->save();
 
-            return (string) $number;
+            return $this->format($number);
         });
     }
 
@@ -59,7 +60,7 @@ class RollNumberGenerator
             $number++;
         }
 
-        return (string) $number;
+        return $this->format($number);
     }
 
     private function taken(int $academicSessionId, int $schoolClassId, int $number): bool
@@ -67,7 +68,22 @@ class RollNumberGenerator
         return StudentEnrollment::withTrashed()
             ->where('academic_session_id', $academicSessionId)
             ->where('school_class_id', $schoolClassId)
-            ->where('roll_number', (string) $number)
+            // Match both the padded form ("0001") and legacy unpadded
+            // entries ("1") so neither can ever be reissued.
+            ->where(function (Builder $query) use ($number): void {
+                $query
+                    ->where('roll_number', $this->format($number))
+                    ->orWhere('roll_number', (string) $number);
+            })
             ->exists();
+    }
+
+    /**
+     * Roll numbers are four-digit, zero-padded strings ("0001", "0002", ...),
+     * widening naturally to five digits past 9999.
+     */
+    private function format(int $number): string
+    {
+        return sprintf('%04d', $number);
     }
 }

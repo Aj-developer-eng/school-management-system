@@ -8,6 +8,20 @@ use Illuminate\Validation\Rule;
 
 class UpdateRequest extends FormRequest
 {
+    /**
+     * Normalize the submitted roll number before validation so manual edits
+     * keep the same four-digit, zero-padded format as generated values
+     * ("1" becomes "0001").
+     */
+    protected function prepareForValidation(): void
+    {
+        $rollNumber = $this->input('roll_number');
+
+        if (is_string($rollNumber) && ctype_digit($rollNumber)) {
+            $this->merge(['roll_number' => sprintf('%04d', (int) $rollNumber)]);
+        }
+    }
+
     public function authorize(): bool
     {
         $student = $this->route('student');

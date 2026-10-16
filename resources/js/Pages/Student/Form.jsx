@@ -400,7 +400,7 @@ export default function Form({ student, sessions, classes, sections, subjects = 
                             />
                             {!isEdit && (
                                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    Auto-generated and unique per class. It is assigned when the student is saved.
+                                    Auto-generated in 4-digit format (e.g. 0001), unique per class. It is assigned when the student is saved.
                                 </p>
                             )}
                             <InputError message={errors.roll_number} className="mt-2" />
