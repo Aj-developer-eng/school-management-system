@@ -124,7 +124,13 @@ class SubjectController extends Controller
 
     public function store(StoreRequest $request): RedirectResponse
     {
-        $subject = Subject::create($request->safe()->except('school_class_ids'));
+        $data = $request->safe()->except('school_class_ids');
+
+        if (blank($data['code'] ?? null)) {
+            $data['code'] = $this->generateUniqueCode($data['name']);
+        }
+
+        $subject = Subject::create($data);
         $subject->schoolClasses()->sync($request->input('school_class_ids', []));
 
         return redirect()->route('subjects.index')
@@ -156,6 +162,29 @@ class SubjectController extends Controller
 
         return redirect()->route('subjects.index')
             ->with('success', 'Subject deleted successfully.');
+    }
+
+    /**
+     * Generate a unique subject code (max 20 chars) derived from the subject
+     * name, since the code field is no longer entered on the create form.
+     */
+    private function generateUniqueCode(string $name): string
+    {
+        $base = strtoupper(substr((string) preg_replace('/[^A-Za-z0-9]/', '', $name), 0, 12));
+
+        if ($base === '') {
+            $base = 'SUBJECT';
+        }
+
+        $code = $base;
+        $suffix = 1;
+
+        while (Subject::withTrashed()->where('code', $code)->exists()) {
+            $suffix++;
+            $code = substr($base, 0, 20 - strlen((string) $suffix)).$suffix;
+        }
+
+        return $code;
     }
 
     public function uploadPaper(Request $request, Subject $subject): RedirectResponse
