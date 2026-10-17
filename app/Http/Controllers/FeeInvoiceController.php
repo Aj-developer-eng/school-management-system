@@ -100,18 +100,30 @@ class FeeInvoiceController extends Controller
     {
         $validated = $request->validated();
 
-        // ONE invoice is created, combining every selected fee structure.
-        // Single selections produce a regular structure-linked invoice;
-        // multiple selections produce a combined invoice whose `items`
-        // snapshot holds each structure (see FeeInvoiceService).
+        // ONE invoice is created, covering every selected fee structure
+        // and/or the optional custom amount. Single structure selections
+        // produce a regular structure-linked invoice; anything else
+        // produces an invoice whose `items` snapshot holds each line
+        // (see FeeInvoiceService).
+        $feeStructureIds = $validated['fee_structure_ids'] ?? [];
+
         $invoice = $service->createInvoiceForStructures([
             'student_id' => $validated['student_id'],
             'issue_date' => $validated['issue_date'],
             'due_date' => $validated['due_date'],
-        ], $validated['fee_structure_ids']);
+            'custom_amount' => $validated['custom_amount'] ?? null,
+            'custom_label' => $validated['custom_label'] ?? null,
+        ], $feeStructureIds);
 
-        $count = count($validated['fee_structure_ids']);
-        ActivityLogService::custom('Fee Invoices', 'created', "Created invoice {$invoice->invoice_number} covering {$count} fee structure(s)");
+        $details = [];
+        if (count($feeStructureIds) > 0) {
+            $details[] = count($feeStructureIds) . ' fee structure(s)';
+        }
+        if (isset($validated['custom_amount'])) {
+            $details[] = 'custom amount of Rs ' . number_format((float) $validated['custom_amount'], 2);
+        }
+
+        ActivityLogService::custom('Fee Invoices', 'created', "Created invoice {$invoice->invoice_number} covering " . implode(' + ', $details));
 
         return redirect()->route('fee-invoices.index')
             ->with('success', 'Invoice created successfully.');

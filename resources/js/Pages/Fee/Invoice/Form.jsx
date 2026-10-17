@@ -28,6 +28,8 @@ export default function Form({ students, feeStructures, invoice }) {
             : {
                   student_id: '',
                   fee_structure_ids: [],
+                  custom_amount: '',
+                  custom_label: '',
                   issue_date: new Date().toISOString().split('T')[0],
                   due_date: '',
               },
@@ -36,6 +38,8 @@ export default function Form({ students, feeStructures, invoice }) {
     const selectedStructures = (feeStructures ?? []).filter((s) =>
         (data.fee_structure_ids ?? []).includes(String(s.id)),
     );
+
+    const customAmount = Math.max(0, Number(data.custom_amount) || 0);
 
     const submit = (event) => {
         event.preventDefault();
@@ -157,16 +161,59 @@ export default function Form({ students, feeStructures, invoice }) {
                                             .filter(Boolean)
                                             .join(' '),
                                     }))}
-                                    placeholder="Search and select one or more fee structures…"
+                                    placeholder="Search and select fee structures (optional if entering a custom amount)…"
                                     emptyMessage="No fee structures match your search"
                                 />
                                 <InputError message={errors.fee_structure_ids} className="mt-2" />
                             </div>
 
-                            {selectedStructures.length > 0 && (
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <div>
+                                    <InputLabel htmlFor="custom_amount" value="Custom Amount (optional)" />
+                                    <TextInput
+                                        id="custom_amount"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={data.custom_amount}
+                                        onChange={(e) => setData('custom_amount', e.target.value)}
+                                        placeholder="e.g. 500"
+                                        className="mt-1 block w-full"
+                                    />
+                                    <InputError message={errors.custom_amount} className="mt-2" />
+                                </div>
+
+                                <div>
+                                    <InputLabel htmlFor="custom_label" value="Custom Amount Description" />
+                                    <TextInput
+                                        id="custom_label"
+                                        type="text"
+                                        maxLength={191}
+                                        value={data.custom_label}
+                                        onChange={(e) => setData('custom_label', e.target.value)}
+                                        placeholder="Custom Fee"
+                                        className="mt-1 block w-full"
+                                    />
+                                    <InputError message={errors.custom_label} className="mt-2" />
+                                </div>
+                            </div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Enter a custom amount to bill a one-off charge — on its own (leave the fee structures empty) or on top of the selected structures. Concessions are not applied to custom amounts.
+                            </p>
+
+                            {selectedStructures.length > 0 || customAmount > 0 ? (
                                 <div className="rounded-lg bg-indigo-50 p-4 text-sm dark:bg-indigo-500/10">
                                     <p className="font-medium text-indigo-700 dark:text-indigo-300">
-                                        Invoice Summary ({selectedStructures.length} fee structure{selectedStructures.length === 1 ? '' : 's'})
+                                        Invoice Summary (
+                                        {[
+                                            selectedStructures.length > 0
+                                                ? `${selectedStructures.length} fee structure${selectedStructures.length === 1 ? '' : 's'}`
+                                                : null,
+                                            customAmount > 0 ? 'custom amount' : null,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' + ')}
+                                        )
                                     </p>
                                     <ul className="mt-1 space-y-1">
                                         {selectedStructures.map((s) => (
@@ -175,18 +222,27 @@ export default function Form({ students, feeStructures, invoice }) {
                                                 <span className="font-semibold">Rs {Number(s.amount).toLocaleString()}</span>
                                             </li>
                                         ))}
+                                        {customAmount > 0 && (
+                                            <li className="text-gray-600 dark:text-gray-400">
+                                                {(data.custom_label ?? '').trim() || 'Custom Fee'} · Custom —{' '}
+                                                <span className="font-semibold">Rs {customAmount.toLocaleString()}</span>
+                                            </li>
+                                        )}
                                     </ul>
                                     <p className="mt-2 text-gray-600 dark:text-gray-400">
                                         Total:{' '}
                                         <span className="font-semibold">
-                                            Rs {selectedStructures.reduce((sum, s) => sum + Number(s.amount), 0).toLocaleString()}
+                                            Rs{' '}
+                                            {(
+                                                selectedStructures.reduce((sum, s) => sum + Number(s.amount), 0) + customAmount
+                                            ).toLocaleString()}
                                         </span>
                                     </p>
                                     <p className="mt-1 text-gray-500 dark:text-gray-400">
-                                        A single combined invoice will be created with the total of the selected fee structures. Concessions (if any) will be auto-applied based on the student's active concessions.
+                                        A single invoice will be created for the total of the selected fee structures and custom amount. Concessions (if any) are auto-applied to the selected fee structures only.
                                     </p>
                                 </div>
-                            )}
+                            ) : null}
                         </>
                     )}
 

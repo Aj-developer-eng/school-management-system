@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\InvoiceStatusEnum;
+use App\Models\AcademicSession;
 use App\Models\FeeConcession;
 use App\Models\FeeInvoice;
 use App\Models\FeeStructure;
@@ -11,6 +12,7 @@ use App\Models\StudentEnrollment;
 use App\Models\StudentParent;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class FeeInvoiceService
 {
@@ -49,12 +51,16 @@ class FeeInvoiceService
     }
 
     /**
-     * Create a SINGLE invoice covering the given fee structures.
+     * Create a SINGLE invoice covering the given fee structures, plus an
+     * optional custom (one-off) amount.
      *
-     * One selected structure → a regular invoice linked via `fee_structure_id`.
-     * Several selected structures → ONE combined invoice with
-     * `fee_structure_id = null` and the structures snapshotted in `items`,
-     * so the invoice total is the sum of all selected structures.
+     * - One structure and no custom amount → a regular invoice linked via
+     *   `fee_structure_id` (unchanged behaviour).
+     * - Several structures and/or a custom amount → ONE invoice with
+     *   `fee_structure_id = null`; each structure is snapshotted in `items`
+     *   and the custom amount (if any) is appended as an extra line item.
+     * - No structures at all → a custom-only invoice whose session/class
+     *   are derived from the student's enrollment.
      */
     public function createInvoiceForStructures(array $data, array $feeStructureIds): FeeInvoice
     {
@@ -66,7 +72,23 @@ class FeeInvoiceService
             ->filter()
             ->values();
 
-        if ($ordered->count() === 1) {
+        $customAmount = round((float) ($data['custom_amount'] ?? 0), 2);
+        $customLabel = trim((string) ($data['custom_label'] ?? ''));
+        $customLabel = $customLabel !== '' ? $customLabel : 'Custom Fee';
+
+        if ($ordered->isEmpty()) {
+            // Validation guarantees a custom amount when no structure is
+            // selected, but stay defensive here.
+            if ($customAmount <= 0) {
+                throw ValidationException::withMessages([
+                    'fee_structure_ids' => 'Select at least one fee structure or enter a custom amount.',
+                ]);
+            }
+
+            return $this->createCustomAmountInvoice($data, $customAmount, $customLabel);
+        }
+
+        if ($ordered->count() === 1 && $customAmount <= 0) {
             return $this->createInvoice([
                 'student_id' => $data['student_id'],
                 'fee_structure_id' => $ordered->first()->id,
@@ -75,7 +97,7 @@ class FeeInvoiceService
             ]);
         }
 
-        return DB::transaction(function () use ($data, $ordered): FeeInvoice {
+        return DB::transaction(function () use ($data, $ordered, $customAmount, $customLabel): FeeInvoice {
             // A combined invoice belongs to the session/class of the first
             // selected structure (structures are expected to share them).
             $primary = $ordered->first();
@@ -85,10 +107,27 @@ class FeeInvoiceService
 
             // Concessions are calculated per structure (each capped at that
             // structure's amount), then summed and capped at the total.
+            // The custom amount is a one-off charge and gets no concession.
             $concessionAmount = 0.0;
             foreach ($ordered as $structure) {
                 $concessionAmount += $this->calculateConcession($student, $structure);
             }
+
+            $items = $ordered->map(fn (FeeStructure $structure): array => [
+                'fee_structure_id' => $structure->id,
+                'name' => $structure->name,
+                'amount' => (float) $structure->amount,
+            ])->all();
+
+            if ($customAmount > 0) {
+                $totalAmount += $customAmount;
+                $items[] = [
+                    'fee_structure_id' => null,
+                    'name' => $customLabel,
+                    'amount' => $customAmount,
+                ];
+            }
+
             $concessionAmount = min($concessionAmount, $totalAmount);
 
             $invoice = FeeInvoice::create([
@@ -96,11 +135,7 @@ class FeeInvoiceService
                 'academic_session_id' => $primary->academic_session_id,
                 'school_class_id' => $primary->school_class_id,
                 'fee_structure_id' => null,
-                'items' => $ordered->map(fn (FeeStructure $structure): array => [
-                    'fee_structure_id' => $structure->id,
-                    'name' => $structure->name,
-                    'amount' => (float) $structure->amount,
-                ])->all(),
+                'items' => $items,
                 'invoice_number' => $this->invoiceNumberGenerator->generate($primary->academic_session_id),
                 'issue_date' => $data['issue_date'],
                 'due_date' => $data['due_date'],
@@ -116,6 +151,73 @@ class FeeInvoiceService
 
             return $invoice;
         });
+    }
+
+    /**
+     * Create a ONE-OFF invoice for a custom amount (no fee structure). The
+     * invoice's session/class come from the student's enrollment in the
+     * active academic session (falling back to their latest enrollment).
+     */
+    private function createCustomAmountInvoice(array $data, float $amount, string $label): FeeInvoice
+    {
+        return DB::transaction(function () use ($data, $amount, $label): FeeInvoice {
+            $student = Student::with(['user', 'parents.user'])->findOrFail($data['student_id']);
+
+            [$academicSessionId, $schoolClassId] = $this->resolveEnrollmentSessionAndClass($student);
+
+            $invoice = FeeInvoice::create([
+                'student_id' => $student->id,
+                'academic_session_id' => $academicSessionId,
+                'school_class_id' => $schoolClassId,
+                'fee_structure_id' => null,
+                'items' => [
+                    ['fee_structure_id' => null, 'name' => $label, 'amount' => $amount],
+                ],
+                'invoice_number' => $this->invoiceNumberGenerator->generate($academicSessionId),
+                'issue_date' => $data['issue_date'],
+                'due_date' => $data['due_date'],
+                'total_amount' => $amount,
+                'concession_amount' => 0,
+                'paid_amount' => 0,
+                'status' => InvoiceStatusEnum::Unpaid,
+            ]);
+
+            $invoice->recalculate();
+
+            $this->notifyInvoiceCreated($invoice, $student);
+
+            return $invoice;
+        });
+    }
+
+    /**
+     * Resolve the academic session + class a custom-amount invoice should
+     * belong to, based on the student's enrollment records.
+     *
+     * @return array{0: int, 1: int}
+     */
+    private function resolveEnrollmentSessionAndClass(Student $student): array
+    {
+        $activeSession = AcademicSession::active()->first();
+
+        $enrollment = $activeSession
+            ? StudentEnrollment::where('student_id', $student->id)
+                ->where('academic_session_id', $activeSession->id)
+                ->latest('enrolled_on')
+                ->first()
+            : null;
+
+        $enrollment ??= StudentEnrollment::where('student_id', $student->id)
+            ->latest('enrolled_on')
+            ->first();
+
+        if (! $enrollment) {
+            throw ValidationException::withMessages([
+                'student_id' => 'This student has no enrollment record. Enroll the student before creating a custom-amount invoice.',
+            ]);
+        }
+
+        return [(int) $enrollment->academic_session_id, (int) $enrollment->school_class_id];
     }
 
     /**
