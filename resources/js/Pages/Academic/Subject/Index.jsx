@@ -17,7 +17,7 @@ import { useAuth } from '@/utils/authorization';
 import { formatDate } from '@/utils/format';
 import { confirmAction } from '@/utils/swal';
 import { Link, router, useForm } from '@inertiajs/react';
-import { Download, FileText, NotebookPen, Paperclip, Search, Trash2, Upload, X } from 'lucide-react';
+import { BookOpen, CheckCircle2, Download, FileText, NotebookPen, Paperclip, Search, Trash2, Upload, Users, X, XCircle } from 'lucide-react';
 
 const formatSize = (bytes) => {
     if (!bytes) return '—';
@@ -35,7 +35,7 @@ const todayInputValue = () => {
     return `${now.getFullYear()}-${month}-${day}`;
 };
 
-export default function Index({ subjects, filters }) {
+export default function Index({ subjects, stats, filters }) {
     const { can } = useAuth();
     const handleSearch = useFilter('subjects.index');
 
@@ -142,13 +142,23 @@ export default function Index({ subjects, filters }) {
             breadcrumbs={[{ label: 'Subjects' }]}
             actions={can('subjects.create') && <CreateButton routeName="subjects.create" />}
         >
-            <Card>
-                <div className="p-4">
-                    <SearchInput value={filters.search} onChange={handleSearch} placeholder="Search by name or code…" />
+            <div className="space-y-6">
+                {/* Overview tiles */}
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <StatCard icon={BookOpen} label="Total Subjects" value={stats?.total ?? 0} color="indigo" />
+                    <StatCard icon={CheckCircle2} label="Active Subjects" value={stats?.active ?? 0} color="emerald" />
+                    <StatCard icon={XCircle} label="Inactive Subjects" value={stats?.inactive ?? 0} color="amber" />
+                    <StatCard icon={Users} label="Enrolled Students" value={stats?.students ?? 0} color="sky" />
                 </div>
-                <DataTable columns={columns} rows={subjects} />
-                <Pagination {...subjects} />
-            </Card>
+
+                <Card>
+                    <div className="p-4">
+                        <SearchInput value={filters.search} onChange={handleSearch} placeholder="Search by name or code…" />
+                    </div>
+                    <DataTable columns={columns} rows={subjects} />
+                    <Pagination {...subjects} />
+                </Card>
+            </div>
 
             <PapersModal
                 subject={paperSubject}
@@ -166,6 +176,24 @@ export default function Index({ subjects, filters }) {
                 canDelete={canDeleteNote}
             />
         </AuthenticatedLayout>
+    );
+}
+
+function StatCard({ icon: Icon, label, value, color }) {
+    const colors = {
+        indigo: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400',
+        amber: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
+        sky: 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400',
+        emerald: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
+    };
+    return (
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg ${colors[color] ?? colors.indigo}`}>
+                <Icon className="h-5 w-5" />
+            </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
+        </div>
     );
 }
 

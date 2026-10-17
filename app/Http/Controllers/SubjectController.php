@@ -30,6 +30,7 @@ class SubjectController extends Controller
     public function index(Request $request): Response
     {
         $activeSessionId = AcademicSession::active()->value('id');
+        $scopedSubjectIds = $this->scopedSubjectIds($request->user());
 
         $subjects = Subject::query()
             ->with([
@@ -46,7 +47,7 @@ class SubjectController extends Controller
                     and se.deleted_at is null'
                     .($activeSessionId ? ' and se.academic_session_id = '.(int) $activeSessionId : '')
                     .') as students_count')
-            ->when($this->scopedSubjectIds($request->user()), function ($query, $subjectIds): void {
+            ->when($scopedSubjectIds, function ($query, $subjectIds): void {
                 $query->whereIn('subjects.id', $subjectIds);
             })
             ->when($request->search, function ($query, $search): void {
@@ -91,8 +92,33 @@ class SubjectController extends Controller
             $subject->students_list = $studentsBySubject->get($subject->id, collect())->values();
         });
 
+        // Overview tiles shown above the table (not affected by search).
+        // Respects the same teacher scoping as the table itself.
+        $statsQuery = Subject::query()
+            ->when($scopedSubjectIds, function ($query, $subjectIds): void {
+                $query->whereIn('subjects.id', $subjectIds);
+            });
+
+        $stats = [
+            'total' => (clone $statsQuery)->count(),
+            'active' => (clone $statsQuery)->where('is_active', true)->count(),
+            'inactive' => (clone $statsQuery)->where('is_active', false)->count(),
+            'students' => DB::table('class_subject as cs')
+                ->join('student_enrollments as se', 'se.school_class_id', '=', 'cs.school_class_id')
+                ->when($scopedSubjectIds, function ($query, $subjectIds): void {
+                    $query->whereIn('cs.subject_id', $subjectIds);
+                })
+                ->whereNull('se.deleted_at')
+                ->when($activeSessionId, function ($q) use ($activeSessionId): void {
+                    $q->where('se.academic_session_id', $activeSessionId);
+                })
+                ->distinct()
+                ->count('se.student_id'),
+        ];
+
         return Inertia::render('Academic/Subject/Index', [
             'subjects' => $subjects,
+            'stats' => $stats,
             'filters' => $request->only(['search']),
         ]);
     }

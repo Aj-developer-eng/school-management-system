@@ -19,6 +19,7 @@ use App\Services\StudentService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,6 +33,8 @@ class StudentController extends Controller
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Student::class);
+
+        $activeSessionId = AcademicSession::active()->value('id');
 
         $query = Student::query()
             ->with(['user', 'enrollments.academicSession', 'enrollments.schoolClass', 'enrollments.section']);
@@ -48,8 +51,23 @@ class StudentController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        // Overview tiles shown above the table (not affected by search).
+        $stats = [
+            'total' => Student::count(),
+            'active' => Student::where('is_active', true)->count(),
+            'inactive' => Student::where('is_active', false)->count(),
+            'enrolled' => DB::table('student_enrollments')
+                ->whereNull('deleted_at')
+                ->when($activeSessionId, function ($q, $sessionId): void {
+                    $q->where('academic_session_id', $sessionId);
+                })
+                ->distinct()
+                ->count('student_id'),
+        ];
+
         return Inertia::render('Student/Index', [
             'students' => $students,
+            'stats' => $stats,
             'filters' => $request->only(['search']),
         ]);
     }
