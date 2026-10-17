@@ -11,9 +11,9 @@ import StatusBadge from '@/Components/Ui/StatusBadge';
 import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
 import { Link } from '@inertiajs/react';
-import { Search, X } from 'lucide-react';
+import { CheckCircle2, GraduationCap, Search, Users, X, XCircle } from 'lucide-react';
 
-export default function Index({ classes, filters }) {
+export default function Index({ classes, stats, filters }) {
     const { can } = useAuth();
     const handleSearch = useFilter('classes.index');
     const [studentsClass, setStudentsClass] = useState(null);
@@ -64,16 +64,44 @@ export default function Index({ classes, filters }) {
             breadcrumbs={[{ label: 'Classes' }]}
             actions={can('classes.create') && <CreateButton routeName="classes.create" />}
         >
-            <Card>
-                <div className="p-4">
-                    <SearchInput value={filters.search} onChange={handleSearch} placeholder="Search by name or code…" />
+            <div className="space-y-6">
+                {/* Overview tiles */}
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <StatCard icon={GraduationCap} label="Total Classes" value={stats?.total ?? 0} color="indigo" />
+                    <StatCard icon={CheckCircle2} label="Active Classes" value={stats?.active ?? 0} color="emerald" />
+                    <StatCard icon={XCircle} label="Inactive Classes" value={stats?.inactive ?? 0} color="amber" />
+                    <StatCard icon={Users} label="Enrolled Students" value={stats?.students ?? 0} color="sky" />
                 </div>
-                <DataTable columns={columns} rows={classes} />
-                <Pagination {...classes} />
-            </Card>
+
+                <Card>
+                    <div className="p-4">
+                        <SearchInput value={filters.search} onChange={handleSearch} placeholder="Search by name or code…" />
+                    </div>
+                    <DataTable columns={columns} rows={classes} />
+                    <Pagination {...classes} />
+                </Card>
+            </div>
 
             <StudentsModal classItem={studentsClass} onClose={() => setStudentsClass(null)} />
         </AuthenticatedLayout>
+    );
+}
+
+function StatCard({ icon: Icon, label, value, color }) {
+    const colors = {
+        indigo: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400',
+        amber: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
+        sky: 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400',
+        emerald: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
+    };
+    return (
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg ${colors[color] ?? colors.indigo}`}>
+                <Icon className="h-5 w-5" />
+            </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
+        </div>
     );
 }
 

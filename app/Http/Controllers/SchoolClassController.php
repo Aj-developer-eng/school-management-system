@@ -6,6 +6,7 @@ use App\Http\Requests\SchoolClass\StoreRequest;
 use App\Http\Requests\SchoolClass\UpdateRequest;
 use App\Models\AcademicSession;
 use App\Models\SchoolClass;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -72,8 +73,23 @@ class SchoolClassController extends Controller
             $class->students_list = $studentsByClass->get($class->id, collect())->values();
         });
 
+        // Overview tiles shown above the table (not affected by search).
+        $stats = [
+            'total' => SchoolClass::count(),
+            'active' => SchoolClass::where('is_active', true)->count(),
+            'inactive' => SchoolClass::where('is_active', false)->count(),
+            'students' => DB::table('student_enrollments')
+                ->whereNull('deleted_at')
+                ->when($activeSessionId, function ($query) use ($activeSessionId): void {
+                    $query->where('academic_session_id', $activeSessionId);
+                })
+                ->distinct()
+                ->count('student_id'),
+        ];
+
         return Inertia::render('Academic/Class/Index', [
             'classes' => $classes,
+            'stats' => $stats,
             'filters' => $request->only(['search']),
         ]);
     }
@@ -85,7 +101,7 @@ class SchoolClassController extends Controller
         ]);
     }
 
-    public function store(StoreRequest $request): \Illuminate\Http\RedirectResponse
+    public function store(StoreRequest $request): RedirectResponse
     {
         $data = $request->validated();
 
@@ -107,7 +123,7 @@ class SchoolClassController extends Controller
         ]);
     }
 
-    public function update(UpdateRequest $request, SchoolClass $schoolClass): \Illuminate\Http\RedirectResponse
+    public function update(UpdateRequest $request, SchoolClass $schoolClass): RedirectResponse
     {
         $schoolClass->update($request->validated());
 
@@ -115,7 +131,7 @@ class SchoolClassController extends Controller
             ->with('success', 'Class updated successfully.');
     }
 
-    public function destroy(SchoolClass $schoolClass): \Illuminate\Http\RedirectResponse
+    public function destroy(SchoolClass $schoolClass): RedirectResponse
     {
         $schoolClass->delete();
 
