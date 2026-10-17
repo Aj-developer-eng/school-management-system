@@ -7,9 +7,11 @@ import SearchableMultiSelect from '@/Components/Ui/SearchableMultiSelect';
 import SearchableSelect from '@/Components/Ui/SearchableSelect';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 
 export default function Form({ students, feeStructures, invoice }) {
     const isEdit = Boolean(invoice);
+    const [showCustomAmount, setShowCustomAmount] = useState(false);
 
     const toDateInput = (value) => {
         if (!value) return '';
@@ -29,7 +31,6 @@ export default function Form({ students, feeStructures, invoice }) {
                   student_id: '',
                   fee_structure_ids: [],
                   custom_amount: '',
-                  custom_label: '',
                   issue_date: new Date().toISOString().split('T')[0],
                   due_date: '',
               },
@@ -167,38 +168,42 @@ export default function Form({ students, feeStructures, invoice }) {
                                 <InputError message={errors.fee_structure_ids} className="mt-2" />
                             </div>
 
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div>
-                                    <InputLabel htmlFor="custom_amount" value="Custom Amount (optional)" />
-                                    <TextInput
-                                        id="custom_amount"
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={data.custom_amount}
-                                        onChange={(e) => setData('custom_amount', e.target.value)}
-                                        placeholder="e.g. 500"
-                                        className="mt-1 block w-full"
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        id="show_custom_amount"
+                                        type="checkbox"
+                                        checked={showCustomAmount}
+                                        onChange={(e) => {
+                                            setShowCustomAmount(e.target.checked);
+                                            if (!e.target.checked) {
+                                                setData('custom_amount', '');
+                                            }
+                                        }}
+                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
                                     />
-                                    <InputError message={errors.custom_amount} className="mt-2" />
+                                    <InputLabel htmlFor="show_custom_amount" value="Add custom amount (one-off charge)" />
                                 </div>
 
-                                <div>
-                                    <InputLabel htmlFor="custom_label" value="Custom Amount Description" />
-                                    <TextInput
-                                        id="custom_label"
-                                        type="text"
-                                        maxLength={191}
-                                        value={data.custom_label}
-                                        onChange={(e) => setData('custom_label', e.target.value)}
-                                        placeholder="Custom Fee"
-                                        className="mt-1 block w-full"
-                                    />
-                                    <InputError message={errors.custom_label} className="mt-2" />
-                                </div>
+                                {showCustomAmount && (
+                                    <div className="mt-3">
+                                        <InputLabel htmlFor="custom_amount" value="Custom Amount" />
+                                        <TextInput
+                                            id="custom_amount"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={data.custom_amount}
+                                            onChange={(e) => setData('custom_amount', e.target.value)}
+                                            placeholder="e.g. 500"
+                                            className="mt-1 block w-full"
+                                        />
+                                        <InputError message={errors.custom_amount} className="mt-2" />
+                                    </div>
+                                )}
                             </div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Enter a custom amount to bill a one-off charge — on its own (leave the fee structures empty) or on top of the selected structures. Concessions are not applied to custom amounts.
+                                A custom amount is billed as a "Custom Fee" line — on its own (leave the fee structures empty) or on top of the selected structures. Concessions are not applied to custom amounts.
                             </p>
 
                             {selectedStructures.length > 0 || customAmount > 0 ? (
@@ -224,7 +229,7 @@ export default function Form({ students, feeStructures, invoice }) {
                                         ))}
                                         {customAmount > 0 && (
                                             <li className="text-gray-600 dark:text-gray-400">
-                                                {(data.custom_label ?? '').trim() || 'Custom Fee'} · Custom —{' '}
+                                                Custom Fee —{' '}
                                                 <span className="font-semibold">Rs {customAmount.toLocaleString()}</span>
                                             </li>
                                         )}
