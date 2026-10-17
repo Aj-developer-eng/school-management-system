@@ -117,7 +117,7 @@ export default function Index({ students, filters }) {
                 <div className="p-4">
                     <SearchInput value={filters.search} onChange={handleSearch} placeholder="Search by name, email or admission #…" />
                 </div>
-                <DataTable columns={columns} rows={students} />
+                <DataTable columns={columns} rows={students} compact />
                 <Pagination {...students} />
             </Card>
         </AuthenticatedLayout>

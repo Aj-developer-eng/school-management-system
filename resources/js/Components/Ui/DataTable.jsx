@@ -1,4 +1,6 @@
-export default function DataTable({ columns, rows, emptyMessage = 'No records found.' }) {
+export default function DataTable({ columns, rows, emptyMessage = 'No records found.', compact = false }) {
+    const cellPadding = compact ? 'px-2 py-3' : 'px-4 py-3';
+
     if (!rows?.data?.length) {
         return (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -15,7 +17,7 @@ export default function DataTable({ columns, rows, emptyMessage = 'No records fo
                         {columns.map((column) => (
                             <th
                                 key={column.key}
-                                className="px-4 py-3 whitespace-nowrap"
+                                className={`${cellPadding} whitespace-nowrap`}
                                 style={{ width: column.width }}
                             >
                                 {column.label}
@@ -32,7 +34,7 @@ export default function DataTable({ columns, rows, emptyMessage = 'No records fo
                             {columns.map((column) => (
                                 <td
                                     key={column.key}
-                                    className="px-4 py-3 whitespace-nowrap align-top"
+                                    className={`${cellPadding} whitespace-nowrap align-top`}
                                 >
                                     {column.render ? column.render(row) : row[column.key]}
                                 </td>
