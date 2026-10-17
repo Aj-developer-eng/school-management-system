@@ -116,7 +116,7 @@
 
         <div class="section">
             <p class="section-title">Fee Details</p>
-            <p style="font-size: 14px; margin-bottom: 12px;">{{ $invoice->feeStructure->name }}</p>
+            <p style="font-size: 14px; margin-bottom: 12px;">{{ $invoice->feeLabel() }}</p>
 
             <table class="amounts-table">
                 <tr>

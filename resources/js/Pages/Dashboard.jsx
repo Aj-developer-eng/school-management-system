@@ -156,7 +156,7 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                                         </Link>
                                     </td>
                                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{inv.student?.user?.name ?? '—'}</td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{inv.fee_structure?.name ?? '—'}</td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{inv.items?.length ? inv.items.map((item) => item.name).join(', ') : (inv.fee_structure?.name ?? '—')}</td>
                                     <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300">{formatRs(inv.total_amount)}</td>
                                     <td className="px-4 py-3 text-right font-semibold text-rose-600 dark:text-rose-400">{formatRs(inv.balance)}</td>
                                     <td className="px-4 py-3 text-center">
@@ -613,7 +613,7 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                                         </Link>
                                     </td>
                                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{inv.student?.user?.name ?? '—'}</td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{inv.fee_structure?.name ?? '—'}</td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{inv.items?.length ? inv.items.map((item) => item.name).join(', ') : (inv.fee_structure?.name ?? '—')}</td>
                                     <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300">{formatRs(inv.total_amount)}</td>
                                     <td className="px-4 py-3 text-right font-semibold text-rose-600 dark:text-rose-400">{formatRs(inv.balance)}</td>
                                     <td className="px-4 py-3 text-center">
@@ -741,7 +741,7 @@ function StudentDashboard({ enrollment, invoices, activeSession, student, timeta
                                             {inv.invoice_number}
                                         </Link>
                                     </td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{inv.fee_structure?.name ?? '—'}</td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{inv.items?.length ? inv.items.map((item) => item.name).join(', ') : (inv.fee_structure?.name ?? '—')}</td>
                                     <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300">{formatRs(inv.total_amount)}</td>
                                     <td className="px-4 py-3 text-right font-semibold text-rose-600 dark:text-rose-400">{formatRs(inv.balance)}</td>
                                     <td className="px-4 py-3 text-center">

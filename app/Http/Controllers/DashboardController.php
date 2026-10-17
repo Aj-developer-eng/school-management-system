@@ -115,7 +115,7 @@ class DashboardController extends Controller
             ->orderByDesc('issue_date')
             ->orderByDesc('id')
             ->limit(8)
-            ->get(['id', 'invoice_number', 'status', 'total_amount', 'balance', 'student_id', 'fee_structure_id']);
+            ->get(['id', 'invoice_number', 'status', 'total_amount', 'balance', 'student_id', 'fee_structure_id', 'items']);
 
         // Weekly timetable from class (teacher) assignments.
         $timetable = $this->buildTimetable($activeSession);

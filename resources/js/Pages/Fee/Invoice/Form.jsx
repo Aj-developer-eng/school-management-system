@@ -72,7 +72,7 @@ export default function Form({ students, feeStructures, invoice }) {
                                     Student: {invoice.student?.user?.name} · {invoice.school_class?.name} · {invoice.academic_session?.name}
                                 </p>
                                 <p className="mt-1 text-gray-500 dark:text-gray-400">
-                                    Fee Structure: {invoice.fee_structure?.name}
+                                    Fee: {invoice.items?.length ? invoice.items.map((item) => item.name).join(', ') : (invoice.fee_structure?.name ?? '—')}
                                 </p>
                             </div>
 
@@ -166,7 +166,7 @@ export default function Form({ students, feeStructures, invoice }) {
                             {selectedStructures.length > 0 && (
                                 <div className="rounded-lg bg-indigo-50 p-4 text-sm dark:bg-indigo-500/10">
                                     <p className="font-medium text-indigo-700 dark:text-indigo-300">
-                                        Invoice Summary ({selectedStructures.length} invoice{selectedStructures.length === 1 ? '' : 's'})
+                                        Invoice Summary ({selectedStructures.length} fee structure{selectedStructures.length === 1 ? '' : 's'})
                                     </p>
                                     <ul className="mt-1 space-y-1">
                                         {selectedStructures.map((s) => (
@@ -183,7 +183,7 @@ export default function Form({ students, feeStructures, invoice }) {
                                         </span>
                                     </p>
                                     <p className="mt-1 text-gray-500 dark:text-gray-400">
-                                        One invoice will be created per selected fee structure. Concessions (if any) will be auto-applied based on the student's active concessions.
+                                        A single combined invoice will be created with the total of the selected fee structures. Concessions (if any) will be auto-applied based on the student's active concessions.
                                     </p>
                                 </div>
                             )}
@@ -218,7 +218,7 @@ export default function Form({ students, feeStructures, invoice }) {
 
                     <div className="flex justify-end">
                         <PrimaryButton disabled={processing}>
-                            {isEdit ? 'Update Invoice' : selectedStructures.length > 1 ? `Create ${selectedStructures.length} Invoices` : 'Create Invoice'}
+                            {isEdit ? 'Update Invoice' : 'Create Invoice'}
                         </PrimaryButton>
                     </div>
                 </form>

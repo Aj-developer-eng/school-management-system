@@ -59,7 +59,7 @@ class FeeInvoiceStoreTest extends TestCase
         ]);
     }
 
-    public function test_selecting_multiple_fee_structures_creates_one_invoice_per_structure(): void
+    public function test_selecting_multiple_fee_structures_creates_one_combined_invoice(): void
     {
         $response = $this->actingAs($this->makeSuperAdmin())->post(route('fee-invoices.store'), [
             'student_id' => $this->student->id,
@@ -69,21 +69,25 @@ class FeeInvoiceStoreTest extends TestCase
         ]);
 
         $response->assertRedirect(route('fee-invoices.index'));
-        $response->assertSessionHas('success', '2 invoices created successfully.');
+        $response->assertSessionHas('success', 'Invoice created successfully.');
 
         $invoices = $this->student->invoices()->orderBy('id')->get();
 
-        $this->assertCount(2, $invoices);
+        // Only ONE combined invoice is created — not one per structure.
+        $this->assertCount(1, $invoices);
+
+        $invoice = $invoices->first();
+        $this->assertNull($invoice->fee_structure_id);
+        $this->assertSame(6500.0, (float) $invoice->total_amount);
+        $this->assertSame(0.0, (float) $invoice->concession_amount);
         $this->assertSame(
-            [$this->tuitionStructure->id, $this->transportStructure->id],
-            array_map('intval', $invoices->pluck('fee_structure_id')->all()),
+            ['Tuition Fee', 'Transport Fee'],
+            array_column($invoice->items, 'name'),
         );
         $this->assertSame(
             [5000.0, 1500.0],
-            $invoices->pluck('total_amount')->map(fn ($amount): float => (float) $amount)->all(),
+            array_map('floatval', array_column($invoice->items, 'amount')),
         );
-        // Each invoice gets its own unique invoice number.
-        $this->assertNotSame($invoices[0]->invoice_number, $invoices[1]->invoice_number);
     }
 
     public function test_selecting_a_single_fee_structure_keeps_the_single_invoice_message(): void
@@ -97,7 +101,12 @@ class FeeInvoiceStoreTest extends TestCase
 
         $response->assertRedirect(route('fee-invoices.index'));
         $response->assertSessionHas('success', 'Invoice created successfully.');
+
+        $invoice = $this->student->invoices->first();
         $this->assertCount(1, $this->student->invoices);
+        // A single selection stays a regular structure-linked invoice.
+        $this->assertSame($this->tuitionStructure->id, (int) $invoice->fee_structure_id);
+        $this->assertNull($invoice->items);
     }
 
     public function test_fee_structure_ids_is_required_and_duplicates_are_rejected(): void

@@ -67,7 +67,7 @@ export default function Index({ parents, filters }) {
 
     const columns = [
         { key: 'name', label: 'Name', render: (row) => row.user?.name },
-        { key: 'email', label: 'Email', render: (row) => row.user?.email },
+        { key: 'email', label: 'Email', render: (row) => row.user?.email }, 
         {
             key: 'children',
             label: 'Children',

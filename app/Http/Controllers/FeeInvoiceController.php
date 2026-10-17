@@ -100,27 +100,21 @@ class FeeInvoiceController extends Controller
     {
         $validated = $request->validated();
 
-        // One invoice is created per selected fee structure, all sharing the
-        // same student and issue/due dates.
-        $count = 0;
-        foreach ($validated['fee_structure_ids'] as $feeStructureId) {
-            $service->createInvoice([
-                'student_id' => $validated['student_id'],
-                'fee_structure_id' => (int) $feeStructureId,
-                'issue_date' => $validated['issue_date'],
-                'due_date' => $validated['due_date'],
-            ]);
-            $count++;
-        }
+        // ONE invoice is created, combining every selected fee structure.
+        // Single selections produce a regular structure-linked invoice;
+        // multiple selections produce a combined invoice whose `items`
+        // snapshot holds each structure (see FeeInvoiceService).
+        $invoice = $service->createInvoiceForStructures([
+            'student_id' => $validated['student_id'],
+            'issue_date' => $validated['issue_date'],
+            'due_date' => $validated['due_date'],
+        ], $validated['fee_structure_ids']);
 
-        ActivityLogService::custom('Fee Invoices', 'created', "Created {$count} invoice(s)");
-
-        $message = $count === 1
-            ? 'Invoice created successfully.'
-            : "{$count} invoices created successfully.";
+        $count = count($validated['fee_structure_ids']);
+        ActivityLogService::custom('Fee Invoices', 'created', "Created invoice {$invoice->invoice_number} covering {$count} fee structure(s)");
 
         return redirect()->route('fee-invoices.index')
-            ->with('success', $message);
+            ->with('success', 'Invoice created successfully.');
     }
 
     public function show(FeeInvoice $feeInvoice): Response

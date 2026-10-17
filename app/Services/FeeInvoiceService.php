@@ -49,6 +49,76 @@ class FeeInvoiceService
     }
 
     /**
+     * Create a SINGLE invoice covering the given fee structures.
+     *
+     * One selected structure → a regular invoice linked via `fee_structure_id`.
+     * Several selected structures → ONE combined invoice with
+     * `fee_structure_id = null` and the structures snapshotted in `items`,
+     * so the invoice total is the sum of all selected structures.
+     */
+    public function createInvoiceForStructures(array $data, array $feeStructureIds): FeeInvoice
+    {
+        $structures = FeeStructure::whereIn('id', $feeStructureIds)->get()->keyBy('id');
+
+        // Keep the order the user selected the structures in.
+        $ordered = collect($feeStructureIds)
+            ->map(fn ($id) => $structures->get((int) $id))
+            ->filter()
+            ->values();
+
+        if ($ordered->count() === 1) {
+            return $this->createInvoice([
+                'student_id' => $data['student_id'],
+                'fee_structure_id' => $ordered->first()->id,
+                'issue_date' => $data['issue_date'],
+                'due_date' => $data['due_date'],
+            ]);
+        }
+
+        return DB::transaction(function () use ($data, $ordered): FeeInvoice {
+            // A combined invoice belongs to the session/class of the first
+            // selected structure (structures are expected to share them).
+            $primary = $ordered->first();
+            $student = Student::with(['user', 'parents.user'])->findOrFail($data['student_id']);
+
+            $totalAmount = (float) $ordered->sum(fn (FeeStructure $structure): float => (float) $structure->amount);
+
+            // Concessions are calculated per structure (each capped at that
+            // structure's amount), then summed and capped at the total.
+            $concessionAmount = 0.0;
+            foreach ($ordered as $structure) {
+                $concessionAmount += $this->calculateConcession($student, $structure);
+            }
+            $concessionAmount = min($concessionAmount, $totalAmount);
+
+            $invoice = FeeInvoice::create([
+                'student_id' => $data['student_id'],
+                'academic_session_id' => $primary->academic_session_id,
+                'school_class_id' => $primary->school_class_id,
+                'fee_structure_id' => null,
+                'items' => $ordered->map(fn (FeeStructure $structure): array => [
+                    'fee_structure_id' => $structure->id,
+                    'name' => $structure->name,
+                    'amount' => (float) $structure->amount,
+                ])->all(),
+                'invoice_number' => $this->invoiceNumberGenerator->generate($primary->academic_session_id),
+                'issue_date' => $data['issue_date'],
+                'due_date' => $data['due_date'],
+                'total_amount' => $totalAmount,
+                'concession_amount' => $concessionAmount,
+                'paid_amount' => 0,
+                'status' => InvoiceStatusEnum::Unpaid,
+            ]);
+
+            $invoice->recalculate();
+
+            $this->notifyInvoiceCreated($invoice, $student);
+
+            return $invoice;
+        });
+    }
+
+    /**
      * Send notifications about a new invoice to admins and the student's parents.
      */
     private function notifyInvoiceCreated(FeeInvoice $invoice, Student $student): void

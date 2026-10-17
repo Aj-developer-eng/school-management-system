@@ -21,6 +21,7 @@ class FeeInvoice extends Model
         'academic_session_id',
         'school_class_id',
         'fee_structure_id',
+        'items',
         'invoice_number',
         'issue_date',
         'due_date',
@@ -40,6 +41,7 @@ class FeeInvoice extends Model
             'paid_amount' => 'decimal:2',
             'balance' => 'decimal:2',
             'status' => InvoiceStatusEnum::class,
+            'items' => 'array',
         ];
     }
 
@@ -61,6 +63,20 @@ class FeeInvoice extends Model
     public function feeStructure(): BelongsTo
     {
         return $this->belongsTo(FeeStructure::class);
+    }
+
+    /**
+     * Human-readable fee label: the snapshotted item names when the invoice
+     * is a combined invoice covering several structures, otherwise the
+     * linked structure's name.
+     */
+    public function feeLabel(): string
+    {
+        if (! empty($this->items)) {
+            return collect($this->items)->pluck('name')->implode(', ');
+        }
+
+        return $this->feeStructure?->name ?? '—';
     }
 
     public function payments(): HasMany
