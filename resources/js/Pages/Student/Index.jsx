@@ -32,8 +32,18 @@ export default function Index({ students, filters }) {
     };
 
     const columns = [
-        { key: 'admission_number', label: 'Admission #' },
-        { key: 'name', label: 'Name', render: (row) => row.user?.name },
+        {
+            key: 'name',
+            label: 'Name',
+            render: (row) => (
+                <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-800 dark:text-gray-200">{row.user?.name}</span>
+                    <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium whitespace-nowrap text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                        {row.admission_number}
+                    </span>
+                </div>
+            ),
+        },
         { key: 'email', label: 'Email', render: (row) => row.user?.email },
         {
             key: 'current_class',
