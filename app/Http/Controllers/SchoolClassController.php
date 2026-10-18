@@ -6,8 +6,13 @@ use App\Http\Requests\SchoolClass\StoreRequest;
 use App\Http\Requests\SchoolClass\UpdateRequest;
 use App\Models\AcademicSession;
 use App\Models\SchoolClass;
+use App\Models\Subject;
+use App\Models\Teacher;
+use App\Models\TeacherSubjectAssignment;
+use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -94,10 +99,17 @@ class SchoolClassController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
         return Inertia::render('Academic/Class/Form', [
             'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
+            'active_session_id' => AcademicSession::active()->value('id'),
+            'teachers' => Teacher::where('is_active', true)
+                ->with('user')
+                ->get()
+                ->map(fn (Teacher $teacher) => ['id' => $teacher->id, 'label' => $teacher->user->name]),
+            'subjects' => Subject::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
+            'can_create_assignment' => $request->user()?->can('create', TeacherSubjectAssignment::class) ?? false,
         ]);
     }
 
@@ -105,14 +117,47 @@ class SchoolClassController extends Controller
     {
         $data = $request->validated();
 
-        if (blank($data['code'] ?? null)) {
-            $data['code'] = $this->generateUniqueCode($data['name']);
+        // Fields belonging to the optional subject assignment section.
+        $assignmentData = $request->boolean('create_assignment')
+            ? Arr::only($data, ['teacher_id', 'academic_session_id', 'subject_id', 'start_time', 'end_time', 'days_of_week'])
+            : null;
+
+        $classData = Arr::except($data, [
+            'create_assignment',
+            'teacher_id',
+            'academic_session_id',
+            'subject_id',
+            'start_time',
+            'end_time',
+            'days_of_week',
+        ]);
+
+        if (blank($classData['code'] ?? null)) {
+            $classData['code'] = $this->generateUniqueCode($classData['name']);
         }
 
-        SchoolClass::create($data);
+        DB::transaction(function () use ($classData, $assignmentData): void {
+            $class = SchoolClass::create($classData);
+
+            if ($assignmentData === null) {
+                return;
+            }
+
+            // A brand new class has no subjects yet, so link the assigned one.
+            $class->subjects()->syncWithoutDetaching([$assignmentData['subject_id']]);
+
+            $assignment = TeacherSubjectAssignment::create([
+                ...$assignmentData,
+                'school_class_id' => $class->id,
+            ]);
+
+            ActivityLogService::created('Teacher Assignments', $assignment, 'Created subject assignment');
+        });
 
         return redirect()->route('classes.index')
-            ->with('success', 'Class created successfully.');
+            ->with('success', $assignmentData !== null
+                ? 'Class and subject assignment created successfully.'
+                : 'Class created successfully.');
     }
 
     public function edit(SchoolClass $schoolClass): Response
