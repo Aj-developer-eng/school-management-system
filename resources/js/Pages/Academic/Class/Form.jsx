@@ -6,7 +6,20 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
 
-export default function Form({ class: item, sessions }) {
+const dayOptions = [
+    { value: 1, label: 'Monday' },
+    { value: 2, label: 'Tuesday' },
+    { value: 3, label: 'Wednesday' },
+    { value: 4, label: 'Thursday' },
+    { value: 5, label: 'Friday' },
+    { value: 6, label: 'Saturday' },
+    { value: 7, label: 'Sunday' },
+];
+
+const selectClass =
+    'mt-1 block w-full rounded-md border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 disabled:cursor-not-allowed disabled:opacity-60';
+
+export default function Form({ class: item, sessions, teachers, active_session_id, can_assign }) {
     const isEdit = Boolean(item);
     const { data, setData, post, put, processing, errors } = useForm({
         name: item?.name ?? '',
@@ -14,6 +27,13 @@ export default function Form({ class: item, sessions }) {
         description: item?.description ?? '',
         active_from_session_id: item?.active_from_session_id ?? '',
         is_active: item?.is_active ?? true,
+        assignment: {
+            teacher_id: '',
+            academic_session_id: active_session_id ?? '',
+            start_time: '',
+            end_time: '',
+            days_of_week: [],
+        },
     });
 
     const submit = (event) => {
@@ -26,6 +46,19 @@ export default function Form({ class: item, sessions }) {
     };
 
     const sessionOptions = Object.entries(sessions ?? {});
+
+    // The optional class-assignment section mirrors /teacher-assignments/create
+    // and only appears on create for users allowed to create teacher assignments.
+    const showAssignment = !isEdit && can_assign && (teachers?.length ?? 0) > 0;
+    const hasAssignmentTeacher = Boolean(data.assignment.teacher_id);
+
+    const toggleDay = (value) => {
+        const current = data.assignment.days_of_week ?? [];
+        setData(
+            'assignment.days_of_week',
+            current.includes(value) ? current.filter((day) => day !== value) : [...current, value],
+        );
+    };
 
     return (
         <AuthenticatedLayout
@@ -70,7 +103,7 @@ export default function Form({ class: item, sessions }) {
                             id="active_from_session_id"
                             value={data.active_from_session_id}
                             onChange={(event) => setData('active_from_session_id', event.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                            className={selectClass}
                         >
                             <option value="">—</option>
                             {sessionOptions.map(([id, name]) => (
@@ -105,6 +138,128 @@ export default function Form({ class: item, sessions }) {
                         <InputLabel htmlFor="is_active" value="Active" />
                     </div>
                     <InputError message={errors.is_active} className="mt-2" />
+
+                    {showAssignment && (
+                        <div className="border-t border-gray-200 pt-6 dark:border-gray-700">
+                            <div className="mb-4">
+                                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                    Class Assignment
+                                </h3>
+                                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                    Optionally assign a teacher to this class (same as Teacher Assignments).
+                                    Leave the teacher empty to create the class without an assignment.
+                                </p>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div>
+                                    <InputLabel htmlFor="assignment_teacher_id" value="Teacher" />
+                                    <select
+                                        id="assignment_teacher_id"
+                                        value={data.assignment.teacher_id}
+                                        onChange={(event) => setData('assignment.teacher_id', event.target.value)}
+                                        className={selectClass}
+                                    >
+                                        <option value="">— No teacher assignment —</option>
+                                        {teachers?.map((teacher) => (
+                                            <option key={teacher.id} value={teacher.id}>
+                                                {teacher.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <InputError message={errors['assignment.teacher_id']} className="mt-2" />
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                    <div className="sm:col-span-2">
+                                        <InputLabel
+                                            htmlFor="assignment_academic_session_id"
+                                            value="Assignment Session"
+                                        />
+                                        <select
+                                            id="assignment_academic_session_id"
+                                            value={data.assignment.academic_session_id}
+                                            onChange={(event) =>
+                                                setData('assignment.academic_session_id', event.target.value)
+                                            }
+                                            disabled={!hasAssignmentTeacher}
+                                            className={selectClass}
+                                        >
+                                            <option value="">—</option>
+                                            {sessionOptions.map(([id, name]) => (
+                                                <option key={id} value={id}>
+                                                    {name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            Defaults to the active academic session.
+                                        </p>
+                                        <InputError
+                                            message={errors['assignment.academic_session_id']}
+                                            className="mt-2"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <InputLabel htmlFor="assignment_start_time" value="Class Start Time" />
+                                        <TextInput
+                                            id="assignment_start_time"
+                                            type="time"
+                                            value={data.assignment.start_time}
+                                            onChange={(event) => setData('assignment.start_time', event.target.value)}
+                                            disabled={!hasAssignmentTeacher}
+                                            className="mt-1 block w-full disabled:cursor-not-allowed disabled:opacity-60"
+                                        />
+                                        <InputError message={errors['assignment.start_time']} className="mt-2" />
+                                    </div>
+
+                                    <div>
+                                        <InputLabel htmlFor="assignment_end_time" value="Class End Time" />
+                                        <TextInput
+                                            id="assignment_end_time"
+                                            type="time"
+                                            value={data.assignment.end_time}
+                                            onChange={(event) => setData('assignment.end_time', event.target.value)}
+                                            disabled={!hasAssignmentTeacher}
+                                            className="mt-1 block w-full disabled:cursor-not-allowed disabled:opacity-60"
+                                        />
+                                        <InputError message={errors['assignment.end_time']} className="mt-2" />
+                                    </div>
+
+                                    <div className="sm:col-span-2">
+                                        <InputLabel value="Days of Week" />
+                                        <div className="mt-1 flex flex-wrap gap-2">
+                                            {dayOptions.map((day) => {
+                                                const selected = (data.assignment.days_of_week ?? []).includes(
+                                                    day.value,
+                                                );
+                                                return (
+                                                    <button
+                                                        key={day.value}
+                                                        type="button"
+                                                        onClick={() => toggleDay(day.value)}
+                                                        disabled={!hasAssignmentTeacher}
+                                                        className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                                                            selected
+                                                                ? 'border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-700'
+                                                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800'
+                                                        }`}
+                                                    >
+                                                        {day.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            Select all days this class takes place (leave empty for no fixed days).
+                                        </p>
+                                        <InputError message={errors['assignment.days_of_week']} className="mt-2" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex justify-end">
                         <PrimaryButton disabled={processing}>

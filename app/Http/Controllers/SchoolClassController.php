@@ -9,11 +9,14 @@ use App\Http\Requests\SchoolClass\UploadPapersRequest;
 use App\Models\AcademicSession;
 use App\Models\ClassPaper;
 use App\Models\SchoolClass;
+use App\Models\Teacher;
 use App\Models\TeacherSubjectAssignment;
+use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -130,25 +133,78 @@ class SchoolClassController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        // The optional assignment section is only offered to users who may
+        // create teacher assignments, so no teacher list is sent otherwise.
+        $canAssign = $request->user()?->can('create', TeacherSubjectAssignment::class) ?? false;
+
         return Inertia::render('Academic/Class/Form', [
             'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
+            'teachers' => $canAssign
+                ? Teacher::query()
+                    ->where('is_active', true)
+                    ->with('user')
+                    ->get()
+                    ->map(fn (Teacher $teacher) => ['id' => $teacher->id, 'label' => $teacher->user->name])
+                : [],
+            'active_session_id' => $canAssign ? AcademicSession::active()->value('id') : null,
+            'can_assign' => $canAssign,
         ]);
     }
 
     public function store(StoreRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $assignmentData = $data['assignment'] ?? [];
+        unset($data['assignment']);
+
+        // The class assignment section is optional: an assignment is only
+        // created when a teacher is chosen and the user holds the
+        // "teacher-assignments.create" permission (the section is hidden
+        // server-side for users without it).
+        $teacherId = $assignmentData['teacher_id'] ?? null;
+        $canAssign = filled($teacherId)
+            && ($request->user()?->can('create', TeacherSubjectAssignment::class) ?? false);
+
+        $sessionId = null;
+        if ($canAssign) {
+            // Use the submitted session, falling back to the active one.
+            $sessionId = ($assignmentData['academic_session_id'] ?? null)
+                ?? AcademicSession::active()->value('id');
+
+            // Resolve this before creating the class so a failure can never
+            // leave a class behind without its assignment.
+            if ($sessionId === null) {
+                throw ValidationException::withMessages([
+                    'assignment.academic_session_id' => 'Select an academic session for the class assignment.',
+                ]);
+            }
+        }
 
         // The form no longer collects a sort order, so new classes are
         // appended to the end of the existing ordering.
         $data['level'] = (int) SchoolClass::withTrashed()->max('level') + 1;
 
-        SchoolClass::create($data);
+        return DB::transaction(function () use ($data, $assignmentData, $teacherId, $sessionId, $canAssign): RedirectResponse {
+            $schoolClass = SchoolClass::create($data);
 
-        return redirect()->route('classes.index')
-            ->with('success', 'Class created successfully.');
+            if ($canAssign) {
+                $assignment = TeacherSubjectAssignment::create([
+                    'teacher_id' => $teacherId,
+                    'academic_session_id' => $sessionId,
+                    'school_class_id' => $schoolClass->id,
+                    'start_time' => $assignmentData['start_time'] ?? null,
+                    'end_time' => $assignmentData['end_time'] ?? null,
+                    'days_of_week' => $assignmentData['days_of_week'] ?? [],
+                ]);
+
+                ActivityLogService::created('Teacher Assignments', $assignment, 'Created class assignment');
+            }
+
+            return redirect()->route('classes.index')
+                ->with('success', 'Class created successfully.');
+        });
     }
 
     public function edit(SchoolClass $schoolClass): Response
