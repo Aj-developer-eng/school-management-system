@@ -58,7 +58,6 @@ class ClassCreateAssignmentTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Academic/Class/Form')
                 ->where('can_assign', true)
-                ->where('active_session_id', $this->session->id)
                 ->has('teachers', 1)
                 ->where('teachers.0.id', $this->teacher->id)
             );

@@ -148,7 +148,6 @@ class SchoolClassController extends Controller
                     ->get()
                     ->map(fn (Teacher $teacher) => ['id' => $teacher->id, 'label' => $teacher->user->name])
                 : [],
-            'active_session_id' => $canAssign ? AcademicSession::active()->value('id') : null,
             'can_assign' => $canAssign,
         ]);
     }

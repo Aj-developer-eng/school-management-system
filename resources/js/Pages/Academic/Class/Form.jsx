@@ -5,6 +5,8 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
+import { ChevronDown } from 'lucide-react';
+import { useState } from 'react';
 
 const dayOptions = [
     { value: 1, label: 'Monday' },
@@ -19,7 +21,7 @@ const dayOptions = [
 const selectClass =
     'mt-1 block w-full rounded-md border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 disabled:cursor-not-allowed disabled:opacity-60';
 
-export default function Form({ class: item, sessions, teachers, active_session_id, can_assign }) {
+export default function Form({ class: item, sessions, teachers, can_assign }) {
     const isEdit = Boolean(item);
     const { data, setData, post, put, processing, errors } = useForm({
         name: item?.name ?? '',
@@ -29,7 +31,6 @@ export default function Form({ class: item, sessions, teachers, active_session_i
         is_active: item?.is_active ?? true,
         assignment: {
             teacher_id: '',
-            academic_session_id: active_session_id ?? '',
             start_time: '',
             end_time: '',
             days_of_week: [],
@@ -51,6 +52,13 @@ export default function Form({ class: item, sessions, teachers, active_session_i
     // and only appears on create for users allowed to create teacher assignments.
     const showAssignment = !isEdit && can_assign && (teachers?.length ?? 0) > 0;
     const hasAssignmentTeacher = Boolean(data.assignment.teacher_id);
+
+    // Collapsed by default: the class form stays focused and the optional
+    // assignment fields are only shown when the user clicks the header.
+    // Auto-open when the submitted assignment came back with validation
+    // errors, otherwise the error messages would stay hidden while collapsed.
+    const hasAssignmentErrors = Object.keys(errors).some((key) => key.startsWith('assignment.'));
+    const [assignmentOpen, setAssignmentOpen] = useState(hasAssignmentErrors);
 
     const toggleDay = (value) => {
         const current = data.assignment.days_of_week ?? [];
@@ -141,17 +149,37 @@ export default function Form({ class: item, sessions, teachers, active_session_i
 
                     {showAssignment && (
                         <div className="border-t border-gray-200 pt-6 dark:border-gray-700">
-                            <div className="mb-4">
-                                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                    Class Assignment
-                                </h3>
-                                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                                    Optionally assign a teacher to this class (same as Teacher Assignments).
-                                    Leave the teacher empty to create the class without an assignment.
-                                </p>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setAssignmentOpen((open) => !open)}
+                                aria-expanded={assignmentOpen}
+                                aria-controls={assignmentOpen ? 'class-assignment-fields' : undefined}
+                                className="flex w-full items-start justify-between gap-3 text-left"
+                            >
+                                <span>
+                                    <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                        Class Assignment
+                                    </span>
+                                    <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
+                                        {assignmentOpen
+                                            ? 'Same as Teacher Assignments, assigned for the active academic session — leave the teacher empty to skip.'
+                                            : 'Click to show the optional teacher assignment fields.'}
+                                    </span>
+                                </span>
+                                <ChevronDown
+                                    size={16}
+                                    className={`mt-0.5 shrink-0 text-gray-400 transition-transform ${
+                                        assignmentOpen ? 'rotate-180' : ''
+                                    }`}
+                                />
+                            </button>
 
-                            <div className="space-y-6">
+                            {assignmentOpen && (
+                            <div id="class-assignment-fields" className="mt-4 space-y-6">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    The assignment uses the active academic session.
+                                </p>
+                                <InputError message={errors['assignment.academic_session_id']} />
                                 <div>
                                     <InputLabel htmlFor="assignment_teacher_id" value="Teacher" />
                                     <select
@@ -171,36 +199,6 @@ export default function Form({ class: item, sessions, teachers, active_session_i
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                                    <div className="sm:col-span-2">
-                                        <InputLabel
-                                            htmlFor="assignment_academic_session_id"
-                                            value="Assignment Session"
-                                        />
-                                        <select
-                                            id="assignment_academic_session_id"
-                                            value={data.assignment.academic_session_id}
-                                            onChange={(event) =>
-                                                setData('assignment.academic_session_id', event.target.value)
-                                            }
-                                            disabled={!hasAssignmentTeacher}
-                                            className={selectClass}
-                                        >
-                                            <option value="">—</option>
-                                            {sessionOptions.map(([id, name]) => (
-                                                <option key={id} value={id}>
-                                                    {name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                            Defaults to the active academic session.
-                                        </p>
-                                        <InputError
-                                            message={errors['assignment.academic_session_id']}
-                                            className="mt-2"
-                                        />
-                                    </div>
-
                                     <div>
                                         <InputLabel htmlFor="assignment_start_time" value="Class Start Time" />
                                         <TextInput
@@ -258,6 +256,7 @@ export default function Form({ class: item, sessions, teachers, active_session_i
                                     </div>
                                 </div>
                             </div>
+                            )}
                         </div>
                     )}
 
