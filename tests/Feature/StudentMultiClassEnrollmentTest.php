@@ -111,6 +111,53 @@ class StudentMultiClassEnrollmentTest extends TestCase
         ]);
     }
 
+    public function test_updating_class_selection_reconciles_enrollments_across_sessions(): void
+    {
+        $previousSession = AcademicSession::create([
+            'name' => '2025-2026',
+            'start_date' => now()->subYear()->startOfYear(),
+            'end_date' => now()->subYear()->endOfYear(),
+            'is_active' => false,
+        ]);
+
+        $student = $this->makeStudentWithClasses([$this->classA->id]);
+
+        // A class the student only sits in under the previous session.
+        StudentEnrollment::create([
+            'student_id' => $student->id,
+            'academic_session_id' => $previousSession->id,
+            'school_class_id' => $this->classC->id,
+            'roll_number' => '1',
+            'enrolled_on' => now()->toDateString(),
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->put(route('students.update', $student), $this->payload([
+                'school_class_ids' => [$this->classB->id],
+            ], $student))
+            ->assertRedirect(route('students.index'));
+
+        // Membership is no longer session-scoped: the unselected class is
+        // removed from every session, not just the active one.
+        $this->assertSoftDeleted('student_enrollments', [
+            'student_id' => $student->id,
+            'school_class_id' => $this->classA->id,
+        ]);
+
+        $this->assertSoftDeleted('student_enrollments', [
+            'student_id' => $student->id,
+            'school_class_id' => $this->classC->id,
+        ]);
+
+        $kept = $student->enrollments()
+            ->pluck('school_class_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $this->assertSame([$this->classB->id], $kept);
+    }
+
     public function test_the_students_index_lists_every_enrolled_class(): void
     {
         $this->makeStudentWithClasses([$this->classA->id, $this->classB->id]);
@@ -175,7 +222,6 @@ class StudentMultiClassEnrollmentTest extends TestCase
             'cnic_bform' => '31301-0000000-0',
             'address' => '12 Test Street, Lahore',
             'medical_notes' => 'None',
-            'academic_session_id' => $this->session->id,
             'school_class_ids' => [$this->classA->id],
             'roll_number' => '1',
             'enrolled_on' => now()->toDateString(),

@@ -33,7 +33,6 @@ class UpdateRequest extends FormRequest
             'address' => ['required', 'string', 'max:500'],
             'previous_school' => ['nullable', 'string', 'max:200'],
             'medical_notes' => ['required', 'string', 'max:1000'],
-            'academic_session_id' => ['required', 'exists:academic_sessions,id'],
             'school_class_ids' => ['required', 'array', 'min:1'],
             'school_class_ids.*' => ['integer', 'distinct', 'exists:school_classes,id'],
             'roll_number' => ['required', 'string', 'max:20'],

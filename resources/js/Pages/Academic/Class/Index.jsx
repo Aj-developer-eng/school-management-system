@@ -242,8 +242,8 @@ function StudentsModal({ classItem, onClose, canManage }) {
         (s.student_name ?? '').toLowerCase().includes(query.trim().toLowerCase()),
     );
 
-    // Attach/detach operate on the active academic session server-side; the
-    // classes list is reloaded so the roster, count and addable options refresh.
+    // Attach/detach refresh the roster server-side; the classes list is
+    // reloaded so the roster, count and addable options update.
     const attach = (event) => {
         event.preventDefault();
         if (!data.student_id) return;
@@ -281,7 +281,7 @@ function StudentsModal({ classItem, onClose, canManage }) {
                             Students — {classItem.name}
                         </h2>
                         <p className="text-xs text-gray-400">
-                            {students.length} of {(classItem.students_list ?? []).length} enrolled (this session)
+                            {students.length} of {(classItem.students_list ?? []).length} enrolled
                         </p>
                     </div>
                     <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">

@@ -44,10 +44,6 @@ class SchoolClassController extends Controller
             where tsa.school_class_id = school_classes.id
                 and tsa.deleted_at is null)';
 
-        // The class roster (students count, the Students modal list and the
-        // attach/detach actions) is scoped to the active academic session.
-        $activeSessionId = AcademicSession::active()->value('id');
-
         $classes = SchoolClass::query()
             ->with([
                 'activeFromSession',
@@ -70,8 +66,7 @@ class SchoolClassController extends Controller
             ->selectRaw('(select count(distinct se.student_id)
                 from student_enrollments se
                 where se.school_class_id = school_classes.id
-                    and se.academic_session_id = ?
-                    and se.deleted_at is null) as students_count', [$activeSessionId ?? 0])
+                    and se.deleted_at is null) as students_count')
             ->when($request->search, function ($query, $search): void {
                 $query->where(function ($q) use ($search): void {
                     $q->where('name', 'like', "%{$search}%")
@@ -90,8 +85,8 @@ class SchoolClassController extends Controller
             ->withQueryString();
 
         // Load the student lists for the classes on this page so the Students
-        // badge can open a detail modal (scoped to the active session, which
-        // is the same scope the attach/detach actions operate on).
+        // badge can open a detail modal. The roster is session-agnostic: a
+        // student enrolled in the class in any academic session shows up.
         $pageClassIds = $classes->getCollection()->pluck('id');
 
         $studentsByClass = $pageClassIds->isNotEmpty()
@@ -99,7 +94,6 @@ class SchoolClassController extends Controller
                 ->join('students as st', 'st.id', '=', 'se.student_id')
                 ->join('users as u', 'u.id', '=', 'st.user_id')
                 ->whereIn('se.school_class_id', $pageClassIds)
-                ->where('se.academic_session_id', $activeSessionId)
                 ->whereNull('se.deleted_at')
                 ->whereNull('st.deleted_at')
                 ->groupBy('se.school_class_id', 'st.id', 'u.name', 'st.admission_number')
@@ -140,8 +134,8 @@ class SchoolClassController extends Controller
 
         $classes->getCollection()->each(function (SchoolClass $class) use ($studentsByClass, $timesByClass, $activeStudents): void {
             $class->students_list = $studentsByClass->get($class->id, collect())->values();
-            // Active students that are not enrolled in this class for the
-            // active session — the options of the modal's Add-student select.
+            // Active students that are not enrolled in this class in any
+            // session — the options of the modal's Add-student select.
             $rosterIds = $class->students_list->pluck('student_id');
             $class->students_addable = $activeStudents
                 ->reject(fn (Student $student) => $rosterIds->contains($student->id))
@@ -273,63 +267,68 @@ class SchoolClassController extends Controller
     }
 
     /**
-     * Attach a student to the class roster for the active academic session
-     * (authorized via SchoolClassPolicy::manageStudents — "students.update").
+     * Attach a student to the class roster (authorized via
+     * SchoolClassPolicy::manageStudents — "students.update").
      *
-     * The unique (student, session, class) key includes soft-deleted rows, so
-     * a previously detached enrollment is restored instead of recreated
-     * (same approach as StudentService::syncClassSelection).
+     * The roster is session-agnostic: an enrollment in any academic session
+     * counts as attached. The unique (student, session, class) key includes
+     * soft-deleted rows, so a previously detached enrollment is restored
+     * instead of recreated (same approach as StudentService::syncClassSelection).
      */
     public function attachStudent(AttachStudentRequest $request, SchoolClass $schoolClass): RedirectResponse
     {
         $this->authorize('manageStudents', $schoolClass);
 
-        $session = AcademicSession::active()->first();
-
-        if (! $session) {
-            return back()->withErrors(['student_id' => 'No active academic session is set.']);
-        }
-
         $studentId = $request->validated('student_id');
 
-        DB::transaction(function () use ($studentId, $session, $schoolClass): void {
+        // Enrolled somewhere already (any session) — harmless no-op.
+        $alreadyAttached = StudentEnrollment::where('student_id', $studentId)
+            ->where('school_class_id', $schoolClass->id)
+            ->exists();
+
+        if (! $alreadyAttached) {
             $enrollment = StudentEnrollment::withTrashed()
                 ->where('student_id', $studentId)
-                ->where('academic_session_id', $session->id)
                 ->where('school_class_id', $schoolClass->id)
+                ->orderByDesc('id')
                 ->first();
 
             if ($enrollment) {
                 $enrollment->restore();
             } else {
+                // A brand-new enrollment still needs a session for its
+                // foreign key: prefer the active one, else the latest.
+                $session = AcademicSession::active()->first()
+                    ?? AcademicSession::query()->orderByDesc('start_date')->orderByDesc('id')->first();
+
+                if (! $session) {
+                    return back()->withErrors(['student_id' => 'No academic session exists yet.']);
+                }
+
                 StudentEnrollment::create([
                     'student_id' => $studentId,
                     'academic_session_id' => $session->id,
                     'school_class_id' => $schoolClass->id,
                 ]);
             }
-        });
+        }
 
         return back()->with('success', 'Student added to the class.');
     }
 
     /**
-     * Detach a student from the class roster for the active academic session.
-     * The enrollment row is soft-deleted so the history is preserved; an
-     * already-missing enrollment is a harmless no-op (idempotent).
+     * Detach a student from the class roster. Every enrollment row for this
+     * class (any session) is soft-deleted so the student leaves the roster
+     * completely; history is preserved and a repeat call is a harmless
+     * no-op (idempotent).
      */
     public function detachStudent(SchoolClass $schoolClass, Student $student): RedirectResponse
     {
         $this->authorize('manageStudents', $schoolClass);
 
-        $session = AcademicSession::active()->first();
-
-        if ($session) {
-            StudentEnrollment::where('student_id', $student->id)
-                ->where('academic_session_id', $session->id)
-                ->where('school_class_id', $schoolClass->id)
-                ->delete();
-        }
+        StudentEnrollment::where('student_id', $student->id)
+            ->where('school_class_id', $schoolClass->id)
+            ->delete();
 
         return back()->with('success', 'Student removed from the class.');
     }

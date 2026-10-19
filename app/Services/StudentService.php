@@ -2,14 +2,15 @@
 
 namespace App\Services;
 
-use App\Enums\GenderEnum;
 use App\Enums\RoleEnum;
+use App\Models\AcademicSession;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class StudentService
 {
@@ -48,11 +49,12 @@ class StudentService
             ]);
 
             // One enrollment row per selected class — a student can sit in
-            // several classes at once within the same session.
+            // several classes at once. The membership is stamped with the
+            // active session; it is no longer chosen when admitting.
             foreach ($this->classIds($data) as $classId) {
                 StudentEnrollment::create([
                     'student_id' => $student->id,
-                    'academic_session_id' => $data['academic_session_id'],
+                    'academic_session_id' => $this->membershipSessionId(),
                     'school_class_id' => $classId,
                     'roll_number' => $data['roll_number'] ?? null,
                     'enrolled_on' => $data['enrolled_on'] ?? now()->toDateString(),
@@ -86,47 +88,71 @@ class StudentService
                 'phone' => $data['phone'] ?? null,
             ]);
 
-            // Reconcile the selected classes against the rows already stored
-            // for this session: unselected classes are removed, new ones are
-            // added, kept ones get their roll number / date refreshed.
+            // Reconcile the selected classes against every enrollment the
+            // student has, across all sessions: membership is no longer
+            // session-scoped, so unselected classes are removed everywhere,
+            // new ones are added, and kept ones get their roll number / date
+            // refreshed.
             $classIds = $this->classIds($data);
-            $existing = $student->enrollments()
+            $enrollments = $student->enrollments()
                 ->withTrashed()
-                ->where('academic_session_id', $data['academic_session_id'])
-                ->get()
-                ->keyBy('school_class_id');
+                ->get();
 
             foreach ($classIds as $classId) {
-                $enrollment = $existing->get($classId);
+                $rows = $enrollments->where('school_class_id', $classId);
 
-                if ($enrollment) {
-                    $enrollment->restore();
-                    $enrollment->update([
+                if ($rows->isEmpty()) {
+                    StudentEnrollment::create([
+                        'student_id' => $student->id,
+                        'academic_session_id' => $this->membershipSessionId(),
+                        'school_class_id' => $classId,
                         'roll_number' => $data['roll_number'] ?? null,
-                        'enrolled_on' => $data['enrolled_on'] ?? $enrollment->enrolled_on,
+                        'enrolled_on' => $data['enrolled_on'] ?? now()->toDateString(),
                         'status' => 'active',
                     ]);
 
                     continue;
                 }
 
-                StudentEnrollment::create([
-                    'student_id' => $student->id,
-                    'academic_session_id' => $data['academic_session_id'],
-                    'school_class_id' => $classId,
-                    'roll_number' => $data['roll_number'] ?? null,
-                    'enrolled_on' => $data['enrolled_on'] ?? now()->toDateString(),
-                    'status' => 'active',
-                ]);
+                $rows->each(function (StudentEnrollment $enrollment) use ($data): void {
+                    if ($enrollment->trashed()) {
+                        $enrollment->restore();
+                    }
+
+                    $enrollment->update([
+                        'roll_number' => $data['roll_number'] ?? null,
+                        'enrolled_on' => $data['enrolled_on'] ?? $enrollment->enrolled_on,
+                        'status' => 'active',
+                    ]);
+                });
             }
 
-            $existing->filter(
-                fn (StudentEnrollment $enrollment): bool => ! $enrollment->trashed()
-                    && ! in_array((int) $enrollment->school_class_id, $classIds, true)
-            )->each(fn (StudentEnrollment $enrollment) => $enrollment->delete());
+            $enrollments
+                ->whereNull('deleted_at')
+                ->filter(fn (StudentEnrollment $enrollment): bool => ! in_array((int) $enrollment->school_class_id, $classIds, true))
+                ->each(fn (StudentEnrollment $enrollment) => $enrollment->delete());
 
             return $student->load(['user', 'enrollments.academicSession', 'enrollments.schoolClass']);
         });
+    }
+
+    /**
+     * Sessions are no longer chosen when enrolling: new membership rows are
+     * stamped with the active session (falling back to the latest session)
+     * so session-based reports keep counting memberships correctly.
+     */
+    private function membershipSessionId(): int
+    {
+        $sessionId = AcademicSession::active()->value('id')
+            ?? AcademicSession::orderByDesc('start_date')->value('id');
+
+        if ($sessionId === null) {
+            throw ValidationException::withMessages([
+                'school_class_ids' => 'No academic session exists yet. Create one before enrolling students.',
+            ]);
+        }
+
+        return (int) $sessionId;
     }
 
     /**

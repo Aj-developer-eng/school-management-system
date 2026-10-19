@@ -58,14 +58,14 @@ class ClassStudentRosterTest extends TestCase
         $this->superAdmin->assignRole(Role::findOrCreate(RoleEnum::SuperAdmin->value, 'web'));
     }
 
-    public function test_index_exposes_the_active_session_roster_and_addable_students(): void
+    public function test_index_exposes_a_session_agnostic_roster_and_addable_students(): void
     {
         $enrolled = $this->makeStudent('Alice');
-        $otherSession = $this->makeStudent('Bob');
+        $previousSessionStudent = $this->makeStudent('Bob');
         $available = $this->makeStudent('Charlie');
 
         $this->makeEnrollment($enrolled);
-        $this->makeEnrollment($otherSession, null, $this->previousSession);
+        $this->makeEnrollment($previousSessionStudent, null, $this->previousSession);
 
         $this->actingAs($this->superAdmin)
             ->get(route('classes.index'))
@@ -73,14 +73,15 @@ class ClassStudentRosterTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Academic/Class/Index')
                 ->has('classes.data', 1)
-                ->where('classes.data.0.students_count', 1)
-                ->has('classes.data.0.students_list', 1)
+                ->where('classes.data.0.students_count', 2)
+                ->has('classes.data.0.students_list', 2)
                 ->where('classes.data.0.students_list.0.student_id', $enrolled->id)
-                // Bob is only enrolled for the previous session, so he is not
-                // on the active-session roster but can still be added.
-                ->has('classes.data.0.students_addable', 2)
-                ->where('classes.data.0.students_addable.0.id', $otherSession->id)
-                ->where('classes.data.0.students_addable.1.id', $available->id)
+                // Bob is enrolled only for the previous session, which still
+                // counts (session-agnostic roster), so he is listed too and
+                // only Charlie remains addable.
+                ->where('classes.data.0.students_list.1.student_id', $previousSessionStudent->id)
+                ->has('classes.data.0.students_addable', 1)
+                ->where('classes.data.0.students_addable.0.id', $available->id)
             );
     }
 
@@ -102,7 +103,7 @@ class ClassStudentRosterTest extends TestCase
             );
     }
 
-    public function test_attaching_a_student_enrolls_them_for_the_active_session(): void
+    public function test_attaching_a_student_enrolls_them_in_the_active_session_when_one_exists(): void
     {
         $student = $this->makeStudent('Alice');
 
@@ -120,7 +121,7 @@ class ClassStudentRosterTest extends TestCase
         $this->assertNull($enrollment->deleted_at);
         $this->assertSame('active', $enrollment->status);
 
-        // The roster on /classes now shows the student for the active session.
+        // The roster on /classes now shows the student (any session counts).
         $this->actingAs($this->superAdmin)
             ->get(route('classes.index'))
             ->assertInertia(fn (Assert $page) => $page
@@ -150,6 +151,37 @@ class ClassStudentRosterTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame(1, StudentEnrollment::withTrashed()->count());
+    }
+
+    public function test_attaching_is_a_no_op_when_already_enrolled_in_any_session(): void
+    {
+        $student = $this->makeStudent('Alice');
+        $this->makeEnrollment($student, null, $this->previousSession);
+
+        $this->actingAs($this->superAdmin)
+            ->post(route('classes.students.attach', $this->class), ['student_id' => $student->id])
+            ->assertRedirect();
+
+        // Enrolled for the previous session already — nothing is created
+        // and the existing enrollment's session is left untouched.
+        $this->assertSame(1, StudentEnrollment::withTrashed()->count());
+        $this->assertSame($this->previousSession->id, StudentEnrollment::sole()->academic_session_id);
+    }
+
+    public function test_detaching_removes_enrollments_from_every_session(): void
+    {
+        $student = $this->makeStudent('Alice');
+        $this->makeEnrollment($student);
+        $this->makeEnrollment($student, null, $this->previousSession);
+
+        $this->actingAs($this->superAdmin)
+            ->delete(route('classes.students.detach', [$this->class, $student]))
+            ->assertRedirect();
+
+        // The student leaves the roster completely; both rows keep their
+        // history as soft-deleted records.
+        $this->assertSame(0, StudentEnrollment::count());
+        $this->assertSame(2, StudentEnrollment::withTrashed()->count());
     }
 
     public function test_detaching_soft_deletes_the_enrollment_and_updates_the_roster(): void
@@ -189,16 +221,23 @@ class ClassStudentRosterTest extends TestCase
         $this->assertSame(0, StudentEnrollment::count());
     }
 
-    public function test_attaching_requires_an_active_academic_session(): void
+    public function test_attaching_works_without_an_active_session(): void
     {
         $student = $this->makeStudent('Alice');
         $this->session->update(['is_active' => false]);
+        $this->previousSession->update(['is_active' => false]);
 
+        // No session is active anymore — attach must still succeed and
+        // fall back to the latest session for the enrollment's foreign key.
         $this->actingAs($this->superAdmin)
             ->post(route('classes.students.attach', $this->class), ['student_id' => $student->id])
-            ->assertSessionHasErrors('student_id');
+            ->assertRedirect();
 
-        $this->assertSame(0, StudentEnrollment::count());
+        $enrollment = StudentEnrollment::sole();
+
+        $this->assertSame($student->id, $enrollment->student_id);
+        $this->assertSame($this->class->id, $enrollment->school_class_id);
+        $this->assertNotNull($enrollment->academic_session_id);
     }
 
     public function test_attach_and_detach_are_forbidden_without_students_update(): void
@@ -227,6 +266,39 @@ class ClassStudentRosterTest extends TestCase
         $user->assignRole($role);
 
         return $user;
+    }
+
+    public function test_student_edit_form_prechecks_all_classes_across_sessions(): void
+    {
+        $student = $this->makeStudent('Dana');
+
+        // An older enrollment from a previous session — class membership is
+        // no longer session-scoped, so both this class and the roster-attached
+        // one must render as selected.
+        $this->makeEnrollment($student, null, $this->previousSession);
+
+        $newClass = SchoolClass::create([
+            'name' => 'Grade 6',
+            'code' => 'G6',
+            'level' => 6,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->superAdmin)
+            ->post(route('classes.students.attach', $newClass), [
+                'student_id' => $student->id,
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('students.edit', $student))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Student/Form')
+                ->missing('default_session_id')
+                ->where('selected_class_ids', [$this->class->id, $newClass->id])
+                ->where("classes.{$newClass->id}", 'Grade 6')
+            );
     }
 
     private function makeStudent(string $name): Student

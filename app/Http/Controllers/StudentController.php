@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\TestStatusEnum;
 use App\Http\Requests\Student\StoreRequest;
 use App\Http\Requests\Student\UpdateRequest;
-use App\Models\AcademicSession;
-use App\Models\FeeInvoice;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\TestResult;
@@ -14,6 +12,7 @@ use App\Services\ActivityLogService;
 use App\Services\SchoolSettingsService;
 use App\Services\StudentService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -50,10 +49,11 @@ class StudentController extends Controller
     public function create(): Response
     {
         $this->authorize('create', Student::class);
+
         return $this->renderForm();
     }
 
-    public function store(StoreRequest $request): \Illuminate\Http\RedirectResponse
+    public function store(StoreRequest $request): RedirectResponse
     {
         $student = $this->students->create($request->validated());
 
@@ -122,7 +122,7 @@ class StudentController extends Controller
         ]);
     }
 
-    public function update(UpdateRequest $request, Student $student): \Illuminate\Http\RedirectResponse
+    public function update(UpdateRequest $request, Student $student): RedirectResponse
     {
         $this->students->update($student, $request->validated());
 
@@ -145,7 +145,7 @@ class StudentController extends Controller
     //         ->with('success', 'Student deleted successfully.');
     // }
 
-    public function destroy(Student $student): \Illuminate\Http\RedirectResponse
+    public function destroy(Student $student): RedirectResponse
     {
         $this->authorize('delete', $student);
 
@@ -168,7 +168,7 @@ class StudentController extends Controller
             ->with('success', 'Student deleted successfully.');
     }
 
-    public function toggleActive(Student $student): \Illuminate\Http\RedirectResponse
+    public function toggleActive(Student $student): RedirectResponse
     {
         $this->authorize('update', $student);
 
@@ -249,7 +249,7 @@ class StudentController extends Controller
         $logoBase64 = null;
         $media = $school->getFirstMedia($school::LOGO_COLLECTION);
         if ($media && file_exists($media->getPath())) {
-            $logoBase64 = 'data:' . $media->mime_type . ';base64,' . base64_encode(file_get_contents($media->getPath()));
+            $logoBase64 = 'data:'.$media->mime_type.';base64,'.base64_encode(file_get_contents($media->getPath()));
         }
 
         $pdf = Pdf::loadView('pdf.student-record', [
@@ -264,24 +264,29 @@ class StudentController extends Controller
 
     private function renderForm(?Student $student = null): Response
     {
-        $activeSession = AcademicSession::active()->first();
-
-        $defaultSessionId = $student?->enrollments?->first()?->academic_session_id ?? $activeSession?->id;
+        // Class membership is no longer session-scoped: pre-check every
+        // class the student belongs to, in any session.
+        $selectedClassIds = $student
+            ? $student->enrollments
+                ->pluck('school_class_id')
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all()
+            : [];
 
         return Inertia::render('Student/Form', [
             'student' => $student,
-            'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
-            'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
-            // Classes the student is already enrolled in for the form's
-            // default session — the multi-select pre-checks them.
-            'selected_class_ids' => $student
-                ? $student->enrollments
-                    ->where('academic_session_id', $defaultSessionId)
-                    ->pluck('school_class_id')
-                    ->map(fn ($id) => (int) $id)
-                    ->all()
-                : [],
-            'default_session_id' => $defaultSessionId,
+            // Active classes, plus any inactive class the student is already
+            // enrolled in so its checkbox still renders.
+            'classes' => SchoolClass::query()
+                ->where(function ($query) use ($selectedClassIds): void {
+                    $query->where('is_active', true)
+                        ->orWhereIn('id', $selectedClassIds);
+                })
+                ->orderBy('level')
+                ->pluck('name', 'id'),
+            'selected_class_ids' => $selectedClassIds,
         ]);
     }
 }

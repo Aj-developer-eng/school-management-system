@@ -6,7 +6,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
 
-export default function Form({ student, sessions, classes, selected_class_ids = [], default_session_id }) {
+export default function Form({ student, classes, selected_class_ids = [] }) {
     const isEdit = Boolean(student);
     // Roll number and enrolment date are shared across the student's classes.
     const enrollment = student?.enrollments?.[0];
@@ -30,7 +30,6 @@ export default function Form({ student, sessions, classes, selected_class_ids = 
         address: student?.address ?? '',
         previous_school: student?.previous_school ?? '',
         medical_notes: student?.medical_notes ?? '',
-        academic_session_id: default_session_id ?? '',
         school_class_ids: selected_class_ids ?? [],
         roll_number: enrollment?.roll_number ?? '',
         enrolled_on: toInputDate(enrollment?.enrolled_on) || new Date().toISOString().slice(0, 10),
@@ -249,32 +248,6 @@ export default function Form({ student, sessions, classes, selected_class_ids = 
                         Enrollment
                     </h3>
 
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <div>
-                            <InputLabel htmlFor="academic_session_id" value="Category Session" required />
-                            <select
-                                id="academic_session_id"
-                                value={data.academic_session_id}
-                                onChange={(event) => {
-                                    setData('academic_session_id', event.target.value);
-                                    // Class choices belong to the session — clear
-                                    // them when the session changes.
-                                    setData('school_class_ids', []);
-                                }}
-                                className={selectClass}
-                                required
-                            >
-                                <option value="">Select session</option>
-                                {Object.entries(sessions ?? {}).map(([id, name]) => (
-                                    <option key={id} value={id}>
-                                        {name}
-                                    </option>
-                                ))}
-                            </select>
-                            <InputError message={errors.academic_session_id} className="mt-2" />
-                        </div>
-                    </div>
-
                     <div>
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <InputLabel htmlFor="school_class_ids" value="Classes" required />
@@ -309,7 +282,7 @@ export default function Form({ student, sessions, classes, selected_class_ids = 
                             })}
                         </div>
                         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            A student can attend more than one class — tick every class they sit in for this session.
+                            A student can attend more than one class — tick every class they sit in.
                         </p>
                         <InputError message={errors.school_class_ids ?? errors['school_class_ids.0']} className="mt-2" />
                     </div>
