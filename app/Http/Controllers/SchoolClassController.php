@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SchoolClass\AttachStudentRequest;
 use App\Http\Requests\SchoolClass\StoreNoteRequest;
 use App\Http\Requests\SchoolClass\StoreRequest;
 use App\Http\Requests\SchoolClass\UpdateRequest;
@@ -9,6 +10,8 @@ use App\Http\Requests\SchoolClass\UploadPapersRequest;
 use App\Models\AcademicSession;
 use App\Models\ClassPaper;
 use App\Models\SchoolClass;
+use App\Models\Student;
+use App\Models\StudentEnrollment;
 use App\Models\Teacher;
 use App\Models\TeacherSubjectAssignment;
 use App\Services\ActivityLogService;
@@ -41,6 +44,10 @@ class SchoolClassController extends Controller
             where tsa.school_class_id = school_classes.id
                 and tsa.deleted_at is null)';
 
+        // The class roster (students count, the Students modal list and the
+        // attach/detach actions) is scoped to the active academic session.
+        $activeSessionId = AcademicSession::active()->value('id');
+
         $classes = SchoolClass::query()
             ->with([
                 'activeFromSession',
@@ -63,7 +70,8 @@ class SchoolClassController extends Controller
             ->selectRaw('(select count(distinct se.student_id)
                 from student_enrollments se
                 where se.school_class_id = school_classes.id
-                    and se.deleted_at is null) as students_count')
+                    and se.academic_session_id = ?
+                    and se.deleted_at is null) as students_count', [$activeSessionId ?? 0])
             ->when($request->search, function ($query, $search): void {
                 $query->where(function ($q) use ($search): void {
                     $q->where('name', 'like', "%{$search}%")
@@ -82,7 +90,8 @@ class SchoolClassController extends Controller
             ->withQueryString();
 
         // Load the student lists for the classes on this page so the Students
-        // badge can open a detail modal.
+        // badge can open a detail modal (scoped to the active session, which
+        // is the same scope the attach/detach actions operate on).
         $pageClassIds = $classes->getCollection()->pluck('id');
 
         $studentsByClass = $pageClassIds->isNotEmpty()
@@ -90,6 +99,7 @@ class SchoolClassController extends Controller
                 ->join('students as st', 'st.id', '=', 'se.student_id')
                 ->join('users as u', 'u.id', '=', 'st.user_id')
                 ->whereIn('se.school_class_id', $pageClassIds)
+                ->where('se.academic_session_id', $activeSessionId)
                 ->whereNull('se.deleted_at')
                 ->whereNull('st.deleted_at')
                 ->groupBy('se.school_class_id', 'st.id', 'u.name', 'st.admission_number')
@@ -101,6 +111,19 @@ class SchoolClassController extends Controller
                     'st.admission_number',
                 ])
                 ->groupBy('school_class_id')
+            : collect();
+
+        // Active students that can still be attached to a class from its
+        // Students modal — only loaded for users allowed to manage the roster
+        // ("students.update"); every class excludes its own current roster.
+        $activeStudents = $request->user()?->can('students.update')
+            ? Student::query()
+                ->join('users', 'users.id', '=', 'students.user_id')
+                ->where('students.is_active', true)
+                ->whereNull('students.deleted_at')
+                ->whereNull('users.deleted_at')
+                ->orderBy('users.name')
+                ->get(['students.id', 'users.name as label'])
             : collect();
 
         // Load the class times (from teacher assignments) for the classes on
@@ -115,8 +138,14 @@ class SchoolClassController extends Controller
                 ->groupBy('school_class_id')
             : collect();
 
-        $classes->getCollection()->each(function (SchoolClass $class) use ($studentsByClass, $timesByClass): void {
+        $classes->getCollection()->each(function (SchoolClass $class) use ($studentsByClass, $timesByClass, $activeStudents): void {
             $class->students_list = $studentsByClass->get($class->id, collect())->values();
+            // Active students that are not enrolled in this class for the
+            // active session — the options of the modal's Add-student select.
+            $rosterIds = $class->students_list->pluck('student_id');
+            $class->students_addable = $activeStudents
+                ->reject(fn (Student $student) => $rosterIds->contains($student->id))
+                ->values();
             $class->class_times = $timesByClass->get($class->id, collect())
                 ->map(fn (TeacherSubjectAssignment $assignment) => [
                     'start_time' => $assignment->start_time?->format('H:i'),
@@ -241,6 +270,68 @@ class SchoolClassController extends Controller
         $schoolClass->notes()->create($request->validated());
 
         return back()->with('success', 'Note added successfully.');
+    }
+
+    /**
+     * Attach a student to the class roster for the active academic session
+     * (authorized via SchoolClassPolicy::manageStudents — "students.update").
+     *
+     * The unique (student, session, class) key includes soft-deleted rows, so
+     * a previously detached enrollment is restored instead of recreated
+     * (same approach as StudentService::syncClassSelection).
+     */
+    public function attachStudent(AttachStudentRequest $request, SchoolClass $schoolClass): RedirectResponse
+    {
+        $this->authorize('manageStudents', $schoolClass);
+
+        $session = AcademicSession::active()->first();
+
+        if (! $session) {
+            return back()->withErrors(['student_id' => 'No active academic session is set.']);
+        }
+
+        $studentId = $request->validated('student_id');
+
+        DB::transaction(function () use ($studentId, $session, $schoolClass): void {
+            $enrollment = StudentEnrollment::withTrashed()
+                ->where('student_id', $studentId)
+                ->where('academic_session_id', $session->id)
+                ->where('school_class_id', $schoolClass->id)
+                ->first();
+
+            if ($enrollment) {
+                $enrollment->restore();
+            } else {
+                StudentEnrollment::create([
+                    'student_id' => $studentId,
+                    'academic_session_id' => $session->id,
+                    'school_class_id' => $schoolClass->id,
+                ]);
+            }
+        });
+
+        return back()->with('success', 'Student added to the class.');
+    }
+
+    /**
+     * Detach a student from the class roster for the active academic session.
+     * The enrollment row is soft-deleted so the history is preserved; an
+     * already-missing enrollment is a harmless no-op (idempotent).
+     */
+    public function detachStudent(SchoolClass $schoolClass, Student $student): RedirectResponse
+    {
+        $this->authorize('manageStudents', $schoolClass);
+
+        $session = AcademicSession::active()->first();
+
+        if ($session) {
+            StudentEnrollment::where('student_id', $student->id)
+                ->where('academic_session_id', $session->id)
+                ->where('school_class_id', $schoolClass->id)
+                ->delete();
+        }
+
+        return back()->with('success', 'Student removed from the class.');
     }
 
     /**

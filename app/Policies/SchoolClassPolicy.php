@@ -74,4 +74,13 @@ class SchoolClassPolicy
     {
         return $user->can('classes.view-notes');
     }
+
+    /**
+     * Attach students to / detach students from the class roster
+     * (gated by "students.update", which a super admin can grant from /roles).
+     */
+    public function manageStudents(User $user, SchoolClass $class): bool
+    {
+        return $user->can('students.update');
+    }
 }

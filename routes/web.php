@@ -86,6 +86,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('class-notes.index')
         ->middleware('can:classes.view-notes');
 
+    // Class roster (student enrollments) — permission gated via the
+    // students.update permission (SchoolClassPolicy::manageStudents):
+    // add or remove students against a class from the Students modal.
+    Route::post('classes/{school_class}/students', [SchoolClassController::class, 'attachStudent'])
+        ->name('classes.students.attach');
+    Route::delete('classes/{school_class}/students/{student}', [SchoolClassController::class, 'detachStudent'])
+        ->name('classes.students.detach');
+
     Route::resource('teachers', TeacherController::class)
         ->except(['show'])
         ->names('teachers');

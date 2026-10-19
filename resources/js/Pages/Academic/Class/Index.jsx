@@ -16,7 +16,7 @@ import { useAuth } from '@/utils/authorization';
 import { formatDate, formatTimeRange } from '@/utils/format';
 import { confirmAction } from '@/utils/swal';
 import { Link, router, useForm } from '@inertiajs/react';
-import { Clock, Download, FileText, Paperclip, Search, StickyNote, Upload, X } from 'lucide-react';
+import { Clock, Download, FileText, Paperclip, Search, StickyNote, Trash2, Upload, UserPlus, X } from 'lucide-react';
 
 const formatSize = (bytes) => {
     if (!bytes) return '—';
@@ -28,7 +28,7 @@ const formatSize = (bytes) => {
 export default function Index({ classes, filters }) {
     const { can, canAny } = useAuth();
     const handleSearch = useFilter('classes.index');
-    const [studentsClass, setStudentsClass] = useState(null);
+    const [studentsClassId, setStudentsClassId] = useState(null);
     // Track the modal by id (not by object) so it always renders the fresh
     // row from the refreshed `classes` props after an upload/delete.
     const [papersClassId, setPapersClassId] = useState(null);
@@ -46,10 +46,18 @@ export default function Index({ classes, filters }) {
     const canCreateNotes = can('classes.create-notes');
     const canManageNotes = canAny(['classes.create-notes', 'classes.view-notes']);
 
+    // Attach/detach students against a class from the Students modal
+    // (server-side gated by SchoolClassPolicy::manageStudents — students.update).
+    const canManageStudents = can('students.update');
+
     const papersClass =
         (classes?.data ?? []).find((row) => row.id === papersClassId) ?? null;
     const notesClass =
         (classes?.data ?? []).find((row) => row.id === notesClassId) ?? null;
+    // Tracked by id (like papers/notes) so the roster modal always re-renders
+    // from the refreshed `classes` props after an attach/detach reload.
+    const studentsClass =
+        (classes?.data ?? []).find((row) => row.id === studentsClassId) ?? null;
 
     // Rows arrive sorted by class time (server-side); group them per time slot
     // so the table is easier to scan. Each class is grouped under its earliest
@@ -112,7 +120,7 @@ export default function Index({ classes, filters }) {
             render: (row) => (
                 <button
                     type="button"
-                    onClick={() => setStudentsClass(row)}
+                    onClick={() => setStudentsClassId(row.id)}
                     title="View students"
                     className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 transition-colors hover:bg-indigo-100 hover:text-indigo-700 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-300"
                 >
@@ -208,24 +216,61 @@ export default function Index({ classes, filters }) {
                 canCreate={canCreateNotes}
             />
 
-            <StudentsModal classItem={studentsClass} onClose={() => setStudentsClass(null)} />
+            <StudentsModal
+                classItem={studentsClass}
+                onClose={() => setStudentsClassId(null)}
+                canManage={canManageStudents}
+            />
         </AuthenticatedLayout>
     );
 }
 
-function StudentsModal({ classItem, onClose }) {
+function StudentsModal({ classItem, onClose, canManage }) {
     const [query, setQuery] = useState('');
+    const { data, setData, post, processing, errors, reset } = useForm({ student_id: '' });
 
-    // Reset the search when a different class is opened.
+    // Reset the search and the add-student select when a different class is opened.
     useEffect(() => {
         setQuery('');
+        reset();
     }, [classItem?.id]);
 
     if (!classItem) return null;
 
+    const addable = classItem.students_addable ?? [];
     const students = (classItem.students_list ?? []).filter((s) =>
         (s.student_name ?? '').toLowerCase().includes(query.trim().toLowerCase()),
     );
+
+    // Attach/detach operate on the active academic session server-side; the
+    // classes list is reloaded so the roster, count and addable options refresh.
+    const attach = (event) => {
+        event.preventDefault();
+        if (!data.student_id) return;
+
+        post(route('classes.students.attach', classItem.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                reset();
+                router.reload({ only: ['classes'] });
+            },
+        });
+    };
+
+    const detach = async (student) => {
+        const confirmed = await confirmAction({
+            title: 'Remove Student',
+            text: `Remove "${student.student_name}" from ${classItem.name}?`,
+            confirmButtonText: 'Yes, remove',
+        });
+
+        if (confirmed) {
+            router.delete(route('classes.students.detach', [classItem.id, student.student_id]), {
+                preserveScroll: true,
+                onSuccess: () => router.reload({ only: ['classes'] }),
+            });
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -236,13 +281,42 @@ function StudentsModal({ classItem, onClose }) {
                             Students — {classItem.name}
                         </h2>
                         <p className="text-xs text-gray-400">
-                            {students.length} of {(classItem.students_list ?? []).length} enrolled
+                            {students.length} of {(classItem.students_list ?? []).length} enrolled (this session)
                         </p>
                     </div>
                     <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">
                         <X className="h-5 w-5" />
                     </button>
                 </div>
+
+                {canManage && (
+                    <form onSubmit={attach} className="border-b border-gray-200 p-3 dark:border-gray-700">
+                        <div className="flex items-center gap-2">
+                            <select
+                                value={data.student_id}
+                                onChange={(event) => setData('student_id', event.target.value)}
+                                disabled={addable.length === 0}
+                                className="w-full rounded-lg border-gray-300 bg-white py-2 px-3 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <option value="">
+                                    {addable.length === 0 ? 'No other students to add' : '— Add a student —'}
+                                </option>
+                                {addable.map((student) => (
+                                    <option key={student.id} value={student.id}>
+                                        {student.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="shrink-0">
+                                <PrimaryButton disabled={processing || !data.student_id}>
+                                    <UserPlus className="h-4 w-4" />
+                                    Add
+                                </PrimaryButton>
+                            </div>
+                        </div>
+                        <InputError message={errors.student_id} className="mt-2" />
+                    </form>
+                )}
 
                 <div className="p-3">
                     <div className="relative">
@@ -261,10 +335,10 @@ function StudentsModal({ classItem, onClose }) {
                     {students.length > 0 ? (
                         <ul className="divide-y divide-gray-100 dark:divide-gray-700">
                             {students.map((s) => (
-                                <li key={s.student_id} className="py-2">
+                                <li key={s.student_id} className="flex items-center gap-2 py-2">
                                     <Link
                                         href={route('students.show', s.student_id)}
-                                        className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-indigo-50 dark:hover:bg-gray-800"
+                                        className="min-w-0 flex-1 rounded-lg px-2 py-1.5 transition-colors hover:bg-indigo-50 dark:hover:bg-gray-800"
                                     >
                                         <div className="min-w-0">
                                             <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -275,6 +349,16 @@ function StudentsModal({ classItem, onClose }) {
                                             </p>
                                         </div>
                                     </Link>
+                                    {canManage && (
+                                        <button
+                                            type="button"
+                                            onClick={() => detach(s)}
+                                            title="Remove from class"
+                                            className="shrink-0 rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    )}
                                 </li>
                             ))}
                         </ul>
