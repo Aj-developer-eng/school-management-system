@@ -64,18 +64,6 @@ export default function Index({ students, filters }) {
         );
     };
 
-    // Unique category sessions this student is enrolled in, joined the same
-    // way StudentController::show() presents them ("2025-2026, 2026-2027").
-    // Multi-class enrollments within one session collapse to a single name.
-    const sessionNames = (row) =>
-        [
-            ...new Set(
-                (row.enrollments ?? [])
-                    .map((enrollment) => enrollment.academic_session?.name)
-                    .filter(Boolean),
-            ),
-        ].join(', ');
-
     // Desktop (md and up) table cells / actions.
     const columns = [
         {
@@ -94,11 +82,6 @@ export default function Index({ students, filters }) {
             key: 'email',
             label: 'Contact',
             render: renderContact,
-        },
-        {
-            key: 'session',
-            label: 'Category Session',
-            render: (row) => <span>{sessionNames(row) || '—'}</span>,
         },
         {
             key: 'is_active',
@@ -192,15 +175,6 @@ export default function Index({ students, filters }) {
                         ) : (
                             '—'
                         )}
-                    </p>
-                </div>
-
-                <div className="mt-3 border-t border-dashed border-gray-200 pt-3 dark:border-gray-600">
-                    <span className="block text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Category Session
-                    </span>
-                    <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-300">
-                        {sessionNames(row) || '—'}
                     </p>
                 </div>
 

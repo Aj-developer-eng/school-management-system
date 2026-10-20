@@ -158,19 +158,6 @@ class StudentMultiClassEnrollmentTest extends TestCase
         $this->assertSame([$this->classB->id], $kept);
     }
 
-    public function test_the_students_index_lists_every_enrolled_class(): void
-    {
-        $this->makeStudentWithClasses([$this->classA->id, $this->classB->id]);
-
-        $this->actingAs($this->admin)
-            ->get(route('students.index'))
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('Student/Index')
-                ->has('students.data.0.enrollments', 2)
-            );
-    }
-
     /**
      * @param  list<int>  $classIds
      */

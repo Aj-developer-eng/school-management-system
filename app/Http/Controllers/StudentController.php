@@ -25,8 +25,10 @@ class StudentController extends Controller
     {
         $this->authorize('viewAny', Student::class);
 
+        // Only the user relation is needed on the index — enrollment details
+        // (class, session) belong to the student's show/edit pages.
         $query = Student::query()
-            ->with(['user', 'enrollments.academicSession', 'enrollments.schoolClass']);
+            ->with('user');
 
         if ($request->search) {
             $query->whereHas('user', function ($q) use ($request): void {
