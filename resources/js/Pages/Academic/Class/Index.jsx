@@ -7,6 +7,7 @@ import DeleteButton from '@/Components/Ui/DeleteButton';
 import EditLink from '@/Components/Ui/EditLink';
 import Pagination from '@/Components/Ui/Pagination';
 import SearchInput from '@/Components/Ui/SearchInput';
+import SearchableSelect from '@/Components/Ui/SearchableSelect';
 import StatusBadge from '@/Components/Ui/StatusBadge';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
@@ -226,10 +227,11 @@ export default function Index({ classes, filters }) {
 }
 
 function StudentsModal({ classItem, onClose, canManage }) {
+    // Roster search — filters the enrolled students listed below.
     const [query, setQuery] = useState('');
     const { data, setData, post, processing, errors, reset } = useForm({ student_id: '' });
 
-    // Reset the search and the add-student select when a different class is opened.
+    // Reset the roster search and the add-student pick when a different class is opened.
     useEffect(() => {
         setQuery('');
         reset();
@@ -291,28 +293,30 @@ function StudentsModal({ classItem, onClose, canManage }) {
 
                 {canManage && (
                     <form onSubmit={attach} className="border-b border-gray-200 p-3 dark:border-gray-700">
-                        <div className="flex items-center gap-2">
-                            <select
-                                value={data.student_id}
-                                onChange={(event) => setData('student_id', event.target.value)}
-                                disabled={addable.length === 0}
-                                className="w-full rounded-lg border-gray-300 bg-white py-2 px-3 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                <option value="">
-                                    {addable.length === 0 ? 'No other students to add' : '— Add a student —'}
-                                </option>
-                                {addable.map((student) => (
-                                    <option key={student.id} value={student.id}>
-                                        {student.label}
-                                    </option>
-                                ))}
-                            </select>
-                            <div className="shrink-0">
-                                <PrimaryButton disabled={processing || !data.student_id}>
-                                    <UserPlus className="h-4 w-4" />
-                                    Add
-                                </PrimaryButton>
-                            </div>
+                        {/* Searchable picker: a native select is unusable once the
+                            student list is long — matches name or admission #. */}
+                        <SearchableSelect
+                            id={`class-student-add-${classItem.id}`}
+                            value={data.student_id}
+                            onChange={(value) => setData('student_id', value)}
+                            options={addable}
+                            placeholder="Search student to add…"
+                            emptyMessage={
+                                addable.length === 0
+                                    ? 'No other students to add'
+                                    : 'No students match your search'
+                            }
+                            disabled={addable.length === 0}
+                            className="relative"
+                        />
+                        <div className="mt-2 flex items-center justify-between gap-3">
+                            <p className="text-xs text-gray-400 dark:text-gray-500">
+                                {addable.length} student{addable.length === 1 ? '' : 's'} available
+                            </p>
+                            <PrimaryButton disabled={processing || !data.student_id}>
+                                <UserPlus className="h-4 w-4" />
+                                Add
+                            </PrimaryButton>
                         </div>
                         <InputError message={errors.student_id} className="mt-2" />
                     </form>

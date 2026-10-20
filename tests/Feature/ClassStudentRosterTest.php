@@ -81,7 +81,11 @@ class ClassStudentRosterTest extends TestCase
                 // only Charlie remains addable.
                 ->where('classes.data.0.students_list.1.student_id', $previousSessionStudent->id)
                 ->has('classes.data.0.students_addable', 1)
-                ->where('classes.data.0.students_addable.0.id', $available->id)
+                ->where('classes.data.0.students_addable.0.value', $available->id)
+                // Searchable picker payload: label shows the admission number
+                // and keywords match on name or admission number.
+                ->where('classes.data.0.students_addable.0.label', $available->user->name.' ('.$available->admission_number.')')
+                ->where('classes.data.0.students_addable.0.keywords', $available->user->name.' '.$available->admission_number)
             );
     }
 
@@ -204,7 +208,7 @@ class ClassStudentRosterTest extends TestCase
                 ->has('classes.data.0.students_list', 0)
                 // The student becomes addable again.
                 ->has('classes.data.0.students_addable', 1)
-                ->where('classes.data.0.students_addable.0.id', $student->id)
+                ->where('classes.data.0.students_addable.0.value', $student->id)
             );
     }
 

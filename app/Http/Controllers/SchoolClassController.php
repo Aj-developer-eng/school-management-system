@@ -110,14 +110,23 @@ class SchoolClassController extends Controller
         // Active students that can still be attached to a class from its
         // Students modal — only loaded for users allowed to manage the roster
         // ("students.update"); every class excludes its own current roster.
+        // Shaped for the searchable picker (value/label/keywords): the label
+        // shows the admission number and keywords allow matching on name or
+        // admission number, which keeps long student lists usable.
         $activeStudents = $request->user()?->can('students.update')
             ? Student::query()
                 ->join('users', 'users.id', '=', 'students.user_id')
                 ->where('students.is_active', true)
                 ->whereNull('students.deleted_at')
                 ->whereNull('users.deleted_at')
+                ->with('user:id,name')
                 ->orderBy('users.name')
-                ->get(['students.id', 'users.name as label'])
+                ->get(['students.id', 'students.user_id', 'students.admission_number'])
+                ->map(fn (Student $student) => [
+                    'value' => $student->id,
+                    'label' => ($student->user?->name ?? 'Unknown').' ('.$student->admission_number.')',
+                    'keywords' => trim(($student->user?->name ?? '').' '.$student->admission_number),
+                ])
             : collect();
 
         // Load the class times (from teacher assignments) for the classes on
@@ -135,10 +144,10 @@ class SchoolClassController extends Controller
         $classes->getCollection()->each(function (SchoolClass $class) use ($studentsByClass, $timesByClass, $activeStudents): void {
             $class->students_list = $studentsByClass->get($class->id, collect())->values();
             // Active students that are not enrolled in this class in any
-            // session — the options of the modal's Add-student select.
+            // session — the options of the modal's Add-student picker.
             $rosterIds = $class->students_list->pluck('student_id');
             $class->students_addable = $activeStudents
-                ->reject(fn (Student $student) => $rosterIds->contains($student->id))
+                ->reject(fn (array $option) => $rosterIds->contains($option['value']))
                 ->values();
             $class->class_times = $timesByClass->get($class->id, collect())
                 ->map(fn (TeacherSubjectAssignment $assignment) => [
