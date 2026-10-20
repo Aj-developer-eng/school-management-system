@@ -34,6 +34,10 @@ class AttendanceController extends Controller
                 $q->where('teacher_id', $teacher?->id);
             })
             ->whereNull('deleted_at')
+            // A deleted class is gone from /classes — its assignments (including
+            // orphaned rows written before the class-delete cascade existed)
+            // must not render here either.
+            ->whereHas('schoolClass')
             ->orderBy('school_class_id')
             ->get();
 
