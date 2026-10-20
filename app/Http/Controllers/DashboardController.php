@@ -411,6 +411,11 @@ class DashboardController extends Controller
         $query = TeacherSubjectAssignment::query()
             ->with(['teacher.user:id,name', 'schoolClass:id,name'])
             ->whereNull('deleted_at')
+            // Only classes that still exist may appear on the timetable:
+            // deleting a class soft-deletes just the class row, so its
+            // assignments have to be skipped here (whereHas applies the
+            // SoftDeletes scope of SchoolClass automatically).
+            ->whereHas('schoolClass')
             ->orderBy('start_time');
 
         if ($teacherId !== null) {

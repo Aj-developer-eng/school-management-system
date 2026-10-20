@@ -247,7 +247,15 @@ class SchoolClassController extends Controller
 
     public function destroy(SchoolClass $schoolClass): RedirectResponse
     {
-        $schoolClass->delete();
+        DB::transaction(function () use ($schoolClass): void {
+            // The class's teacher assignments drive the weekly timetable and
+            // the teacher-assignments list, so they are soft-deleted together
+            // with the class (same pattern as deleting an invoice removes its
+            // payments) instead of being left behind as orphaned entries.
+            $schoolClass->teacherSubjectAssignments()->delete();
+
+            $schoolClass->delete();
+        });
 
         return redirect()->route('classes.index')
             ->with('success', 'Class deleted successfully.');
