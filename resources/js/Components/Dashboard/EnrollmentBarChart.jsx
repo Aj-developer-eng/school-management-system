@@ -91,11 +91,11 @@ export default function EnrollmentBarChart({ data, title, emptyMessage = 'No dat
                     </div>
 
                     {/* class labels */}
-                    <div className="mt-2 flex gap-1.5 pr-8 sm:gap-2.5">
+                    <div className="mt-2 flex flex-wrap gap-2 pr-8 sm:gap-2.5">
                         {data.map((item) => (
                             <span
                                 key={item.label}
-                                className="min-w-[30px] flex-1 truncate text-center text-[10px] font-medium text-gray-400 dark:text-gray-500"
+                                className="min-w-[34px] max-w-[160px] rounded px-1.5 py-0.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800/60"
                                 title={item.label}
                             >
                                 {item.label}
