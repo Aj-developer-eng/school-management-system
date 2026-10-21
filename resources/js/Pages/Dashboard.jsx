@@ -98,8 +98,8 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, invoiceStats,
 
             <EnrollmentBarChart
                 data={enrollmentsByClass}
-                title="Student Enrollments by Class (Active Session)"
-                emptyMessage="No enrollments found for the active session."
+                title="Student Enrollments by Class"
+                emptyMessage="No enrollments found for any class."
             />
 
             {/* Fee invoice status overview */}

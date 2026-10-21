@@ -69,16 +69,13 @@ class DashboardController extends Controller
             'active_session' => $activeSession?->name,
         ];
 
-        $enrollmentsByClass = $activeSession
-            ? DB::table('student_enrollments')
-                ->join('school_classes', 'student_enrollments.school_class_id', '=', 'school_classes.id')
-                ->where('student_enrollments.academic_session_id', $activeSession->id)
-                ->whereNull('student_enrollments.deleted_at')
-                ->select('school_classes.name as label', DB::raw('count(*) as value'))
-                ->groupBy('school_classes.id', 'school_classes.name')
-                ->orderBy('school_classes.level')
-                ->get()
-            : collect();
+        $enrollmentsByClass = DB::table('student_enrollments')
+            ->join('school_classes', 'student_enrollments.school_class_id', '=', 'school_classes.id')
+            ->whereNull('student_enrollments.deleted_at')
+            ->select('school_classes.name as label', DB::raw('count(*) as value'))
+            ->groupBy('school_classes.id', 'school_classes.name')
+            ->orderBy('school_classes.level')
+            ->get();
 
         $invoiceQuery = FeeInvoice::query()->whereNull('deleted_at');
         $invoiceStatusStats = [

@@ -108,7 +108,7 @@ export default function EnrollmentBarChart({ data, title, emptyMessage = 'No dat
             <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 dark:border-gray-700/50">
                 <span className="inline-flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-500">
                     <span className="h-1.5 w-6 rounded-full bg-gradient-to-r from-indigo-500 to-violet-400" aria-hidden="true" />
-                    Active enrollments
+                    Total enrollments
                 </span>
                 <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
                     As of {todayLabel} · {data.length} class{data.length !== 1 ? 'es' : ''}
