@@ -197,10 +197,21 @@ class SchoolClassController extends Controller
         // whole table (not just the current page) so the tiles show true totals.
         $stats = [
             'total_classes' => SchoolClass::query()->count(),
-            'total_students' => (int) DB::table('student_enrollments as se')
-                ->whereNull('se.deleted_at')
-                ->distinct()
-                ->count('se.student_id'),
+            // Matches the semantics of the table's "Students" column, which
+            // counts the distinct students of each class. Summing that
+            // per-class count means a student enrolled in several classes is
+            // counted once per class — the same figure the column shows.
+            'total_students' => (int) DB::query()
+                ->fromSub(
+                    DB::table('student_enrollments as se')
+                        ->join('school_classes as sc', 'sc.id', '=', 'se.school_class_id')
+                        ->whereNull('se.deleted_at')
+                        ->whereNull('sc.deleted_at')
+                        ->groupBy('se.school_class_id')
+                        ->selectRaw('count(distinct se.student_id) as students_count'),
+                    'class_students'
+                )
+                ->sum('students_count'),
             'total_papers' => ClassPaper::query()->count(),
         ];
 

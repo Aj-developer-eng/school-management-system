@@ -203,7 +203,7 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
                         <DashboardCard
                             title="Total Students"
                             value={stats.total_students ?? 0}
-                            subtitle="enrolled across classes"
+                            subtitle="enrolled in classes"
                             color="emerald"
                             delay={0}
                         />
