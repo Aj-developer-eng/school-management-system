@@ -29,6 +29,10 @@ class UpdateRequest extends FormRequest
             // required when other assignment details are provided; with no
             // teacher at all the section is skipped.
             'assignment' => ['sometimes', 'array'],
+            // The id of the assignment row the form is editing. It is scoped
+            // to the class being edited in the controller, so a crafted
+            // payload can never update another class's assignment.
+            'assignment.id' => ['nullable', 'integer', 'exists:teacher_subject_assignments,id'],
             'assignment.teacher_id' => [
                 'required_with:assignment.start_time,assignment.end_time,assignment.days_of_week',
                 'nullable',

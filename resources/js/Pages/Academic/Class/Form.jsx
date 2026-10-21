@@ -24,23 +24,42 @@ const selectClass =
 export default function Form({ class: item, sessions, teachers, can_assign, assignments }) {
     const isEdit = Boolean(item);
 
-    // Pre-fill the single class assignment from the current one on edit so the
-    // form shows what is already assigned and can be updated in place.
-    const existingAssignment = (assignments ?? [])[0];
-    const defaultAssignment =
-        isEdit && existingAssignment
-            ? {
-                  teacher_id: existingAssignment.teacher_id ?? '',
-                  start_time: existingAssignment.start_time ?? '',
-                  end_time: existingAssignment.end_time ?? '',
-                  days_of_week: existingAssignment.days_of_week ?? [],
-              }
-            : {
-                  teacher_id: '',
-                  start_time: '',
-                  end_time: '',
-                  days_of_week: [],
-              };
+    // `sessions` arrives as an id => name map, so it is turned into a list of
+    // [id, name] pairs the select can iterate over.
+    const sessionOptions = Object.entries(sessions ?? {});
+
+    // The class's existing assignments. On edit the user picks which of them
+    // to change; the chosen one is pre-filled into the assignment fields and
+    // its id is sent back, so the very same row is updated instead of a new
+    // one being created next to it.
+    const classAssignments = assignments ?? [];
+
+    const [selectedAssignmentId, setSelectedAssignmentId] = useState(
+        classAssignments[0]?.id ?? null,
+    );
+
+    const selectedAssignment =
+        classAssignments.find((assignment) => assignment.id === selectedAssignmentId) ??
+        classAssignments[0] ??
+        null;
+
+    const defaultAssignment = selectedAssignment
+        ? {
+              id: selectedAssignment.id,
+              teacher_id: selectedAssignment.teacher_id ?? '',
+              academic_session_id: selectedAssignment.academic_session_id ?? '',
+              start_time: selectedAssignment.start_time ?? '',
+              end_time: selectedAssignment.end_time ?? '',
+              days_of_week: selectedAssignment.days_of_week ?? [],
+          }
+        : {
+              id: '',
+              teacher_id: '',
+              academic_session_id: '',
+              start_time: '',
+              end_time: '',
+              days_of_week: [],
+          };
 
     const { data, setData, post, put, processing, errors } = useForm({
         name: item?.name ?? '',
@@ -49,12 +68,35 @@ export default function Form({ class: item, sessions, teachers, can_assign, assi
         active_from_session_id: item?.active_from_session_id ?? '',
         is_active: item?.is_active ?? true,
         assignment: {
+            id: defaultAssignment.id,
             teacher_id: defaultAssignment.teacher_id,
+            academic_session_id: defaultAssignment.academic_session_id,
             start_time: defaultAssignment.start_time,
             end_time: defaultAssignment.end_time,
             days_of_week: defaultAssignment.days_of_week,
         },
     });
+
+    // Switching to another existing assignment replaces the fields with that
+    // assignment's own details.
+    const selectAssignment = (assignmentId) => {
+        setSelectedAssignmentId(assignmentId);
+
+        const assignment = classAssignments.find((entry) => entry.id === assignmentId);
+
+        if (!assignment) {
+            return;
+        }
+
+        setData('assignment', {
+            id: assignment.id,
+            teacher_id: assignment.teacher_id ?? '',
+            academic_session_id: assignment.academic_session_id ?? '',
+            start_time: assignment.start_time ?? '',
+            end_time: assignment.end_time ?? '',
+            days_of_week: assignment.days_of_week ?? [],
+        });
+    };
 
     const submit = (event) => {
         event.preventDefault();
@@ -64,8 +106,6 @@ export default function Form({ class: item, sessions, teachers, can_assign, assi
             post(route('classes.store'));
         }
     };
-
-    const sessionOptions = Object.entries(sessions ?? {});
 
     // The optional class-assignment section is shown for both create and edit
     // whenever the user may manage teacher assignments, so an existing class
@@ -196,10 +236,50 @@ export default function Form({ class: item, sessions, teachers, can_assign, assi
 
                             {assignmentOpen && (
                             <div id="class-assignment-fields" className="mt-4 space-y-6">
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    The assignment uses the active academic session.
-                                </p>
-                                <InputError message={errors['assignment.academic_session_id']} />
+                                {isEdit && classAssignments.length > 0 && (
+                                    <div>
+                                        <InputLabel htmlFor="assignment_picker" value="Existing Assignment" />
+                                        <select
+                                            id="assignment_picker"
+                                            value={data.assignment.id ?? ''}
+                                            onChange={(event) => selectAssignment(Number(event.target.value))}
+                                            className={selectClass}
+                                        >
+                                            {classAssignments.map((assignment) => (
+                                                <option key={assignment.id} value={assignment.id}>
+                                                    {assignment.teacher_name} · {assignment.session_name}
+                                                    {assignment.start_time ? ` · ${assignment.start_time}` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            The selected assignment is updated in place — no duplicate is created.
+                                        </p>
+                                        <InputError message={errors['assignment.id']} className="mt-2" />
+                                    </div>
+                                )}
+
+                                <div>
+                                    <InputLabel htmlFor="assignment_academic_session_id" value="Academic Session" />
+                                    <select
+                                        id="assignment_academic_session_id"
+                                        value={data.assignment.academic_session_id ?? ''}
+                                        onChange={(event) => setData('assignment.academic_session_id', event.target.value)}
+                                        className={selectClass}
+                                    >
+                                        <option value="">— Active session —</option>
+                                        {sessionOptions.map(([id, name]) => (
+                                            <option key={id} value={id}>
+                                                {name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        Leave empty to use the active academic session.
+                                    </p>
+                                    <InputError message={errors['assignment.academic_session_id']} className="mt-2" />
+                                </div>
+
                                 <div>
                                     <InputLabel htmlFor="assignment_teacher_id" value="Teacher" />
                                     <select

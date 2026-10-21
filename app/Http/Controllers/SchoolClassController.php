@@ -334,7 +334,9 @@ class SchoolClassController extends Controller
             ->with('teacher.user', 'academicSession')
             ->orderByRaw('CASE WHEN start_time IS NULL THEN 1 ELSE 0 END')
             ->orderBy('start_time')
-            ->get()
+            ->get();
+
+        $assignmentPayload = $assignments
             ->map(fn (TeacherSubjectAssignment $assignment) => [
                 'id' => $assignment->id,
                 'teacher_id' => $assignment->teacher_id,
@@ -347,18 +349,29 @@ class SchoolClassController extends Controller
             ])
             ->values();
 
+        // Teachers already assigned to this class stay in the list even when
+        // they are no longer active, so the form shows the current teacher
+        // instead of silently dropping them from the assignment.
+        $assignedTeacherIds = $assignments->pluck('teacher_id')->unique()->filter();
+
+        $teachers = $canAssign
+            ? Teacher::query()
+                ->where('is_active', true)
+                ->orWhereIn('id', $assignedTeacherIds)
+                ->with('user')
+                ->get()
+                ->sortBy(fn (Teacher $teacher) => $teacher->user?->name ?? '')
+                ->values()
+                ->map(fn (Teacher $teacher) => ['id' => $teacher->id, 'label' => $teacher->user->name])
+                ->values()
+            : [];
+
         return Inertia::render('Academic/Class/Form', [
             'class' => $schoolClass,
             'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
-            'teachers' => $canAssign
-                ? Teacher::query()
-                    ->where('is_active', true)
-                    ->with('user')
-                    ->get()
-                    ->map(fn (Teacher $teacher) => ['id' => $teacher->id, 'label' => $teacher->user->name])
-                : [],
+            'teachers' => $teachers,
             'can_assign' => $canAssign,
-            'assignments' => $assignments,
+            'assignments' => $assignmentPayload,
         ]);
     }
 
@@ -385,8 +398,31 @@ class SchoolClassController extends Controller
                 return;
             }
 
-            $sessionId = ($assignmentData['academic_session_id'] ?? null)
-                ?? AcademicSession::active()->value('id');
+            // The assignment the form is editing. The form sends the id of the
+            // assignment it pre-filled, so the very same row is updated instead
+            // of a new one being created next to it. The id is scoped to this
+            // class, so a crafted payload can never touch another class's row.
+            $assignmentId = $assignmentData['id'] ?? null;
+
+            $assignment = null;
+
+            if ($assignmentId !== null) {
+                $assignment = $schoolClass->teacherSubjectAssignments()
+                    ->whereKey($assignmentId)
+                    ->first();
+            }
+
+            // The session the assignment belongs to. A submitted session wins,
+            // otherwise the active one is used. An assignment that is already
+            // in a session keeps it, so editing a class never moves an
+            // existing assignment to another session by accident.
+            $sessionId = $assignmentData['academic_session_id'] ?? null;
+
+            if ($sessionId === null && $assignment !== null) {
+                $sessionId = $assignment->academic_session_id;
+            }
+
+            $sessionId ??= AcademicSession::active()->value('id');
 
             if ($sessionId === null) {
                 throw ValidationException::withMessages([
@@ -394,13 +430,15 @@ class SchoolClassController extends Controller
                 ]);
             }
 
-            // An existing assignment for the same teacher and session is
-            // updated in place, so editing a class does not pile up
-            // duplicate assignments for the same teacher.
-            $assignment = $schoolClass->teacherSubjectAssignments()
-                ->where('teacher_id', $teacherId)
-                ->where('academic_session_id', $sessionId)
-                ->first();
+            // Without an id (or with an id that no longer exists) fall back to
+            // the class/session/teacher combination, so editing a class does
+            // not pile up duplicate assignments for the same teacher.
+            if ($assignment === null) {
+                $assignment = $schoolClass->teacherSubjectAssignments()
+                    ->where('teacher_id', $teacherId)
+                    ->where('academic_session_id', $sessionId)
+                    ->first();
+            }
 
             $attributes = [
                 'teacher_id' => $teacherId,
