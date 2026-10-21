@@ -212,7 +212,15 @@ class SchoolClassController extends Controller
                     'class_students'
                 )
                 ->sum('students_count'),
-            'total_papers' => ClassPaper::query()->count(),
+            // Matches the semantics of the table's "Papers" column, which
+            // counts the papers of each class. Papers attached to a
+            // soft-deleted class are excluded because that class no longer
+            // appears in the table.
+            'total_papers' => (int) DB::table('class_papers as cp')
+                ->join('school_classes as sc', 'sc.id', '=', 'cp.school_class_id')
+                ->whereNull('cp.deleted_at')
+                ->whereNull('sc.deleted_at')
+                ->count('cp.id'),
         ];
 
         return Inertia::render('Academic/Class/Index', [
