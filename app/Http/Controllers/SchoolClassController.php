@@ -73,6 +73,19 @@ class SchoolClassController extends Controller
                         ->orWhere('code', 'like', "%{$search}%");
                 });
             })
+            // Filter classes whose teacher assignment runs at the selected
+            // class time (start_time | end_time stored on the assignment).
+            ->when($request->class_time, function ($query, $classTime): void {
+                [$start, $end] = explode('|', $classTime, 2);
+                $query->whereExists(function ($q) use ($start, $end): void {
+                    $q->select(DB::raw(1))
+                        ->from('teacher_subject_assignments as tsa')
+                        ->whereColumn('tsa.school_class_id', 'school_classes.id')
+                        ->whereNull('tsa.deleted_at')
+                        ->when($start, fn ($q2) => $q2->where('tsa.start_time', $start))
+                        ->when($end, fn ($q2) => $q2->where('tsa.end_time', $end));
+                });
+            })
             // Sort by each class's earliest class time so rows arrive grouped
             // time-wise; classes without a class time are listed last.
             ->orderByRaw("{$earliestStart} is null")
@@ -141,6 +154,27 @@ class SchoolClassController extends Controller
                 ->groupBy('school_class_id')
             : collect();
 
+        // Distinct class-time options for the index filter dropdown (across all
+        // classes, not just the current page) so users can filter by time slot.
+        $classTimeOptions = DB::table('teacher_subject_assignments as tsa')
+            ->where(function ($q): void {
+                $q->whereNotNull('tsa.start_time')->orWhereNotNull('tsa.end_time');
+            })
+            ->whereNull('tsa.deleted_at')
+            ->distinct()
+            ->orderBy('tsa.start_time')
+            ->orderBy('tsa.end_time')
+            ->get(['tsa.start_time', 'tsa.end_time'])
+            ->map(fn ($row) => [
+                'value' => ($row->start_time ?? '') . '|' . ($row->end_time ?? ''),
+                'label' => $row->start_time && $row->end_time
+                    ? \Carbon\Carbon::parse($row->start_time)->format('g:i A')
+                        . ' — ' . \Carbon\Carbon::parse($row->end_time)->format('g:i A')
+                    : (($row->start_time ?? '—') . ' — ' . ($row->end_time ?? '—')),
+            ])
+            ->values()
+            ->all();
+
         $classes->getCollection()->each(function (SchoolClass $class) use ($studentsByClass, $timesByClass, $activeStudents): void {
             $class->students_list = $studentsByClass->get($class->id, collect())->values();
             // Active students that are not enrolled in this class in any
@@ -165,14 +199,16 @@ class SchoolClassController extends Controller
             'total_classes' => SchoolClass::query()->count(),
             'total_students' => (int) DB::table('student_enrollments as se')
                 ->whereNull('se.deleted_at')
-                ->count('distinct se.student_id'),
+                ->distinct()
+                ->count('se.student_id'),
             'total_papers' => ClassPaper::query()->count(),
         ];
 
         return Inertia::render('Academic/Class/Index', [
             'classes' => $classes,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'class_time']),
             'stats' => $stats,
+            'classTimeOptions' => $classTimeOptions,
         ]);
     }
 

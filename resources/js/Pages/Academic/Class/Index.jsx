@@ -27,9 +27,10 @@ const formatSize = (bytes) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export default function Index({ classes, filters, stats = {} }) {
+export default function Index({ classes, filters, stats = {}, classTimeOptions = [] }) {
     const { can, canAny } = useAuth();
     const handleSearch = useFilter('classes.index');
+    const handleClassTimeFilter = useFilter('classes.index');
     const [studentsClassId, setStudentsClassId] = useState(null);
     // Track the modal by id (not by object) so it always renders the fresh
     // row from the refreshed `classes` props after an upload/delete.
@@ -222,8 +223,16 @@ export default function Index({ classes, filters, stats = {} }) {
                         />
                     </div>
                 )}
-                <div className="p-4">
+                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <SearchInput value={filters.search} onChange={handleSearch} placeholder="Search by name or code…" />
+                    <SearchableSelect
+                        id="class_time_filter"
+                        value={filters.class_time ?? ''}
+                        onChange={(value) => handleClassTimeFilter(value, 'class_time')}
+                        options={classTimeOptions}
+                        placeholder="Filter by class time…"
+                        emptyMessage="No class times available"
+                    />
                 </div>
                 <DataTable columns={columns} rows={classes} groups={timeGroups} />
                 <Pagination {...classes} />
