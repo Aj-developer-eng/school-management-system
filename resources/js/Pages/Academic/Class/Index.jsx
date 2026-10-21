@@ -15,7 +15,7 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
-import { formatDate, formatTimeRange } from '@/utils/format';
+import { formatDate, formatTime, formatTimeRange } from '@/utils/format';
 import { confirmAction } from '@/utils/swal';
 import { Link, router, useForm } from '@inertiajs/react';
 import { Clock, Download, FileText, Paperclip, Search, StickyNote, Trash2, Upload, UserPlus, X } from 'lucide-react';
@@ -29,13 +29,54 @@ const formatSize = (bytes) => {
 
 export default function Index({ classes, filters, stats = {}, classTimeOptions = [] }) {
     const { can, canAny } = useAuth();
-    const handleSearch = useFilter('classes.index');
-    const handleClassTimeFilter = useFilter('classes.index');
     const [studentsClassId, setStudentsClassId] = useState(null);
     // Track the modal by id (not by object) so it always renders the fresh
     // row from the refreshed `classes` props after an upload/delete.
     const [papersClassId, setPapersClassId] = useState(null);
     const [notesClassId, setNotesClassId] = useState(null);
+
+    // The two filters compose: changing one keeps the other applied. The
+    // extra values are memoised so the filter callbacks stay stable.
+    const searchExtras = useMemo(
+        () => ({ class_time: filters?.class_time ?? '' }),
+        [filters?.class_time],
+    );
+    const classTimeExtras = useMemo(
+        () => ({ search: filters?.search ?? '' }),
+        [filters?.search],
+    );
+
+    const handleSearch = useFilter('classes.index', searchExtras);
+    const handleClassTimeFilter = useFilter('classes.index', classTimeExtras);
+
+    // Keep the currently selected class time visible even when the current
+    // scope (e.g. a new search term) no longer offers that slot — otherwise
+    // the select would fall back to its placeholder and look like the filter
+    // was lost.
+    const classTimeOptionsWithSelection = useMemo(() => {
+        const selected = filters?.class_time ?? '';
+
+        if (!selected) return classTimeOptions;
+
+        const exists = classTimeOptions.some(
+            (option) => String(option.value) === String(selected),
+        );
+
+        if (exists) return classTimeOptions;
+
+        const [start = '', end = ''] = String(selected).split('|');
+
+        return [
+            ...classTimeOptions,
+            {
+                value: selected,
+                label:
+                    start && end
+                        ? `${formatTime(start)} — ${formatTime(end)}`
+                        : `${start || '—'} — ${end || '—'}`,
+            },
+        ];
+    }, [classTimeOptions, filters?.class_time]);
 
     const canUploadPapers = can('classes.upload-papers');
     const canDownloadPapers = can('classes.download-papers');
@@ -229,7 +270,7 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
                         id="class_time_filter"
                         value={filters.class_time ?? ''}
                         onChange={(value) => handleClassTimeFilter(value, 'class_time')}
-                        options={classTimeOptions}
+                        options={classTimeOptionsWithSelection}
                         placeholder="Filter by class time…"
                         emptyMessage="No class times available"
                     />

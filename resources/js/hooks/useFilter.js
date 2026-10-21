@@ -9,7 +9,18 @@ export default function useFilter(baseRoute, extra = {}) {
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
             timeoutRef.current = setTimeout(() => {
-                const query = { ...extra };
+                // Keep the other active filters (e.g. the search term) so
+                // filters compose instead of replacing each other. Empty
+                // extra values are dropped so the query stays clean.
+                const query = Object.fromEntries(
+                    Object.entries(extra).filter(
+                        ([, extraValue]) =>
+                            extraValue !== undefined &&
+                            extraValue !== null &&
+                            extraValue !== '',
+                    ),
+                );
+
                 if (value) {
                     query[key] = value;
                 } else {

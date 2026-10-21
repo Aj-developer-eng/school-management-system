@@ -154,13 +154,29 @@ class SchoolClassController extends Controller
                 ->groupBy('school_class_id')
             : collect();
 
-        // Distinct class-time options for the index filter dropdown (across all
-        // classes, not just the current page) so users can filter by time slot.
+        // Distinct class-time options for the index filter dropdown.
+        //
+        // The options are derived from the same class scope the table uses:
+        // non-deleted classes that match the current search. The class-time
+        // filter itself is deliberately not applied here, otherwise the
+        // dropdown would collapse to a single entry and the user could no
+        // longer switch to another time slot. Soft-deleted classes and
+        // assignments are excluded so an option never leads to an empty
+        // result. The value keeps the "start|end" format the class_time
+        // filter expects.
         $classTimeOptions = DB::table('teacher_subject_assignments as tsa')
+            ->join('school_classes as sc', 'sc.id', '=', 'tsa.school_class_id')
+            ->whereNull('tsa.deleted_at')
+            ->whereNull('sc.deleted_at')
+            ->when($request->search, function ($query, $search): void {
+                $query->where(function ($q) use ($search): void {
+                    $q->where('sc.name', 'like', "%{$search}%")
+                        ->orWhere('sc.code', 'like', "%{$search}%");
+                });
+            })
             ->where(function ($q): void {
                 $q->whereNotNull('tsa.start_time')->orWhereNotNull('tsa.end_time');
             })
-            ->whereNull('tsa.deleted_at')
             ->distinct()
             ->orderBy('tsa.start_time')
             ->orderBy('tsa.end_time')
