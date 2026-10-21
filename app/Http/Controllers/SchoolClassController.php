@@ -159,9 +159,20 @@ class SchoolClassController extends Controller
                 ->values();
         });
 
+        // Overview tiles for the classes index. These are computed against the
+        // whole table (not just the current page) so the tiles show true totals.
+        $stats = [
+            'total_classes' => SchoolClass::query()->count(),
+            'total_students' => (int) DB::table('student_enrollments as se')
+                ->whereNull('se.deleted_at')
+                ->count('distinct se.student_id'),
+            'total_papers' => ClassPaper::query()->count(),
+        ];
+
         return Inertia::render('Academic/Class/Index', [
             'classes' => $classes,
             'filters' => $request->only(['search']),
+            'stats' => $stats,
         ]);
     }
 

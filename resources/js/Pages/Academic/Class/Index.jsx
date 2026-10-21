@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
+import DashboardCard from '@/Components/Dashboard/DashboardCard';
 import CreateButton from '@/Components/Ui/CreateButton';
 import DataTable from '@/Components/Ui/DataTable';
 import DeleteButton from '@/Components/Ui/DeleteButton';
@@ -26,7 +27,7 @@ const formatSize = (bytes) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export default function Index({ classes, filters }) {
+export default function Index({ classes, filters, stats = {} }) {
     const { can, canAny } = useAuth();
     const handleSearch = useFilter('classes.index');
     const [studentsClassId, setStudentsClassId] = useState(null);
@@ -196,6 +197,31 @@ export default function Index({ classes, filters }) {
             actions={can('classes.create') && <CreateButton routeName="classes.create" />}
         >
             <Card>
+                {stats && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                        <DashboardCard
+                            title="Total Students"
+                            value={stats.total_students ?? 0}
+                            subtitle="enrolled across classes"
+                            color="emerald"
+                            delay={0}
+                        />
+                        <DashboardCard
+                            title="Total Papers"
+                            value={stats.total_papers ?? 0}
+                            subtitle="uploaded class papers"
+                            color="indigo"
+                            delay={200}
+                        />
+                        <DashboardCard
+                            title="Total Classes"
+                            value={stats.total_classes ?? 0}
+                            subtitle="grade levels"
+                            color="sky"
+                            delay={400}
+                        />
+                    </div>
+                )}
                 <div className="p-4">
                     <SearchInput value={filters.search} onChange={handleSearch} placeholder="Search by name or code…" />
                 </div>
