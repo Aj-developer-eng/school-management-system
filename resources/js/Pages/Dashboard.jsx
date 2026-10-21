@@ -66,7 +66,7 @@ const formatTime12 = (time) => {
     return `${hour}:${String(m).padStart(2, '0')} ${suffix}`;
 };
 
-function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOverview, assignmentStats, invoiceStats, invoiceReferences, timetable }) {
+function StaffDashboard({ stats, quickActions, enrollmentsByClass, invoiceStats, invoiceReferences, timetable }) {
     return (
         <>
             {quickActions.length > 0 && (
@@ -172,73 +172,6 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, assignmentOve
                             )}
                         </tbody>
                     </table>
-                </div>
-            </div>
-
-            {/* Teacher assignment overview */}
-            <div className="animate-fade-in">
-                <SectionHeading
-                    action={
-                        <Link
-                            href={route('teacher-reports.index')}
-                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300"
-                        >
-                            View Full Report
-                        </Link>
-                    }
-                >
-                    Teacher Assignment Overview
-                </SectionHeading>
-                <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-5">
-                    <div className="lg:col-span-2">
-                        <StatusDonutChart stats={assignmentStats} title="Assignment Status" />
-                    </div>
-                    <div className="grid grid-cols-2 content-center gap-4 lg:col-span-3">
-                        <DashboardCard title="Total" value={assignmentStats.total} subtitle="All assignments" color="indigo" delay={0} />
-                        <DashboardCard title="Pending" value={assignmentStats.pending} subtitle="Not started" color="amber" delay={70} />
-                        <DashboardCard title="Started" value={assignmentStats.started} subtitle="In progress" color="sky" delay={140} />
-                        <DashboardCard title="Completed" value={assignmentStats.completed} subtitle="Finished" color="emerald" delay={210} />
-                    </div>
-                </div>
-                <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
-                    <div className="max-h-96 overflow-y-auto overscroll-contain">
-                        <table className="w-full text-sm">
-                            <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700">
-                                <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-700/40">
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Teacher</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Class</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Time</th>
-                                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {assignmentOverview.length > 0 ? assignmentOverview.map((a) => (
-                                    <tr key={a.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-indigo-50/40 dark:border-gray-700/50 dark:hover:bg-gray-700/30">
-                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-                                            {a.teacher?.user?.name ?? '—'}
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                                            {a.school_class?.name ?? '—'}
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                                            {formatTimeRange(a.start_time, a.end_time)}
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusColors[a.status] ?? statusColors.pending}`}>
-                                                {a.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-                                            No teacher assignments for this session.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
             </div>
 
@@ -932,8 +865,6 @@ export default function Dashboard(props) {
                         stats={stats}
                         quickActions={quickActions ?? []}
                         enrollmentsByClass={enrollmentsByClass}
-                        assignmentOverview={props.assignmentOverview ?? []}
-                        assignmentStats={props.assignmentStats ?? { total: 0, pending: 0, started: 0, completed: 0 }}
                         invoiceStats={props.invoiceStatusStats ?? { paid: 0, partial: 0, unpaid: 0, cancelled: 0, total: 0 }}
                         invoiceReferences={props.invoiceReferences ?? []}
                         timetable={props.timetable ?? []}

@@ -150,7 +150,7 @@ Several controllers scope data based on the logged-in user's role:
 ### 8. Dashboard
 
 Role-specific dashboards:
-- **Staff** — Stats overview, enrollment chart, teacher assignment overview, quick actions.
+- **Staff** — Stats overview, enrollment chart, fee invoice overview, weekly timetable, quick actions.
 - **Teacher** — Assignment stats, class assignments table with start/complete/reset actions.
 - **Parent** — Fee summary, today's attendance for children, children cards, recent invoices.
 - **Student** — Enrollment info, recent invoices.

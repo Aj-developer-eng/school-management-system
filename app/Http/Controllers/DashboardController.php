@@ -80,21 +80,6 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
-        $assignmentOverview = TeacherSubjectAssignment::with(['teacher.user:id,name', 'schoolClass:id,name'])
-            ->whereNull('deleted_at')
-            ->when($activeSession, function ($q) use ($activeSession): void {
-                $q->where('academic_session_id', $activeSession->id);
-            })
-            ->orderBy('school_class_id')
-            ->get();
-
-        $assignmentStats = [
-            'total' => $assignmentOverview->count(),
-            'pending' => $assignmentOverview->where('status', AssignmentStatusEnum::Pending)->count(),
-            'started' => $assignmentOverview->where('status', AssignmentStatusEnum::Started)->count(),
-            'completed' => $assignmentOverview->where('status', AssignmentStatusEnum::Completed)->count(),
-        ];
-
         $invoiceQuery = FeeInvoice::query()->whereNull('deleted_at');
         $invoiceStatusStats = [
             'paid' => (clone $invoiceQuery)->where('status', InvoiceStatusEnum::Paid->value)->count(),
@@ -120,8 +105,6 @@ class DashboardController extends Controller
             'stats' => $stats,
             'enrollmentsByClass' => $enrollmentsByClass,
             'quickActions' => $quickActions,
-            'assignmentOverview' => $assignmentOverview,
-            'assignmentStats' => $assignmentStats,
             'invoiceStatusStats' => $invoiceStatusStats,
             'invoiceReferences' => $invoiceReferences,
             'timetable' => $timetable,
