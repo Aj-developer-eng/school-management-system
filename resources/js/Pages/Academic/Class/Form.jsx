@@ -21,8 +21,27 @@ const dayOptions = [
 const selectClass =
     'mt-1 block w-full rounded-md border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 disabled:cursor-not-allowed disabled:opacity-60';
 
-export default function Form({ class: item, sessions, teachers, can_assign }) {
+export default function Form({ class: item, sessions, teachers, can_assign, assignments }) {
     const isEdit = Boolean(item);
+
+    // Pre-fill the single class assignment from the current one on edit so the
+    // form shows what is already assigned and can be updated in place.
+    const existingAssignment = (assignments ?? [])[0];
+    const defaultAssignment =
+        isEdit && existingAssignment
+            ? {
+                  teacher_id: existingAssignment.teacher_id ?? '',
+                  start_time: existingAssignment.start_time ?? '',
+                  end_time: existingAssignment.end_time ?? '',
+                  days_of_week: existingAssignment.days_of_week ?? [],
+              }
+            : {
+                  teacher_id: '',
+                  start_time: '',
+                  end_time: '',
+                  days_of_week: [],
+              };
+
     const { data, setData, post, put, processing, errors } = useForm({
         name: item?.name ?? '',
         code: item?.code ?? '',
@@ -30,10 +49,10 @@ export default function Form({ class: item, sessions, teachers, can_assign }) {
         active_from_session_id: item?.active_from_session_id ?? '',
         is_active: item?.is_active ?? true,
         assignment: {
-            teacher_id: '',
-            start_time: '',
-            end_time: '',
-            days_of_week: [],
+            teacher_id: defaultAssignment.teacher_id,
+            start_time: defaultAssignment.start_time,
+            end_time: defaultAssignment.end_time,
+            days_of_week: defaultAssignment.days_of_week,
         },
     });
 
@@ -48,9 +67,10 @@ export default function Form({ class: item, sessions, teachers, can_assign }) {
 
     const sessionOptions = Object.entries(sessions ?? {});
 
-    // The optional class-assignment section mirrors /teacher-assignments/create
-    // and only appears on create for users allowed to create teacher assignments.
-    const showAssignment = !isEdit && can_assign && (teachers?.length ?? 0) > 0;
+    // The optional class-assignment section is shown for both create and edit
+    // whenever the user may manage teacher assignments, so an existing class
+    // can be updated with its teacher and weekly schedule.
+    const showAssignment = can_assign && (teachers?.length ?? 0) > 0;
     const hasAssignmentTeacher = Boolean(data.assignment.teacher_id);
 
     // Collapsed by default: the class form stays focused and the optional

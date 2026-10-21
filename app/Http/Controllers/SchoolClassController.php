@@ -320,17 +320,107 @@ class SchoolClassController extends Controller
         });
     }
 
-    public function edit(SchoolClass $schoolClass): Response
+    public function edit(Request $request, SchoolClass $schoolClass): Response
     {
+        // The optional assignment section is only offered to users who may
+        // manage teacher assignments, so no teacher list is sent otherwise.
+        // The permission is checked directly (the policy's update() method
+        // needs a model instance, which does not exist on a form page).
+        $canAssign = $request->user()?->can('teacher-assignments.update') ?? false;
+
+        // The class's existing assignments, so the edit form can show what is
+        // already assigned and let a teacher pick one to update.
+        $assignments = $schoolClass->teacherSubjectAssignments()
+            ->with('teacher.user', 'academicSession')
+            ->orderByRaw('CASE WHEN start_time IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('start_time')
+            ->get()
+            ->map(fn (TeacherSubjectAssignment $assignment) => [
+                'id' => $assignment->id,
+                'teacher_id' => $assignment->teacher_id,
+                'teacher_name' => $assignment->teacher?->user?->name ?? '—',
+                'academic_session_id' => $assignment->academic_session_id,
+                'session_name' => $assignment->academicSession?->name ?? '—',
+                'start_time' => $assignment->start_time?->format('H:i') ?? null,
+                'end_time' => $assignment->end_time?->format('H:i') ?? null,
+                'days_of_week' => $assignment->days_of_week ?? [],
+            ])
+            ->values();
+
         return Inertia::render('Academic/Class/Form', [
             'class' => $schoolClass,
             'sessions' => AcademicSession::orderByDesc('start_date')->pluck('name', 'id'),
+            'teachers' => $canAssign
+                ? Teacher::query()
+                    ->where('is_active', true)
+                    ->with('user')
+                    ->get()
+                    ->map(fn (Teacher $teacher) => ['id' => $teacher->id, 'label' => $teacher->user->name])
+                : [],
+            'can_assign' => $canAssign,
+            'assignments' => $assignments,
         ]);
     }
 
     public function update(UpdateRequest $request, SchoolClass $schoolClass): RedirectResponse
     {
-        $schoolClass->update($request->validated());
+        $data = $request->validated();
+        $assignmentData = $data['assignment'] ?? [];
+        unset($data['assignment']);
+
+        DB::transaction(function () use ($request, $schoolClass, $data, $assignmentData): void {
+            $schoolClass->update($data);
+
+            // The class assignment section is optional: an assignment is only
+            // touched when a teacher is chosen and the user holds the
+            // "teacher-assignments" permissions (the section is hidden
+            // server-side for users without them).
+            $teacherId = $assignmentData['teacher_id'] ?? null;
+            $user = $request->user();
+            $canAssign = filled($teacherId)
+                && (($user?->can('teacher-assignments.update') ?? false)
+                    || ($user?->can('teacher-assignments.create') ?? false));
+
+            if (! $canAssign) {
+                return;
+            }
+
+            $sessionId = ($assignmentData['academic_session_id'] ?? null)
+                ?? AcademicSession::active()->value('id');
+
+            if ($sessionId === null) {
+                throw ValidationException::withMessages([
+                    'assignment.academic_session_id' => 'Select an academic session for the class assignment.',
+                ]);
+            }
+
+            // An existing assignment for the same teacher and session is
+            // updated in place, so editing a class does not pile up
+            // duplicate assignments for the same teacher.
+            $assignment = $schoolClass->teacherSubjectAssignments()
+                ->where('teacher_id', $teacherId)
+                ->where('academic_session_id', $sessionId)
+                ->first();
+
+            $attributes = [
+                'teacher_id' => $teacherId,
+                'academic_session_id' => $sessionId,
+                'school_class_id' => $schoolClass->id,
+                'start_time' => $assignmentData['start_time'] ?? null,
+                'end_time' => $assignmentData['end_time'] ?? null,
+                'days_of_week' => $assignmentData['days_of_week'] ?? [],
+            ];
+
+            if ($assignment) {
+                $assignment->update($attributes);
+
+                ActivityLogService::updated('Teacher Assignments', $assignment, 'Updated class assignment');
+            } else {
+                $assignment = TeacherSubjectAssignment::create($attributes);
+
+                ActivityLogService::created('Teacher Assignments', $assignment, 'Created class assignment');
+            }
+        });
 
         return redirect()->route('classes.index')
             ->with('success', 'Class updated successfully.');
