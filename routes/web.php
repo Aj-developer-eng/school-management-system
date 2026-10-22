@@ -67,6 +67,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->parameters(['classes' => 'school_class'])
         ->names('classes');
 
+    Route::get('classes/{school_class}', [SchoolClassController::class, 'show'])
+        ->name('classes.show');
+
     // Class papers (PDF/Word exam papers) — permission gated via the
     // classes.upload-papers / classes.download-papers / classes.delete-papers
     // permissions (see SchoolClassPolicy).

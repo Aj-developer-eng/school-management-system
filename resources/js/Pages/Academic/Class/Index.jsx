@@ -141,7 +141,14 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
     }, [classes]);
 
     const columns = [
-        { key: 'name', label: 'Name' },
+        { key: 'name', label: 'Name', render: (row) => (
+            <Link
+                href={route('classes.show', { school_class: row.id })}
+                className="text-blue-600 hover:text-blue-900 font-medium underline"
+            >
+                {row.name}
+            </Link>
+        ) },
         {
             key: 'active_from_session',
             label: 'Session',

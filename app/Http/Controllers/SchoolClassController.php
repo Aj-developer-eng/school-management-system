@@ -247,6 +247,75 @@ class SchoolClassController extends Controller
         ]);
     }
 
+    public function show(Request $request, SchoolClass $schoolClass): Response
+    {
+        // Eager load relationships so the detail view gets all required data.
+        $class = $schoolClass->load([
+            'activeFromSession',
+            'teacherSubjectAssignments.teacher.user',
+        ]);
+
+        // Sort assignments by start time so teacher display and class times
+        // are deterministic. Assignments without a start time are treated as
+        // the latest option.
+        $assignments = $class->teacherSubjectAssignments->sortBy(
+            fn (TeacherSubjectAssignment $a) => $a->start_time ?? '99:59'
+        );
+
+        // Build teacher info from the earliest assignment (preferred) or the first one.
+        $teacher = null;
+        if ($assignments->isNotEmpty()) {
+            $first = $assignments->first();
+            $teacher = [
+                'id' => $first->teacher->id ?? null,
+                'name' => $first->teacher->user->name ?? 'Unknown',
+                'employee_code' => $first->teacher->employee_code ?? '—',
+                'qualification' => $first->teacher->qualification ?? '—',
+                'bio' => $first->teacher->bio ?? '—',
+                'photo_url' => $first->teacher->profileImageUrl(),
+            ];
+        }
+
+        // Build the class times (deduplicated) from the assignments.
+        $classTimes = $assignments->map(fn (TeacherSubjectAssignment $a) => [
+            'start_time' => $a->start_time,
+            'end_time' => $a->end_time,
+        ])->unique(
+            fn ($item) => $item['start_time'] . '|' . $item['end_time']
+        )->values()->all();
+
+        // Build the student roster from enrollments (same approach as index).
+        $students = collect();
+        if ($pageClassIds = collect([$schoolClass->id])) {
+            $students = DB::table('student_enrollments as se')
+                ->join('students as st', 'st.id', '=', 'se.student_id')
+                ->join('users as u', 'u.id', '=', 'st.user_id')
+                ->where('se.school_class_id', $schoolClass->id)
+                ->whereNull('se.deleted_at')
+                ->whereNull('st.deleted_at')
+                ->orderBy('u.name')
+                ->get([
+                    'se.school_class_id',
+                    'st.id as student_id',
+                    'u.name as student_name',
+                    'st.admission_number',
+                ])
+                ->map(fn ($row) => [
+                    'id' => (int) $row->student_id,
+                    'name' => $row->student_name,
+                    'admission_number' => $row->admission_number ?? '—',
+                ])
+                ->values();
+        }
+
+        return Inertia::render('Academic/Class/Detail', [
+            'class' => $class,
+            'classTimes' => $classTimes,
+            'teacher' => $teacher,
+            'students' => $students,
+        ]);
+    }
+
     public function create(Request $request): Response
     {
         // The optional assignment section is only offered to users who may
