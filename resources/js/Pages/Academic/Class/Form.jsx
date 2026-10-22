@@ -43,11 +43,13 @@ export default function Form({ class: item, sessions, teachers, can_assign, assi
         classAssignments[0] ??
         null;
 
+    // The session is no longer picked in the browser: an existing assignment
+    // keeps the session it already belongs to and a brand new one falls back
+    // to the active academic session, which is resolved on the server.
     const defaultAssignment = selectedAssignment
         ? {
               id: selectedAssignment.id,
               teacher_id: selectedAssignment.teacher_id ?? '',
-              academic_session_id: selectedAssignment.academic_session_id ?? '',
               start_time: selectedAssignment.start_time ?? '',
               end_time: selectedAssignment.end_time ?? '',
               days_of_week: selectedAssignment.days_of_week ?? [],
@@ -55,7 +57,6 @@ export default function Form({ class: item, sessions, teachers, can_assign, assi
         : {
               id: '',
               teacher_id: '',
-              academic_session_id: '',
               start_time: '',
               end_time: '',
               days_of_week: [],
@@ -70,7 +71,6 @@ export default function Form({ class: item, sessions, teachers, can_assign, assi
         assignment: {
             id: defaultAssignment.id,
             teacher_id: defaultAssignment.teacher_id,
-            academic_session_id: defaultAssignment.academic_session_id,
             start_time: defaultAssignment.start_time,
             end_time: defaultAssignment.end_time,
             days_of_week: defaultAssignment.days_of_week,
@@ -91,7 +91,6 @@ export default function Form({ class: item, sessions, teachers, can_assign, assi
         setData('assignment', {
             id: assignment.id,
             teacher_id: assignment.teacher_id ?? '',
-            academic_session_id: assignment.academic_session_id ?? '',
             start_time: assignment.start_time ?? '',
             end_time: assignment.end_time ?? '',
             days_of_week: assignment.days_of_week ?? [],
@@ -222,7 +221,7 @@ export default function Form({ class: item, sessions, teachers, can_assign, assi
                                     </span>
                                     <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
                                         {assignmentOpen
-                                            ? 'Same as Teacher Assignments, assigned for the active academic session — leave the teacher empty to skip.'
+                                            ? 'Same as Teacher Assignments — an existing assignment keeps its academic session, a new one uses the active session. Leave the teacher empty to skip.'
                                             : 'Click to show the optional teacher assignment fields.'}
                                     </span>
                                 </span>
@@ -258,27 +257,6 @@ export default function Form({ class: item, sessions, teachers, can_assign, assi
                                         <InputError message={errors['assignment.id']} className="mt-2" />
                                     </div>
                                 )}
-
-                                <div>
-                                    <InputLabel htmlFor="assignment_academic_session_id" value="Academic Session" />
-                                    <select
-                                        id="assignment_academic_session_id"
-                                        value={data.assignment.academic_session_id ?? ''}
-                                        onChange={(event) => setData('assignment.academic_session_id', event.target.value)}
-                                        className={selectClass}
-                                    >
-                                        <option value="">— Active session —</option>
-                                        {sessionOptions.map(([id, name]) => (
-                                            <option key={id} value={id}>
-                                                {name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                        Leave empty to use the active academic session.
-                                    </p>
-                                    <InputError message={errors['assignment.academic_session_id']} className="mt-2" />
-                                </div>
 
                                 <div>
                                     <InputLabel htmlFor="assignment_teacher_id" value="Teacher" />

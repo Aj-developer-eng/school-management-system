@@ -412,17 +412,15 @@ class SchoolClassController extends Controller
                     ->first();
             }
 
-            // The session the assignment belongs to. A submitted session wins,
-            // otherwise the active one is used. An assignment that is already
-            // in a session keeps it, so editing a class never moves an
-            // existing assignment to another session by accident.
-            $sessionId = $assignmentData['academic_session_id'] ?? null;
-
-            if ($sessionId === null && $assignment !== null) {
-                $sessionId = $assignment->academic_session_id;
-            }
-
-            $sessionId ??= AcademicSession::active()->value('id');
+            // The session the assignment belongs to. It is resolved on the
+            // server only: the session is no longer picked in the browser, so
+            // an existing assignment keeps the session it already belongs to
+            // and a brand new one falls back to the active session. Editing a
+            // class can therefore never move an assignment to another
+            // session, not even through a crafted payload.
+            $sessionId = $assignment !== null
+                ? $assignment->academic_session_id
+                : AcademicSession::active()->value('id');
 
             if ($sessionId === null) {
                 throw ValidationException::withMessages([
@@ -431,13 +429,21 @@ class SchoolClassController extends Controller
             }
 
             // Without an id (or with an id that no longer exists) fall back to
-            // the class/session/teacher combination, so editing a class does
-            // not pile up duplicate assignments for the same teacher.
+            // the class/teacher combination, so editing a class does not pile
+            // up duplicate assignments for the same teacher. The active
+            // session is preferred, but an assignment that already exists for
+            // this teacher in an earlier session is reused rather than
+            // duplicated.
             if ($assignment === null) {
                 $assignment = $schoolClass->teacherSubjectAssignments()
                     ->where('teacher_id', $teacherId)
-                    ->where('academic_session_id', $sessionId)
+                    ->orderByRaw('CASE WHEN academic_session_id = ? THEN 0 ELSE 1 END', [$sessionId])
+                    ->orderByDesc('academic_session_id')
                     ->first();
+
+                if ($assignment !== null) {
+                    $sessionId = $assignment->academic_session_id;
+                }
             }
 
             $attributes = [

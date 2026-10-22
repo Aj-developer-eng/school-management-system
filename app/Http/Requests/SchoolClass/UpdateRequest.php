@@ -39,7 +39,10 @@ class UpdateRequest extends FormRequest
                 'integer',
                 'exists:teachers,id',
             ],
-            'assignment.academic_session_id' => ['nullable', 'integer', 'exists:academic_sessions,id'],
+            // The academic session of an assignment is not accepted from the
+            // browser: an existing assignment keeps the session it already
+            // belongs to and a new one uses the active session, both resolved
+            // on the server.
             'assignment.start_time' => ['nullable', 'date_format:H:i'],
             'assignment.end_time' => ['nullable', 'date_format:H:i', 'after_or_equal:assignment.start_time'],
             'assignment.days_of_week' => ['nullable', 'array'],
