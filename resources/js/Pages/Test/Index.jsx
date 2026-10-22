@@ -8,7 +8,8 @@ import Pagination from '@/Components/Ui/Pagination';
 import SearchInput from '@/Components/Ui/SearchInput';
 import { useAuth } from '@/utils/authorization';
 import { formatDate } from '@/utils/format';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 
 const statusColors = {
     announced: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
@@ -16,8 +17,26 @@ const statusColors = {
     results_published: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
 };
 
-export default function Index({ tests, filters }) {
+export default function Index({ tests, filters, classes }) {
     const { can } = useAuth();
+    const [classId, setClassId] = useState(filters.school_class_id ?? '');
+
+    // Keep the dropdown in sync when the filter is changed from elsewhere
+    // (e.g. the browser back button or a shared link).
+    useEffect(() => {
+        setClassId(filters.school_class_id ?? '');
+    }, [filters.school_class_id]);
+
+    const applyFilters = ({ class_id = classId, search = filters.search ?? '' }) => {
+        router.get(
+            route('tests.index'),
+            {
+                search: search || undefined,
+                school_class_id: class_id || undefined,
+            },
+            { preserveScroll: true, preserveState: true },
+        );
+    };
 
     const columns = [
         {
@@ -83,8 +102,48 @@ export default function Index({ tests, filters }) {
             actions={can('tests.create') && <CreateButton routeName="tests.create" label="New Test" />}
         >
             <Card>
-                <div className="p-4">
-                    <SearchInput value={filters.search} onChange={(e) => router.visit(route('tests.index', { search: e.target.value }), { preserveScroll: true, preserveState: true })} placeholder="Search by title or class…" />
+                <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <SearchInput
+                        value={filters.search ?? ''}
+                        onChange={(value) => applyFilters({
+                            class_id: classId,
+                            search: typeof value === 'string' ? value : value.target.value,
+                        })}
+                        placeholder="Search by title or class…"
+                    />
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="school_class_id" className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                            Class
+                        </label>
+                        <select
+                            id="school_class_id"
+                            value={classId}
+                            onChange={(e) => {
+                                setClassId(e.target.value);
+                                applyFilters({ class_id: e.target.value });
+                            }}
+                            className="rounded-lg border-gray-300 bg-white text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                        >
+                            <option value="">All Classes</option>
+                            {Object.entries(classes ?? {}).map(([id, name]) => (
+                                <option key={id} value={id}>
+                                    {name}
+                                </option>
+                            ))}
+                        </select>
+                        {classId && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setClassId('');
+                                    applyFilters({ class_id: '' });
+                                }}
+                                className="text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <DataTable columns={columns} rows={tests} />
                 <Pagination {...tests} />

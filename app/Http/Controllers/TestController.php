@@ -30,12 +30,18 @@ class TestController extends Controller
     {
         $user = $request->user();
         $activeSession = AcademicSession::active()->first();
+        $classId = $request->input('school_class_id');
 
         // Parents and students only ever see the tests they have a visible result
         // for: published results, excluding "not applicable" entries. Staff roles
         // stay unrestricted.
         $scopedStudentIds = $this->scopedStudentIds($user);
         $isScopedViewer = $scopedStudentIds !== null;
+
+        $teacher = null;
+        if ($user->hasRole(RoleEnum::Teacher->value)) {
+            $teacher = Teacher::where('user_id', $user->id)->first();
+        }
 
         $tests = Test::query()
             ->with([
@@ -51,23 +57,42 @@ class TestController extends Controller
             ->whereNull('tests.deleted_at')
             ->when($isScopedViewer, fn ($q) => $q->whereIn('tests.id', $this->visibleTestIds($scopedStudentIds)))
             ->when($activeSession, fn ($q) => $q->where('academic_session_id', $activeSession->id))
+            ->when($classId, fn ($q) => $q->where('school_class_id', $classId))
             ->when($request->search, function ($query, $search): void {
-                $query->where('title', 'like', "%{$search}%")
-                    ->orWhereHas('schoolClass', fn ($sq) => $sq->where('name', 'like', "%{$search}%"));
+                // Grouped so the OR branch cannot escape the class/session
+                // filters applied above (SQL AND binds tighter than OR).
+                $query->where(function ($q) use ($search): void {
+                    $q->where('title', 'like', "%{$search}%")
+                        ->orWhereHas('schoolClass', fn ($sq) => $sq->where('name', 'like', "%{$search}%"));
+                });
             });
 
-        if ($user->hasRole(RoleEnum::Teacher->value)) {
-            $teacher = Teacher::where('user_id', $user->id)->first();
-            if ($teacher) {
-                $tests->where('teacher_id', $teacher->id);
-            }
+        if ($teacher) {
+            $tests->where('teacher_id', $teacher->id);
         }
+
+        // The class filter only lists classes the viewer is allowed to filter
+        // by: teachers see the classes they are assigned to, everyone else
+        // (staff, parents, students) sees every active class.
+        $filterableClassIds = $teacher
+            ? TeacherSubjectAssignment::where('teacher_id', $teacher->id)
+                ->whereNull('deleted_at')
+                ->pluck('school_class_id')
+                ->unique()
+                ->values()
+            : null;
+
+        $classes = SchoolClass::where('is_active', true)
+            ->when($filterableClassIds, fn ($q) => $q->whereIn('id', $filterableClassIds))
+            ->orderBy('level')
+            ->pluck('name', 'id');
 
         $tests = $tests->latest()->paginate(15)->withQueryString();
 
         return Inertia::render('Test/Index', [
             'tests' => $tests,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'school_class_id']),
+            'classes' => $classes,
         ]);
     }
 
