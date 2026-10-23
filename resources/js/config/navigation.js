@@ -95,12 +95,12 @@ export const navigation = [
                 icon: Library,
                 permission: 'teachers.view',
             },
-            {
-                label: 'Class Assignments',
-                routeName: 'teacher-assignments.index',
-                icon: UserCog,
-                permission: 'teacher-assignments.view',
-            },
+            // {
+            //     label: 'Class Assignments',
+            //     routeName: 'teacher-assignments.index',
+            //     icon: UserCog,
+            //     permission: 'teacher-assignments.view',
+            // },
             {
                 label: 'Teacher Report',
                 routeName: 'teacher-reports.index',

@@ -201,6 +201,18 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
               ]
             : []),
         {
+            key: 'tests',
+            label: 'Test',
+            render: (row) => (
+                <Link
+                    href={route('tests.index', { school_class_id: row.id })}
+                    className="inline-flex items-center rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100 dark:bg-purple-500/10 dark:text-purple-300"
+                >
+                    Tests
+                </Link>
+            ),
+        },
+        {
             key: 'is_active',
             label: 'Status',
             render: (row) => <StatusBadge active={row.is_active} />,
