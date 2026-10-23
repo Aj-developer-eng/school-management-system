@@ -84,6 +84,12 @@ export const navigation = [
                 icon: MessageSquareText,
                 permission: null,
             },
+            {
+                label: 'Registration Requests',
+                routeName: 'registration-requests.index',
+                icon: ShieldCheck,
+                permission: null,
+            },
         ],
     },
     {
