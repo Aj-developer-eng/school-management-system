@@ -49,6 +49,11 @@ class SchoolClass extends Model
         return $this->hasMany(ClassPaper::class);
     }
 
+    public function tests(): HasMany
+    {
+        return $this->hasMany(Test::class, 'school_class_id');
+    }
+
     /**
      * Notes attached to this class (viewable via "classes.view-notes").
      */

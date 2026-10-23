@@ -52,6 +52,7 @@ class SchoolClassController extends Controller
                 // permission-gated classes.papers.download route.
                 'papers:id,school_class_id,original_name,mime_type,size,created_at',
             ])
+            ->withCount('tests')
             // Notes are only shared with users allowed to read them
             // ("classes.view-notes") or write them ("classes.create-notes"),
             // so the payload never leaks notes to other roles.
