@@ -13,7 +13,7 @@ class RegistrationRequestController extends Controller
     {
         return Inertia::render('Admin/RegistrationRequests/Index', [
             'requests' => RegistrationRequest::with('assignedUser')->latest()->get(),
-            'users' => User::whereDoesntHave('roles', fn ($q) => $q->whereIn('name', ['Student', 'Parent']))->get(['id','name']),
+            'users' => User::whereDoesntHave('roles', fn ($q) => $q->whereIn('name', ['Teacher','Student', 'Parent']))->get(['id','name']),
         ]);
     }
 
