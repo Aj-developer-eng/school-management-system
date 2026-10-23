@@ -16,7 +16,9 @@ export default function Index({ requests = [], users = [] }) {
                                     <option key={u.id} value={u.id}>{u.name}</option>
                                 ))}
                             </select>
-                            <button onClick={() => router.patch(route('registration-requests.approve', r.id))} className="text-green-600">Approve</button>
+                            {r.assigned_user_id && (
+                                <button onClick={() => router.patch(route('registration-requests.approve', r.id))} className="text-green-600">Approve</button>
+                            )}
                             <button onClick={() => router.patch(route('registration-requests.reject', r.id))} className="text-red-600">Reject</button>
                         </div>
                     </div>
