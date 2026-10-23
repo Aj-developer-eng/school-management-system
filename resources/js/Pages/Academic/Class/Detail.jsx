@@ -3,6 +3,7 @@ import Card from '@/Components/Ui/Card';
 import { Link } from '@inertiajs/react';
 import { ArrowLeft, Clock, GraduationCap, Users } from 'lucide-react';
 
+
 export default function Detail({ class: schoolClass, classTimes = [], teacher = null, students = [] }) {
     return (
         <AuthenticatedLayout
