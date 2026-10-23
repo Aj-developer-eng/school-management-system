@@ -284,6 +284,7 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
                         />
                     </div>
                 )}
+                
                 <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <SearchInput value={filters.search} onChange={handleSearch} placeholder="Search by name or code…" />
                     <SearchableSelect
