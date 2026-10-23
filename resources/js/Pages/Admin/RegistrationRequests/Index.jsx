@@ -7,6 +7,7 @@ export default function Index({ requests = [], users = [] }) {
             <div className="space-y-4">
                 {requests.map((r) => (
                     <div key={r.id} className="rounded border p-4">
+                        
                         <p>{r.name} - {r.email} - {r.status}</p>
                         <p className="text-sm">Assigned: {r.assigned_user?.name || 'Unassigned'}</p>
                         <div className="mt-2 flex gap-2 items-center">
