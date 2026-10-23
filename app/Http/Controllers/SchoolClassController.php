@@ -249,6 +249,7 @@ class SchoolClassController extends Controller
 
     public function show(Request $request, SchoolClass $schoolClass): Response
     {
+        dd('here');
         // Eager load relationships so the detail view gets all required data.
         $class = $schoolClass->load([
             'activeFromSession',
