@@ -12,6 +12,7 @@ export default function Detail({ class: schoolClass, classTimes = [], teacher = 
                     <p className="text-sm text-gray-600">Level: {schoolClass?.level}</p>
                 </Card>
 
+
                 <Card>
                     <h3 className="text-lg font-semibold mb-2">Class Times</h3>
                     {classTimes.length ? (
