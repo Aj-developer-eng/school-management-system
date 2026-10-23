@@ -66,12 +66,12 @@ export const navigation = [
                 permission: 'attendances.view',
                 excludeRoles: ['Parent', 'Student'],
             },
-            {
-                label: 'Tests',
-                routeName: 'tests.index',
-                icon: FileText,
-                permission: 'tests.view',
-            },
+            // {
+            //     label: 'Tests',
+            //     routeName: 'tests.index',
+            //     icon: FileText,
+            //     permission: 'tests.view',
+            // },
             {
                 label: 'Online Classes',
                 routeName: 'online-classes.index',
