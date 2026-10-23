@@ -277,6 +277,7 @@ class SchoolClassController extends Controller
             ];
         }
 
+        
         // Build the class times (deduplicated) from the assignments.
         $classTimes = $assignments->map(fn (TeacherSubjectAssignment $a) => [
             'start_time' => $a->start_time,
