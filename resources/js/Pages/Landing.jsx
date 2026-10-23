@@ -160,7 +160,7 @@ export default function Landing({ school, cms, activeSession }) {
     const ctaTitleHighlight = c.cta_title_highlight || 'seriously';
     const ctaDesc = c.cta_description || 'Create your student account in seconds, explore your sample dashboard, and talk to admissions about the right pathway.';
     const ctaBtnText = c.cta_button_text || 'Create student account';
-    const ctaBtnLink = c.cta_button_link || route('login');
+    const ctaBtnLink = c.cta_button_link || route('register_student');
     const ctaSecondaryBtnText = c.cta_secondary_button_text || 'I already have an account';
     const ctaSecondaryBtnLink = c.cta_secondary_button_link || route('login');
 

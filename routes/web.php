@@ -16,6 +16,8 @@ use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OnlineClassController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RegisterStudentController;
+use App\Http\Controllers\RegistrationRequestController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolSettingController;
@@ -31,6 +33,8 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', LandingPageController::class)->name('landing');
+Route::get('/register-student', [RegisterStudentController::class, 'create'])->name('register_student');
+Route::post('/register-student', [RegisterStudentController::class, 'store'])->name('register_student.store');
 Route::get('/robots.txt', [SeoController::class, 'robots'])->name('seo.robots');
 Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('seo.sitemap');
 
@@ -96,6 +100,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('classes.students.attach');
     Route::delete('classes/{school_class}/students/{student}', [SchoolClassController::class, 'detachStudent'])
         ->name('classes.students.detach');
+
+    Route::get('registration-requests', [RegistrationRequestController::class, 'index'])->name('registration-requests.index');
+    Route::patch('registration-requests/{registrationRequest}/approve', [RegistrationRequestController::class, 'approve'])->name('registration-requests.approve');
+    Route::patch('registration-requests/{registrationRequest}/reject', [RegistrationRequestController::class, 'reject'])->name('registration-requests.reject');
 
     Route::resource('teachers', TeacherController::class)
         ->except(['show'])
