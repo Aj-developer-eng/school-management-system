@@ -20,6 +20,7 @@ export default function RegisterStudent() {
             <div className="min-h-screen bg-white font-sans text-gray-900">
                 <header className="border-b border-gray-200/60 bg-white/80 backdrop-blur-xl">
                     <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+                   
                         <a href="/" className="flex items-center gap-2.5">
                             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-navy text-gold">
                                 <GraduationCap className="h-5 w-5" />
