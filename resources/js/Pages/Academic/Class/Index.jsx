@@ -208,7 +208,8 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
                     href={route('tests.index', { school_class_id: row.id })}
                     className="inline-flex items-center rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100 dark:bg-purple-500/10 dark:text-purple-300"
                 >
-                    Tests 
+                    <FileText className="h-3 w-3 mr-1" />
+                    Tests <span className="font-semibold">{row.tests_count ?? 0}</span>
                 </Link>
             ),
         },
