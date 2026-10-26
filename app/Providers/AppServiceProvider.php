@@ -15,6 +15,7 @@ use App\Policies\FeeStructurePolicy;
 use App\Policies\RolePolicy;
 use App\Policies\RegistrationRequestPolicy;
 use App\Policies\UserPolicy;
+use App\Support\LandingPageContent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
