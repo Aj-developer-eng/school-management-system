@@ -21,6 +21,9 @@ export default function Index({ requests = [], users = [] }) {
             <div className="space-y-6">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                     {requests.length} request{requests.length === 1 ? '' : 's'}
+                </p>
+
+                {requests.length === 0 ? (
                     <Card>
                         <div className="px-6 py-12 text-center">
                             <Inbox className="mx-auto h-12 w-12 text-gray-300" />
@@ -94,9 +97,3 @@ export default function Index({ requests = [], users = [] }) {
         </AuthenticatedLayout>
     );
 }
-" 
-                </p>
-
-                {requests.length === 0 ? (
-" 
-
