@@ -113,6 +113,12 @@ enum PermissionEnum: string
     case ViewHrm = 'hrm.view';
     case UpdateHrm = 'hrm.update';
 
+    // Registration Requests
+    case ViewRegistrationRequests = 'registration-requests.view';
+    case UpdateRegistrationRequests = 'registration-requests.update';
+    case ApproveRegistrationRequests = 'registration-requests.approve';
+    case RejectRegistrationRequests = 'registration-requests.reject';
+
     /**
      * @return list<string>
      */
