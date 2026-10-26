@@ -101,10 +101,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('classes/{school_class}/students/{student}', [SchoolClassController::class, 'detachStudent'])
         ->name('classes.students.detach');
 
-    Route::get('registration-requests', [RegistrationRequestController::class, 'index'])->name('registration-requests.index');
-    Route::patch('registration-requests/{registrationRequest}/approve', [RegistrationRequestController::class, 'approve'])->name('registration-requests.approve');
-    Route::patch('registration-requests/{registrationRequest}/reject', [RegistrationRequestController::class, 'reject'])->name('registration-requests.reject');
-    Route::patch('registration-requests/{registrationRequest}/assign', [RegistrationRequestController::class, 'assign'])->name('registration-requests.assign');
+    Route::get('registration-requests', [RegistrationRequestController::class, 'index'])->name('registration-requests.index')->middleware('can:registration-requests.view');
+    Route::patch('registration-requests/{registrationRequest}/approve', [RegistrationRequestController::class, 'approve'])->name('registration-requests.approve')->middleware('can:registration-requests.approve');
+    Route::patch('registration-requests/{registrationRequest}/reject', [RegistrationRequestController::class, 'reject'])->name('registration-requests.reject')->middleware('can:registration-requests.reject');
+    Route::patch('registration-requests/{registrationRequest}/assign', [RegistrationRequestController::class, 'assign'])->name('registration-requests.assign')->middleware('can:registration-requests.update');
 
     Route::resource('teachers', TeacherController::class)
         ->except(['show'])

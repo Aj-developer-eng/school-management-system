@@ -13,8 +13,8 @@ use App\Policies\FeeInvoicePolicy;
 use App\Policies\FeePaymentPolicy;
 use App\Policies\FeeStructurePolicy;
 use App\Policies\RolePolicy;
+use App\Policies\RegistrationRequestPolicy;
 use App\Policies\UserPolicy;
-use App\Support\LandingPageContent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
@@ -48,6 +48,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(FeeInvoice::class, FeeInvoicePolicy::class);
         Gate::policy(FeePayment::class, FeePaymentPolicy::class);
         Gate::policy(FeeConcession::class, FeeConcessionPolicy::class);
+
+        Gate::policy(RegistrationRequest::class, RegistrationRequestPolicy::class);
 
         Gate::before(function (User $user): ?bool {
             return $user->hasRole(RoleEnum::SuperAdmin->value) ? true : null;

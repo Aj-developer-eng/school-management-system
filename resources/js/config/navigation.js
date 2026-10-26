@@ -88,7 +88,7 @@ export const navigation = [
                 label: 'Registration Requests',
                 routeName: 'registration-requests.index',
                 icon: ShieldCheck,
-                permission: null,
+                permission: 'registration-requests.view',
             },
         ],
     },
