@@ -17,6 +17,7 @@ use App\Models\TestResult;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -323,8 +324,8 @@ class TestController extends Controller
     {
         $label = (string) $assignment->schoolClass?->name;
 
-        $start = $assignment->start_time?->format('H:i');
-        $end = $assignment->end_time?->format('H:i');
+        $start = $this->formatTime($assignment->start_time);
+        $end = $this->formatTime($assignment->end_time);
 
         if ($start !== null && $end !== null) {
             return "{$label} · {$start} – {$end}";
@@ -335,6 +336,21 @@ class TestController extends Controller
         }
 
         return $label;
+    }
+
+    /** Convert a 24-hour time (HH:MM:SS) to 12-hour format with AM/PM (e.g. "6:53 PM"). */
+    private function formatTime(?Carbon $time): ?string
+    {
+        if (!$time) {
+            return null;
+        }
+
+        $hours = (int) $time->format('H');
+        $minutes = $time->format('i');
+        $period = $hours >= 12 ? 'PM' : 'AM';
+        $displayHours = $hours % 12 === 0 ? 12 : $hours % 12;
+
+        return "{$displayHours}:{$minutes} {$period}";
     }
 
     private function getEnrolledStudents(Test $test)
