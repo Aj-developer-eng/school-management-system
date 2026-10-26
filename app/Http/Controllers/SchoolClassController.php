@@ -52,6 +52,7 @@ class SchoolClassController extends Controller
                 // permission-gated classes.papers.download route.
                 'papers:id,school_class_id,original_name,mime_type,size,created_at',
             ])
+            ->select('school_classes.*')
             ->withCount('tests')
             // Notes are only shared with users allowed to read them
             // ("classes.view-notes") or write them ("classes.create-notes"),
@@ -63,7 +64,6 @@ class SchoolClassController extends Controller
                     'notes' => fn ($notes) => $notes->with('creator:id,name')->latest('id'),
                 ]),
             )
-            ->select('school_classes.*')
             ->selectRaw('(select count(distinct se.student_id)
                 from student_enrollments se
                 where se.school_class_id = school_classes.id
