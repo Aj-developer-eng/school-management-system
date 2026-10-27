@@ -171,7 +171,8 @@ class DashboardController extends Controller
                     ->get();
 
                 // Published test results for the children. Parents do not see
-                // "not applicable" entries.
+                // "not applicable" entries. Also exclude results where the test
+                // has no associated class (school_class_id is null).
                 $testResults = TestResult::with([
                     'test:id,title,test_date,school_class_id,total_marks',
                     'test.schoolClass:id,name',
@@ -184,6 +185,7 @@ class DashboardController extends Controller
                         $q->where('status', TestStatusEnum::ResultsPublished->value)
                             ->whereNull('deleted_at');
                     })
+                    ->whereHas('test.schoolClass')
                     ->orderByDesc('id')
                     ->limit(10)
                     ->get()
