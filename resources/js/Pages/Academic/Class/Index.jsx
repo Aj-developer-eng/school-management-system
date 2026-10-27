@@ -201,18 +201,25 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
               ]
             : []),
         {
-            key: 'tests',
-            label: 'Test',
-            render: (row) => (
-                <Link
-                    href={route('tests.index', { school_class_id: row.id })}
-                    className="inline-flex items-center rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100 dark:bg-purple-500/10 dark:text-purple-300"
-                >
-                    <FileText className="h-3 w-3 mr-1" />
-                    Tests <span className="font-semibold"> {row.tests_count ?? 0}</span>
-                </Link>
-            ),
-        },
+    key: 'tests',
+    label: 'Tests',
+    render: (row) => (
+        <Link
+            href={route('tests.index', { school_class_id: row.id })}
+            className="group inline-flex items-center gap-2 rounded-lg border border-purple-200/80 bg-white px-3 py-1.5 text-sm font-medium text-purple-700 shadow-sm transition-all duration-200 hover:border-purple-300 hover:bg-purple-50 hover:shadow-md dark:border-purple-500/20 dark:bg-purple-500/5 dark:text-purple-300 dark:hover:border-purple-500/40 dark:hover:bg-purple-500/10"
+        >
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-purple-100 text-purple-700 transition-colors group-hover:bg-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:group-hover:bg-purple-500/25">
+                <FileText className="h-3.5 w-3.5" />
+            </span>
+
+            <span>Tests</span>
+
+            <span className="inline-flex min-w-6 items-center justify-center rounded-md bg-purple-50 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">
+                {row.tests_count ?? 0}
+            </span>
+        </Link>
+    ),
+},
         {
             key: 'is_active',
             label: 'Status',
