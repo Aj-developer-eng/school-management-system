@@ -36,6 +36,7 @@ class TestController extends Controller
         // Parents and students only ever see the tests they have a visible result
         // for: published results, excluding "not applicable" entries. Staff roles
         // stay unrestricted.
+        
         $scopedStudentIds = $this->scopedStudentIds($user);
         $isScopedViewer = $scopedStudentIds !== null;
 
