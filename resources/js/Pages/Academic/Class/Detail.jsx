@@ -44,13 +44,12 @@ export default function Detail({ class: schoolClass, classTimes = [], teacher = 
                             <h3 className="text-lg font-semibold">Class Times</h3>
                         </div>
                     {classTimes.length ? (
-                        <ul className="space-y-2">
-                            {classTimes.map((t, i) => (
-                                <li key={i} className="rounded-md bg-gray-50 px-3 py-2 text-sm dark:bg-gray-800">
-                                    {formatTimeRange(t.start_time, t.end_time)}
-                                </li>
-                            ))}
-                        </ul>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {classTimes
+                                .filter((t) => t.start_time || t.end_time)
+                                .map((t, i) => formatTimeRange(t.start_time, t.end_time))
+                                .join(', ')}
+                        </p>
                     ) : (
                         <p className="text-sm text-gray-500">No class times assigned.</p>
                     )}

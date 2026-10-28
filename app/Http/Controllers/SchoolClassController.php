@@ -279,9 +279,11 @@ class SchoolClassController extends Controller
 
         
         // Build the class times (deduplicated) from the assignments.
+        // Values are formatted as "H:i" strings so they're JSON-safe
+        // and can be consumed directly by the formatTime utility.
         $classTimes = $assignments->map(fn (TeacherSubjectAssignment $a) => [
-            'start_time' => $a->start_time,
-            'end_time' => $a->end_time,
+            'start_time' => $a->start_time ? $a->start_time->format('H:i') : null,
+            'end_time' => $a->end_time ? $a->end_time->format('H:i') : null,
         ])->unique(
             fn ($item) => $item['start_time'] . '|' . $item['end_time']
         )->values()->all();
