@@ -64,10 +64,10 @@ export default function Detail({ class: schoolClass, classTimes = [], teacher = 
                             <div className="space-y-1">
                                 <p className="font-medium">{teacher.name}</p>
                                 <p className="text-sm text-gray-600">Employee Code: {teacher.employee_code}</p>
-                                <p className="text-sm text-gray-600">Qualification: {teacher.qualification}</p>
+                                {/* <p className="text-sm text-gray-600">Qualification: {teacher.qualification}</p>
                                 {teacher.bio && teacher.bio !== '—' && (
                                     <p className="text-sm text-gray-600">Bio: {teacher.bio}</p>
-                                )}
+                                )} */}
                             </div>
                         ) : (
                             <p className="text-sm text-gray-500">No teacher assigned.</p>
@@ -92,7 +92,14 @@ export default function Detail({ class: schoolClass, classTimes = [], teacher = 
                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                     {students.map((s) => (
                                         <tr key={s.id}>
-                                            <td className="px-4 py-2 text-sm">{s.name}</td>
+                                            <td className="px-4 py-2 text-sm">
+                                                <Link
+                                                    href={`/students/${s.id}`}
+                                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                                >
+                                                    {s.name}
+                                                </Link>
+                                            </td>
                                             <td className="px-4 py-2 text-sm">{s.admission_number}</td>
                                         </tr>
                                     ))}
