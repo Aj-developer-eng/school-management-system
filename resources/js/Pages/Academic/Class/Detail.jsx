@@ -2,6 +2,7 @@
 import Card from '@/Components/Ui/Card';
 import { Link } from '@inertiajs/react';
 import { ArrowLeft, Clock, GraduationCap, Users } from 'lucide-react';
+import { formatTimeRange } from '@/utils/format';
 
 
 export default function Detail({ class: schoolClass, classTimes = [], teacher = null, students = [] }) {
@@ -42,33 +43,17 @@ export default function Detail({ class: schoolClass, classTimes = [], teacher = 
                             <Clock className="h-5 w-5 text-indigo-600" />
                             <h3 className="text-lg font-semibold">Class Times</h3>
                         </div>
-                        {classTimes.length ? (
-                            <ul className="space-y-2">
-                                {classTimes.map((t, i) => (
-    <li key={i} className="rounded-md bg-gray-50 px-3 py-2 text-sm dark:bg-gray-800">
-    {t.start_time
-        ? new Date(t.start_time).toLocaleTimeString('en-PK', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true,
-              timeZone: 'Asia/Karachi',
-          }).replace(/\s?(AM|PM)/i, '')
-        : '—'}
-    {' - '}
-    {t.end_time
-        ? new Date(t.end_time).toLocaleTimeString('en-PK', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true,
-              timeZone: 'Asia/Karachi',
-          }).replace(/\s?(AM|PM)/i, '')
-        : '—'}
-</li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-sm text-gray-500">No class times assigned.</p>
-                        )}
+                    {classTimes.length ? (
+                        <ul className="space-y-2">
+                            {classTimes.map((t, i) => (
+                                <li key={i} className="rounded-md bg-gray-50 px-3 py-2 text-sm dark:bg-gray-800">
+                                    {formatTimeRange(t.start_time, t.end_time)}
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-sm text-gray-500">No class times assigned.</p>
+                    )}
                     </Card>
 
                     <Card className="p-6">
