@@ -12,6 +12,7 @@ use App\Models\ClassPaper;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Enums\RoleEnum;
 use App\Models\Teacher;
 use App\Models\TeacherSubjectAssignment;
 use App\Services\ActivityLogService;
@@ -45,6 +46,20 @@ class SchoolClassController extends Controller
                 and tsa.deleted_at is null)';
 
         $classes = SchoolClass::query()
+            ->when(
+                // Teachers only see classes assigned to them; other roles see all.
+                $request->user() !== null && $request->user()->hasRole(RoleEnum::Teacher->value),
+                function ($query) use ($request): void {
+                    $teacherId = Teacher::where('user_id', $request->user()->id)->value('id');
+
+                    if ($teacherId) {
+                        $query->whereHas('teacherSubjectAssignments', function ($q) use ($teacherId): void {
+                            $q->where('teacher_id', $teacherId)
+                                ->whereNull('deleted_at');
+                        });
+                    }
+                },
+            )
             ->with([
                 'activeFromSession',
                 // The papers list shown in the Papers modal; the files live on
