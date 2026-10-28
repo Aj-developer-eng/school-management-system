@@ -45,26 +45,23 @@ export default function Detail({ class: schoolClass, classTimes = [], teacher = 
                         {classTimes.length ? (
                             <ul className="space-y-2">
                                 {classTimes.map((t, i) => (
-                                    <li
-    key={i}
-    className="rounded-md bg-gray-50 px-3 py-2 text-sm dark:bg-gray-800"
->
+    <li key={i} className="rounded-md bg-gray-50 px-3 py-2 text-sm dark:bg-gray-800">
     {t.start_time
         ? new Date(t.start_time).toLocaleTimeString('en-PK', {
               hour: 'numeric',
               minute: '2-digit',
               hour12: true,
               timeZone: 'Asia/Karachi',
-          })
+          }).replace(/\s?(AM|PM)/i, '')
         : '—'}
-    {' — '}
+    {' - '}
     {t.end_time
         ? new Date(t.end_time).toLocaleTimeString('en-PK', {
               hour: 'numeric',
               minute: '2-digit',
               hour12: true,
               timeZone: 'Asia/Karachi',
-          })
+          }).replace(/\s?(AM|PM)/i, '')
         : '—'}
 </li>
                                 ))}
