@@ -308,7 +308,7 @@ class TestController extends Controller
      */
     private function assignmentOptions(?Teacher $teacher, ?AcademicSession $activeSession): Collection
     {
-        return TeacherSubjectAssignment::with(['schoolClass:id,name'])
+        return TeacherSubjectAssignment::with(['schoolClass:id,name', 'academicSession:id,name'])
             ->where('teacher_id', $teacher?->id)
             ->whereNull('deleted_at')
             ->when($activeSession, fn ($q) => $q->where('academic_session_id', $activeSession->id))
@@ -324,19 +324,23 @@ class TestController extends Controller
     private function assignmentLabel(TeacherSubjectAssignment $assignment): string
     {
         $label = (string) $assignment->schoolClass?->name;
-
+        $sessionName = $assignment->academicSession?->name ?? '';
         $start = $this->formatTime($assignment->start_time);
         $end = $this->formatTime($assignment->end_time);
 
         if ($start !== null && $end !== null) {
-            return "{$label} · {$start} – {$end}";
+            return $sessionName
+                ? "{$label} · {$sessionName} · {$start} – {$end}"
+                : "{$label} · {$start} – {$end}";
         }
 
         if ($start !== null) {
-            return "{$label} · {$start}";
+            return $sessionName
+                ? "{$label} · {$sessionName} · {$start}"
+                : "{$label} · {$start}";
         }
 
-        return $label;
+        return $sessionName ? "{$label} · {$sessionName}" : $label;
     }
 
     /** Convert a 24-hour time (HH:MM:SS) to 12-hour format with AM/PM (e.g. "6:53 PM"). */
