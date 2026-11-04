@@ -96,6 +96,15 @@ enum PermissionEnum: string
     case UpdateOnlineClasses = 'online-classes.update';
     case DeleteOnlineClasses = 'online-classes.delete';
 
+    // Classworks (Google Classroom clone)
+    case ViewClassworks = 'classworks.view';
+    case CreateClassworks = 'classworks.create';
+    case UpdateClassworks = 'classworks.update';
+    case DeleteClassworks = 'classworks.delete';
+
+    // Take online class (student joins an active online class)
+    case TakeOnlineClasses = 'online-classes.take';
+
     // Attendance
     case ViewAttendances = 'attendances.view';
     case CreateAttendances = 'attendances.create';

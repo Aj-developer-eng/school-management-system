@@ -1,11 +1,16 @@
 ﻿import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Card from '@/Components/Ui/Card';
 import { Link } from '@inertiajs/react';
+import { Video } from 'lucide-react';
+import { formatDateTime } from '@/utils/format';
+import { useAuth } from '@/utils/authorization';
 import { ArrowLeft, Clock, GraduationCap, Users } from 'lucide-react';
 import { formatTimeRange } from '@/utils/format';
 
 
-export default function Detail({ class: schoolClass, classTimes = [], teacher = null, students = [] }) {
+export default function Detail({ class: schoolClass, classTimes = [], teacher = null, students = [], classworks = [], onlineClass = null }) {
+    const { can } = useAuth();
+
     return (
         <AuthenticatedLayout
             header={
@@ -75,6 +80,35 @@ export default function Detail({ class: schoolClass, classTimes = [], teacher = 
                     </Card>
                 </div>
 
+                {/* Online class — students join via the "Take online class" permission */}
+                {onlineClass && (
+                    <Card className="p-6">
+                        <div className="mb-3 flex items-center gap-2">
+                            <Video className="h-5 w-5 text-indigo-600" />
+                            <h3 className="text-lg font-semibold">Online Class</h3>
+                        </div>
+                        <div className="space-y-3">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">{onlineClass.title || 'Live online class'}</p>
+                            {onlineClass.scheduled_at && (
+                                <p className="text-xs text-gray-400">{formatDateTime(onlineClass.scheduled_at)}</p>
+                            )}
+                            {can('online-classes.take') ? (
+                                <Link
+                                    href={route('classes.online-class.take', { school_class: schoolClass?.id })}
+                                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
+                                    target="_blank"
+                                    rel="noopener"
+                                >
+                                    <Video className="h-4 w-4" />
+                                    Join Online Class
+                                </Link>
+                            ) : (
+                                <p className="text-sm text-gray-500">You need permission to join an online class.</p>
+                            )}
+                        </div>
+                    </Card>
+                )}
+
                 <Card className="p-6">
                     <div className="mb-3 flex items-center gap-2">
                         <Users className="h-5 w-5 text-indigo-600" />
@@ -108,6 +142,50 @@ export default function Detail({ class: schoolClass, classTimes = [], teacher = 
                         </div>
                     ) : (
                         <p className="text-sm text-gray-500">No students enrolled.</p>
+                    )}
+                </Card>
+
+                {/* Classwork — announcements & assignments */}
+                <Card className="p-6">
+                    <div className="mb-3 flex items-center gap-2">
+                        <ClipboardCheck className="h-5 w-5 text-indigo-600" />
+                        <h3 className="text-lg font-semibold">Classwork</h3>
+                    </div>
+                    {classworks.length > 0 ? (
+                        <div className="space-y-4">
+                            {classworks.map((cw) => (
+                                <div
+                                    key={cw.id}
+                                    className={`rounded-lg border p-4 ${
+                                        cw.type === 'announcement'
+                                            ? 'border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/5'
+                                            : 'border-indigo-200 bg-indigo-50 dark:border-indigo-500/20 dark:bg-indigo-500/5'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h4 className="font-semibold text-gray-900 dark:text-gray-100">{cw.title}</h4>
+                                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                            cw.type === 'announcement'
+                                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
+                                                : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300'
+                                        }`}>
+                                            {cw.type === 'announcement' ? 'Announcement' : 'Assignment'}
+                                        </span>
+                                    </div>
+                                    {cw.description && (
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">{cw.description}</p>
+                                    )}
+                                    {cw.due_date && (
+                                        <p className="text-xs text-gray-400 mt-1">Due: {formatDateTime(cw.due_date)}</p>
+                                    )}
+                                    {cw.creator && (
+                                        <p className="text-xs text-gray-400 mt-1">Posted by {cw.creator.name}</p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-500">No classwork yet.</p>
                     )}
                 </Card>
             </div>

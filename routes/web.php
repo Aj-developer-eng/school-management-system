@@ -249,6 +249,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->parameters(['online-classes' => 'online_class'])
         ->names('online-classes');
 
+    // Classwork routes — part of the Google Classroom clone UI on /classes/{school_class}
+    Route::get('classes/{school_class}/classwork', [ClassworkController::class, 'index'])
+        ->name('classes.classwork.index');
+
+    Route::post('classes/{school_class}/classwork', [ClassworkController::class, 'store'])
+        ->name('classes.classwork.store');
+
+    Route::patch('classes/{school_class}/classwork/{classwork}', [ClassworkController::class, 'update'])
+        ->name('classes.classwork.update');
+
+    Route::delete('classes/{school_class}/classwork/{classwork}', [ClassworkController::class, 'destroy'])
+        ->name('classes.classwork.destroy');
+
+    // Online class take (students join an active online class) — permission gated via online-classes.take
+    Route::post('classes/{school_class}/online-class/take', [ClassworkController::class, 'takeOnlineClass'])
+        ->name('classes.online-class.take');
+
+
     Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
         ->name('notifications.read');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])

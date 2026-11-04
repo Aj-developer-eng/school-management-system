@@ -327,11 +327,25 @@ class SchoolClassController extends Controller
                 ->values();
         }
 
+        // Classwork attached to this class (list view).
+        $classworks = $class->classworks()->with('creator:id,name')->latest('id')->get();
+
+        // The active online class for the class (if any) — students use this to
+        // join the live session via the "Take online class" permission.
+        $onlineClass = $class->onlineClasses()
+            ->active()
+            ->whereNull('disabled_at')
+            ->whereNotNull('meeting_link')
+            ->latest('scheduled_at')
+            ->first();
+
         return Inertia::render('Academic/Class/Detail', [
             'class' => $class,
             'classTimes' => $classTimes,
             'teacher' => $teacher,
             'students' => $students,
+            'classworks' => $classworks,
+            'onlineClass' => $onlineClass,
         ]);
     }
 

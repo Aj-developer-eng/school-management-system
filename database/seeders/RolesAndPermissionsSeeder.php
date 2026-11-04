@@ -84,6 +84,10 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::DeleteExpenses->value,
             PermissionEnum::ViewHrm->value,
             PermissionEnum::UpdateHrm->value,
+            PermissionEnum::ViewClassworks->value,
+            PermissionEnum::CreateClassworks->value,
+            PermissionEnum::UpdateClassworks->value,
+            PermissionEnum::DeleteClassworks->value,
         ]);
 
         $this->syncRolePermissions(RoleEnum::Teacher, [
@@ -98,6 +102,10 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::ViewOnlineClasses->value,
             PermissionEnum::ViewAttendances->value,
             PermissionEnum::CreateAttendances->value,
+            PermissionEnum::ViewClassworks->value,
+            PermissionEnum::CreateClassworks->value,
+            PermissionEnum::UpdateClassworks->value,
+            PermissionEnum::DeleteClassworks->value,
         ]);
 
         $this->syncRolePermissions(RoleEnum::Accountant, [
@@ -141,6 +149,8 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::ViewFeeInvoices->value,
             PermissionEnum::ViewFeePayments->value,
             PermissionEnum::ViewAttendances->value,
+            PermissionEnum::ViewClassworks->value,
+            PermissionEnum::TakeOnlineClasses->value,
         ]);
 
         $this->syncRolePermissions(RoleEnum::Parent, [

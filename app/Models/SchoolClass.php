@@ -54,6 +54,16 @@ class SchoolClass extends Model
         return $this->hasMany(Test::class, 'school_class_id');
     }
 
+    public function classworks(): HasMany
+    {
+        return $this->hasMany(Classwork::class);
+    }
+
+    public function onlineClasses(): HasMany
+    {
+        return $this->hasMany(OnlineClass::class);
+    }
+
     /**
      * Notes attached to this class (viewable via "classes.view-notes").
      */
