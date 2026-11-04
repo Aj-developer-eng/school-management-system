@@ -316,4 +316,5 @@ export default function Detail({
             </div>
         </AuthenticatedLayout>
     );
+    
 }
