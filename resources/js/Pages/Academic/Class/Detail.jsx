@@ -486,7 +486,7 @@ export default function Detail({
                             className="inline-flex flex-1 items-center gap-1 text-xs font-medium text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
                         >
                             <StickyNote className="h-3.5 w-3.5" />
-                            Notes{notes.length ? ` (${notes.length})` : ''}
+                            New Announcement{notes.length ? ` (${notes.length})` : ''}
                         </button>
                     )}
 
@@ -500,7 +500,7 @@ export default function Detail({
                             className="inline-flex flex-1 items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
                         >
                             <Upload className="h-3.5 w-3.5" />
-                            Papers{papers.length ? ` (${papers.length})` : ''}
+                            Notes{papers.length ? ` (${papers.length})` : ''}
                         </button>
                     )}
                 </div>
