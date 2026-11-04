@@ -4,7 +4,7 @@ import { Link } from '@inertiajs/react';
 import { Video } from 'lucide-react';
 import { formatDateTime } from '@/utils/format';
 import { useAuth } from '@/utils/authorization';
-import { ArrowLeft, Clock, GraduationCap, Users } from 'lucide-react';
+import { ArrowLeft, Clock, ClipboardCheck, GraduationCap, Users } from 'lucide-react';
 import { formatTimeRange } from '@/utils/format';
 
 
