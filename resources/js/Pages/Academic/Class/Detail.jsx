@@ -72,7 +72,7 @@ export default function Detail({ class: schoolClass, classTimes = [], teacher = 
                                 {/* <p className="text-sm text-gray-600">Qualification: {teacher.qualification}</p>
                                 {teacher.bio && teacher.bio !== '—' && (
                                     <p className="text-sm text-gray-600">Bio: {teacher.bio}</p>
-                                )} */}
+                                ) */}
                             </div>
                         ) : (
                             <p className="text-sm text-gray-500">No teacher assigned.</p>
@@ -80,44 +80,44 @@ export default function Detail({ class: schoolClass, classTimes = [], teacher = 
                     </Card>
                 </div>
 
-                {/* Online class — students join via the "Take online class" permission */}
-                {onlineClass && (
-                    <Card className="p-6">
-                        <div className="mb-3 flex items-center gap-2">
-                            <Video className="h-5 w-5 text-indigo-600" />
-                            <h3 className="text-lg font-semibold">Online Class</h3>
-                        </div>
-                        <div className="space-y-3">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{onlineClass.title || 'Live online class'}</p>
-                            {onlineClass.scheduled_at && (
-                                <p className="text-xs text-gray-400">{formatDateTime(onlineClass.scheduled_at)}</p>
-                            )}
-                            {can('online-classes.take') ? (
-                                <Link
-                                    href={route('classes.online-class.take', { school_class: schoolClass?.id })}
-                                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
-                                    target="_blank"
-                                    rel="noopener"
-                                >
-                                    <Video className="h-4 w-4" />
-                                    Join Online Class
-                                </Link>
-                            ) : (
-                                <p className="text-sm text-gray-500">You need permission to join an online class.</p>
-
-                    {can('viewClassworks') && (
-                        <button
-                            onClick={() => (window.location.href = route('classes.online-class.generate', schoolClass.id))}
-                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-600 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Generate Class
-                        </button>
-                    )}
-                            )}
-                        </div>
-                    </Card>
-                )}
+                 {/* Online class — students join via the "Take online class" permission */}
+                 {onlineClass && (
+                     <Card className="p-6">
+                         <div className="mb-3 flex items-center gap-2">
+                             <Video className="h-5 w-5 text-indigo-600" />
+                             <h3 className="text-lg font-semibold">Online Class</h3>
+                         </div>
+                         <div className="space-y-3">
+                             <p className="text-sm text-gray-600 dark:text-gray-400">{onlineClass.title || 'Live online class'}</p>
+                             {onlineClass.scheduled_at && (
+                                 <p className="text-xs text-gray-400">{formatDateTime(onlineClass.scheduled_at)}</p>
+                             )}
+                             {can('online-classes.take') ? (
+                                 <Link
+                                     href={route('classes.online-class.take', { school_class: schoolClass?.id })}
+                                     className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
+                                     target="_blank"
+                                     rel="noopener"
+                                 >
+                                     <Video className="h-4 w-4" />
+                                     Join Online Class
+                                 </Link>
+                             ) : (
+                                 <p className="text-sm text-gray-500">You need permission to join an online class.</p>
+                             )}
+                                      {can('viewClassworks') && (
+                                 <button
+                                     onClick={() => (window.location.href = route('classes.online-class.generate', schoolClass.id))}
+                                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-600 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                                 >
+                                     <Plus className="h-4 w-4" />
+                                     Generate Class
+                                 </button>
+                             )}
+                         </div>
+                     </Card>
+                 )}
+            
 
                 <Card className="p-6">
                     <div className="mb-3 flex items-center gap-2">
