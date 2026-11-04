@@ -451,23 +451,29 @@ export default function Detail({
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 text-center">
-                            <div className="rounded-lg bg-indigo-50 p-3 dark:bg-indigo-900/30">
+                            <div
+                                className={`rounded-lg bg-indigo-50 p-3 dark:bg-indigo-900/30 cursor-pointer ${canManageNotes ? 'hover:bg-indigo-100 dark:hover:bg-indigo-800/50 transition-colors' : 'opacity-60'}`}
+                                onClick={canManageNotes ? () => setNotesClassId(schoolClass?.id) : undefined}
+                            >
                                 <p className="text-xs uppercase text-indigo-600 dark:text-indigo-300">
-                                    Level
+                                    New Announcement
                                 </p>
 
                                 <p className="text-lg font-semibold">
-                                    {schoolClass?.level ?? '—'}
+                                    {notes.length}
                                 </p>
                             </div>
 
-                            <div className="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-900/30">
+                            <div
+                                className={`rounded-lg bg-emerald-50 p-3 dark:bg-emerald-900/30 cursor-pointer ${canManagePapers ? 'hover:bg-emerald-100 dark:hover:bg-emerald-800/50 transition-colors' : 'opacity-60'}`}
+                                onClick={canManagePapers ? () => setPapersClassId(schoolClass?.id) : undefined}
+                            >
                                 <p className="text-xs uppercase text-emerald-600 dark:text-emerald-300">
-                                    Students
+                                    Notes
                                 </p>
 
                                 <p className="text-lg font-semibold">
-                                    {students.length}
+                                    {papers.length}
                                 </p>
                             </div>
                         </div>
