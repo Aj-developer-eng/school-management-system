@@ -43,6 +43,10 @@ class ClassNoteController extends Controller
                 ->mapWithKeys(function (string $classId) {
                     $class = SchoolClass::find($classId);
 
+                    if (!$class) {
+                        return [];
+                    }
+
                     return [$classId => [
                         'id' => $classId,
                         'name' => $class->name,
@@ -84,6 +88,10 @@ class ClassNoteController extends Controller
                 $emptyClasses = $enrolledClassIds->diff($classesWithNotes)
                     ->mapWithKeys(function (string $classId) {
                         $class = SchoolClass::find($classId);
+
+                        if (!$class) {
+                            return [];
+                        }
 
                         return [$classId => [
                             'id' => $classId,
