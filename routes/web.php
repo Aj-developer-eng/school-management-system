@@ -89,6 +89,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // view-notes and are scoped to their children's classes on the index.
     Route::post('classes/{school_class}/notes', [SchoolClassController::class, 'storeNote'])
         ->name('classes.notes.store');
+    Route::delete('classes/{school_class}/notes/{class_note}', [SchoolClassController::class, 'destroyNote'])
+        ->name('classes.notes.destroy');
     Route::get('class-notes', [ClassNoteController::class, 'index'])
         ->name('class-notes.index')
         ->middleware('can:classes.view-notes');

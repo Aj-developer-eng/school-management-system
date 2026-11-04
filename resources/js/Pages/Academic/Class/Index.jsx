@@ -88,6 +88,7 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
     ]);
 
     const canCreateNotes = can('classes.create-notes');
+    const canDeleteNotes = can('classes.create-notes');
     const canManageNotes = canAny(['classes.create-notes', 'classes.view-notes']);
 
     // Attach/detach students against a class from the Students modal
@@ -320,6 +321,7 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
                 classItem={notesClass}
                 onClose={() => setNotesClassId(null)}
                 canCreate={canCreateNotes}
+                canDelete={canDeleteNotes}
             />
 
             <StudentsModal
@@ -622,7 +624,7 @@ function PapersModal({ classItem, onClose, canUpload, canDownload, canDelete }) 
     );
 }
 
-function NotesModal({ classItem, onClose, canCreate }) {
+function NotesModal({ classItem, onClose, canCreate, canDelete }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         body: '',
     });
@@ -640,6 +642,20 @@ function NotesModal({ classItem, onClose, canCreate }) {
                 router.reload({ only: ['classes'] });
             },
         });
+    };
+
+    const removeNote = async (note) => {
+        const confirmed = await confirmAction({
+            title: 'Delete Note',
+            text: `Delete this note? This cannot be undone.`,
+            confirmButtonText: 'Yes, delete it',
+        });
+
+        if (confirmed) {
+            router.delete(route('classes.notes.destroy', [classItem.id, note.id]), {
+                onSuccess: () => router.reload({ only: ['classes'] }),
+            });
+        }
     };
 
     return (
@@ -664,13 +680,24 @@ function NotesModal({ classItem, onClose, canCreate }) {
                     {notes.length > 0 ? (
                         <ul className="divide-y divide-gray-100 dark:divide-gray-700">
                             {notes.map((note) => (
-                                <li key={note.id} className="py-3">
-                                    <p className="whitespace-pre-line text-sm text-gray-700 dark:text-gray-300">
-                                        {note.body}
-                                    </p>
-                                    <p className="mt-1 text-xs text-gray-400">
-                                        {note.creator?.name ?? 'Unknown'} · {formatDate(note.created_at)}
-                                    </p>
+                                <li key={note.id} className="py-3 flex items-start justify-between gap-3">
+                                    <div>
+                                        <p className="whitespace-pre-line text-sm text-gray-700 dark:text-gray-300">
+                                            {note.body}
+                                        </p>
+                                        <p className="mt-1 text-xs text-gray-400 flex items-center gap-1">
+                                            {note.creator?.name ?? 'Unknown'} · {formatDate(note.created_at)}
+                                        </p>
+                                    </div>
+                                    {canDelete && (
+                                        <button
+                                            type="button"
+                                            onClick={() => removeNote(note)}
+                                            className="text-xs font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
                                 </li>
                             ))}
                         </ul>

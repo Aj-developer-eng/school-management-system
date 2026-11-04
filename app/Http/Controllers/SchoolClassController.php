@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\SchoolClass\AttachStudentRequest;
+use App\Http\Requests\SchoolClass\DestroyNoteRequest;
 use App\Http\Requests\SchoolClass\StoreNoteRequest;
 use App\Http\Requests\SchoolClass\StoreRequest;
 use App\Http\Requests\SchoolClass\UpdateRequest;
 use App\Http\Requests\SchoolClass\UploadPapersRequest;
 use App\Models\AcademicSession;
+use App\Models\ClassNote;
 use App\Models\ClassPaper;
 use App\Models\SchoolClass;
 use App\Models\Student;
@@ -599,6 +601,21 @@ class SchoolClassController extends Controller
         $schoolClass->notes()->create($request->validated());
 
         return back()->with('success', 'Note added successfully.');
+    }
+
+    /**
+     * Delete a note attached to a class (authorized via DestroyNoteRequest —
+     * "classes.create-notes").
+     */
+    public function destroyNote(DestroyNoteRequest $request, SchoolClass $schoolClass, ClassNote $classNote): RedirectResponse
+    {
+        if ($classNote->school_class_id !== $schoolClass->id) {
+            abort(403);
+        }
+
+        $classNote->delete();
+
+        return back()->with('success', 'Note deleted successfully.');
     }
 
     /**
