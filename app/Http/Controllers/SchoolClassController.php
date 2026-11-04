@@ -271,6 +271,8 @@ class SchoolClassController extends Controller
         $class = $schoolClass->load([
             'activeFromSession',
             'teacherSubjectAssignments.teacher.user',
+            'notes.creator',
+            'papers',
         ]);
 
         // Sort assignments by start time so teacher display and class times
