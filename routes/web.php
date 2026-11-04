@@ -266,6 +266,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('classes/{school_class}/online-class/take', [ClassworkController::class, 'takeOnlineClass'])
         ->name('classes.online-class.take');
 
+    // Generate online class (teacher only) — permission gated via online-classes.create
+    Route::post('classes/{school_class}/online-class/generate', [OnlineClassController::class, 'generate'])
+        ->name('classes.online-class.generate');
+
 
     Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
         ->name('notifications.read');

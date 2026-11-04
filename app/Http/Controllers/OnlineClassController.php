@@ -16,6 +16,8 @@ use App\Models\Teacher;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -242,6 +244,48 @@ class OnlineClassController extends Controller
 
         return redirect()->route('online-classes.index')
             ->with('success', 'Attendance saved successfully.');
+    }
+
+    public function generate(Request $request, SchoolClass $schoolClass): RedirectResponse
+    {
+        // Only teachers can generate online classes
+        if (! $request->user()->can('viewClassworks') && ! $request->user()->hasRole(RoleEnum::Teacher->value)) {
+            abort(403, 'You are not authorized to generate an online class.');
+        }
+
+        $activeSession = AcademicSession::active()->first();
+
+        if (! $activeSession) {
+            return back()->with('error', 'No active academic session is currently set.');
+        }
+
+        // Use a class-specific token for the meeting link
+        $token = Str::random(12);
+        $meetingLink = "https://meet.jit.si/{$token}";
+
+        // Get the user's teacher record
+        $teacher = Teacher::where('user_id', $request->user()->id)->first();
+
+        $onlineClass = OnlineClass::create([
+            'teacher_id' => $teacher?->id ?? $request->user()->id,
+            'academic_session_id' => $activeSession->id,
+            'school_class_id' => $schoolClass->id,
+            'meeting_link' => $meetingLink,
+            'description' => $request->input('description', 'Live online class session.'),
+            'scheduled_at' => $request->input('scheduled_at')
+                ? Carbon::parse($request->input('scheduled_at'))->setTimezone(config('app.timezone'))
+                : now()->addHours(1),
+            'status' => OnlineClassStatusEnum::Active->value,
+            'created_by' => $request->user()->id,
+        ]);
+
+        ActivityLogService::custom('Online Classes', 'created', "Generated online class for class: {$schoolClass->name}");
+
+        // Notify students (if the feature is configured)
+        // $this->notifyStudents($onlineClass);
+
+        return redirect()->route('classes.online-class.generate', $schoolClass->id)
+            ->with('success', 'Online class generated successfully. Share this link with your students.');
     }
 
     private function renderForm(?OnlineClass $onlineClass = null): Response
