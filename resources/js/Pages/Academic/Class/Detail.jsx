@@ -482,6 +482,25 @@ export default function Detail({
 
                 {/* Notes and Papers Actions */}
                 <div className="flex gap-3">
+                    <div className="rounded-lg bg-indigo-50 p-3 dark:bg-indigo-900/30">
+                                <p className="text-xs uppercase text-indigo-600 dark:text-indigo-300">
+                                    Level
+                                </p>
+
+                                <p className="text-lg font-semibold">
+                                    {schoolClass?.level ?? '—'}
+                                </p>
+                            </div>
+
+                            <div className="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-900/30">
+                                <p className="text-xs uppercase text-emerald-600 dark:text-emerald-300">
+                                    Students
+                                </p>
+
+                                <p className="text-lg font-semibold">
+                                    {students.length}
+                                </p>
+                            </div>
                     {canManageNotes && (
                         <button
                             type="button"
