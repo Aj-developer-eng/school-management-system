@@ -225,6 +225,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('special-requests.store');
     Route::get('special-requests/{special_request}', [SpecialRequestController::class, 'show'])
         ->name('special-requests.show');
+    Route::get('special-requests/{special_request}/edit', [SpecialRequestController::class, 'edit'])
+        ->name('special-requests.edit');
+    Route::put('special-requests/{special_request}', [SpecialRequestController::class, 'update'])
+        ->name('special-requests.update');
     Route::patch('special-requests/{special_request}/respond', [SpecialRequestController::class, 'respond'])
         ->name('special-requests.respond');
 

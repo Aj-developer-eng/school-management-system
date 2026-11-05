@@ -222,6 +222,98 @@ class SpecialRequestController extends Controller
         return redirect()->back()->with('success', 'Response saved successfully.');
     }
 
+    public function edit(Request $request, SpecialRequest $special_request): Response
+    {
+        $user = $request->user();
+
+        if ($user->hasRole(RoleEnum::SuperAdmin->value) || $user->hasRole(RoleEnum::Principal->value)) {
+            // admins and principals can edit any request
+        } elseif ($user->hasRole(RoleEnum::Teacher->value)) {
+            if ($special_request->assigned_to !== $user->id) {
+                abort(403);
+            }
+        } else {
+            abort(403);
+        }
+
+        $special_request->load([
+            'parent.user:id,name',
+            'student.user:id,name',
+            'assignee:id,name',
+        ]);
+
+        $children = collect();
+
+        if ($user->hasRole(RoleEnum::Parent->value)) {
+            $parent = StudentParent::where('user_id', $user->id)->first();
+            $children = $parent?->students()
+                ->with(['user:id,name'])
+                ->whereNull('students.deleted_at')
+                ->get()
+                ->map(function ($s) {
+                    return ['id' => $s->id, 'name' => $s->user?->name];
+                }) ?? collect();
+        }
+
+        $recipients = collect();
+
+        $superAdmins = User::whereHas('roles', function ($q): void {
+            $q->where('name', RoleEnum::SuperAdmin->value);
+        })->select('id', 'name')->get();
+
+        foreach ($superAdmins as $admin) {
+            $recipients->push(['id' => $admin->id, 'name' => $admin->name, 'type' => 'admin']);
+        }
+
+        $teachers = Teacher::with('user:id,name')->whereNull('deleted_at')->get();
+        foreach ($teachers as $teacher) {
+            $recipients->push(['id' => $teacher->user_id, 'name' => $teacher->user?->name ?? 'Teacher', 'type' => 'teacher']);
+        }
+
+        return Inertia::render('SpecialRequests/Edit', [
+            'specialRequest' => $special_request,
+            'children' => $children,
+            'recipients' => $recipients,
+        ]);
+    }
+
+    public function update(Request $request, SpecialRequest $special_request)
+    {
+        $user = $request->user();
+
+        if ($user->hasRole(RoleEnum::SuperAdmin->value) || $user->hasRole(RoleEnum::Principal->value)) {
+            // admins and principals can edit any request
+        } elseif ($user->hasRole(RoleEnum::Teacher->value)) {
+            if ($special_request->assigned_to !== $user->id) {
+                abort(403);
+            }
+        } else {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'student_id' => ['nullable', 'exists:students,id'],
+            'assigned_to' => ['nullable', 'exists:users,id'],
+            'subject' => ['required', 'string', 'max:255'],
+            'body' => ['required', 'string', 'max:5000'],
+            'request_type' => ['required', 'in:general,leave,complaint,meeting,fee,other'],
+            'priority' => ['required', 'in:low,normal,high,urgent'],
+        ]);
+
+        $special_request->update([
+            'student_id' => $validated['student_id'] ?? null,
+            'assigned_to' => $validated['assigned_to'] ?? null,
+            'subject' => $validated['subject'],
+            'body' => $validated['body'],
+            'request_type' => $validated['request_type'],
+            'priority' => $validated['priority'],
+        ]);
+
+        ActivityLogService::custom('Special Requests', 'updated', "Updated request: {$special_request->subject}");
+
+        return redirect()->route('special-requests.index')->with('success', 'Request updated successfully.');
+    }
+
     private function authorizeAccess(User $user, SpecialRequest $specialRequest): void
     {
         if ($user->hasRole(RoleEnum::SuperAdmin->value) || $user->hasRole(RoleEnum::Principal->value)) {

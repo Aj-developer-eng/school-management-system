@@ -4,7 +4,7 @@ import Pagination from '@/Components/Ui/Pagination';
 import FlashMessages from '@/Components/FlashMessages';
 import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { MessageSquarePlus, Eye, Clock, CheckCircle2, XCircle, Loader2, Inbox } from 'lucide-react';
+import { MessageSquarePlus, Eye, Edit, Clock, CheckCircle2, XCircle, Loader2, Inbox } from 'lucide-react';
 
 const statusConfig = {
     pending: { label: 'Pending', icon: Clock, color: 'amber', badge: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' },
@@ -45,7 +45,7 @@ export default function Index({ requests, stats, filters, role }) {
                         <StatCard label="Resolved" value={stats.resolved} color="emerald" />
                         <StatCard label="Closed" value={stats.closed} color="gray" />
                     </div>
-                   {(role === 'parent' || role === 'teacher') && (
+                   {(role === 'parent' || role === 'Teacher') && (
                         <Link
                             href={route('special-requests.create')}
                             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
@@ -110,6 +110,16 @@ export default function Index({ requests, stats, filters, role }) {
                                             <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.badge}`}>
                                                 {cfg.label}
                                             </span>
+                                            {(role === 'teacher' || role === 'admin') && (
+                                                <Link
+                                                    href={route('special-requests.edit', r.id)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                                                    title="Edit request"
+                                                >
+                                                    <Edit className="h-3.5 w-3.5" /> Edit
+                                                </Link>
+                                            )}
                                             <Eye className="h-4 w-4 text-gray-300" />
                                         </div>
                                     </Link>
