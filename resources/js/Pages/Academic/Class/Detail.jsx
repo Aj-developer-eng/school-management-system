@@ -439,65 +439,76 @@ export default function Detail({
             <div className="space-y-6">
                 {/* Class Information */}
                 <Card className="p-6">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                {schoolClass?.name}
-                            </h3>
+    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        {/* Class Information */}
+        <div className="min-w-0 lg:flex-1">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {schoolClass?.name}
+            </h3>
 
-                            <p className="text-sm text-gray-500">
-                                Code: {schoolClass?.code || '—'}
-                            </p>
-                        </div>
+            <p className="text-sm text-gray-500">
+                Code: {schoolClass?.code || '—'}
+            </p>
+        </div>
 
-                        <div className="grid grid-cols-2 gap-4 text-center">
-                             <div className="rounded-lg bg-indigo-50 p-3 dark:bg-indigo-900/30">
-                                <p className="text-xs uppercase text-indigo-600 dark:text-indigo-300">
-                                    Level
-                                </p>
+        {/* Statistics Boxes */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:w-[65%]">
+            {/* Level */}
+            <div className="flex min-h-[90px] flex-col items-center justify-center rounded-lg bg-indigo-50 p-3 text-center dark:bg-indigo-900/30">
+                <p className="text-xs font-medium uppercase text-indigo-600 dark:text-indigo-300">
+                    Level
+                </p>
 
-                                <p className="text-lg font-semibold">
-                                    {schoolClass?.level ?? '—'}
-                                </p>
-                            </div>
+                <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {schoolClass?.level ?? '—'}
+                </p>
+            </div>
 
-                            <div className="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-900/30">
-                                <p className="text-xs uppercase text-emerald-600 dark:text-emerald-300">
-                                    Students
-                                </p>
+            {/* Students */}
+            <div className="flex min-h-[90px] flex-col items-center justify-center rounded-lg bg-emerald-50 p-3 text-center dark:bg-emerald-900/30">
+                <p className="text-xs font-medium uppercase text-emerald-600 dark:text-emerald-300">
+                    Students
+                </p>
 
-                                <p className="text-lg font-semibold">
-                                    {students.length}
-                                </p>
-                            </div>
-                            <div
-                                className={`rounded-lg bg-indigo-50 p-3 dark:bg-indigo-900/30 cursor-pointer ${canManageNotes ? 'hover:bg-indigo-100 dark:hover:bg-indigo-800/50 transition-colors' : 'opacity-60'}`}
-                                onClick={canManageNotes ? () => setNotesClassId(schoolClass?.id) : undefined}
-                            >
-                                <p className="text-xs uppercase text-indigo-600 dark:text-indigo-300">
-                                    New Announcement
-                                </p>
+                <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {students.length}
+                </p>
+            </div>
 
-                                <p className="text-lg font-semibold">
-                                    {notes.length}
-                                </p>
-                            </div>
+            {/* New Announcement */}
+            <button
+                type="button"
+                disabled={!canManageNotes}
+                onClick={() => setNotesClassId(schoolClass?.id)}
+                className="flex min-h-[90px] flex-col items-center justify-center rounded-lg bg-indigo-50 p-3 text-center transition-colors hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/50"
+            >
+                <p className="text-xs font-medium uppercase text-indigo-600 dark:text-indigo-300">
+                    New Announcement
+                </p>
 
-                            <div
-                                className={`rounded-lg bg-emerald-50 p-3 dark:bg-emerald-900/30 cursor-pointer ${canManagePapers ? 'hover:bg-emerald-100 dark:hover:bg-emerald-800/50 transition-colors' : 'opacity-60'}`}
-                                onClick={canManagePapers ? () => setPapersClassId(schoolClass?.id) : undefined}
-                            >
-                                <p className="text-xs uppercase text-emerald-600 dark:text-emerald-300">
-                                    Notes
-                                </p>
+                <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {notes.length}
+                </p>
+            </button>
 
-                                <p className="text-lg font-semibold">
-                                    {papers.length}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </Card>
+            {/* Notes / Papers */}
+            <button
+                type="button"
+                disabled={!canManagePapers}
+                onClick={() => setPapersClassId(schoolClass?.id)}
+                className="flex min-h-[90px] flex-col items-center justify-center rounded-lg bg-emerald-50 p-3 text-center transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-emerald-900/30 dark:hover:bg-emerald-800/50"
+            >
+                <p className="text-xs font-medium uppercase text-emerald-600 dark:text-emerald-300">
+                    Papers
+                </p>
+
+                <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {papers.length}
+                </p>
+            </button>
+        </div>
+    </div>
+</Card>
 
                    
 
