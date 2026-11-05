@@ -235,17 +235,36 @@ class SchoolClassController extends Controller
             // counts the distinct students of each class. Summing that
             // per-class count means a student enrolled in several classes is
             // counted once per class — the same figure the column shows.
-            'total_students' => (int) DB::query()
-                ->fromSub(
-                    DB::table('student_enrollments as se')
-                        ->join('school_classes as sc', 'sc.id', '=', 'se.school_class_id')
-                        ->whereNull('se.deleted_at')
-                        ->whereNull('sc.deleted_at')
-                        ->groupBy('se.school_class_id')
-                        ->selectRaw('count(distinct se.student_id) as students_count'),
-                    'class_students'
-                )
-                ->sum('students_count'),
+            'total_students' => (int) (function () use ($request): int {
+                // Matches the semantics of the table's "Students" column, which
+                // counts the distinct students of each class. Summing that
+                // per-class count means a student enrolled in several classes is
+                // counted once per class — the same figure the column shows.
+                $sub = DB::table('student_enrollments as se')
+                    ->join('school_classes as sc', 'sc.id', '=', 'se.school_class_id')
+                    ->whereNull('se.deleted_at')
+                    ->whereNull('sc.deleted_at')
+                    ->groupBy('se.school_class_id')
+                    ->selectRaw('count(distinct se.student_id) as students_count');
+
+                // Teachers only see students enrolled in classes assigned to them.
+                if ($request->user() !== null
+                    && $request->user()->hasRole(RoleEnum::Teacher->value)) {
+                    $teacherId = Teacher::where('user_id', $request->user()->id)->value('id');
+
+                    if ($teacherId) {
+                        $sub->whereExists(function ($q) use ($teacherId): void {
+                            $q->select(DB::raw(1))
+                                ->from('teacher_subject_assignments as tsa')
+                                ->whereColumn('tsa.school_class_id', 'sc.id')
+                                ->where('tsa.teacher_id', $teacherId)
+                                ->whereNull('tsa.deleted_at');
+                        });
+                    }
+                }
+
+                return DB::query()->fromSub($sub, 'class_students')->sum('students_count');
+            })(),
             // Matches the semantics of the table's "Papers" column, which
             // counts the papers of each class. Papers attached to a
             // soft-deleted class are excluded because that class no longer
