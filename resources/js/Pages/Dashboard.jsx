@@ -665,7 +665,7 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
                             {assignments.length > 0 ? assignments.map((a) => (
                                 <tr key={a.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-indigo-50/40 dark:border-gray-700/50 dark:hover:bg-gray-700/30">
                                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-                                        {a.school_class?.name ?? '—'}
+                                        <Link href="/classes/60">{a.school_class?.name ?? '—'}</Link>
                                     </td>
                                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                                         {formatTimeRange(a.start_time, a.end_time)}
