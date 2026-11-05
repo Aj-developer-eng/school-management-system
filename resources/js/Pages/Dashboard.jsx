@@ -557,7 +557,7 @@ function StudentDashboard({ enrollments, invoices, activeSession, student, timet
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <DashboardCard title="Admission #" value={student?.admission_number ?? '—'} subtitle="Your ID" color="indigo" delay={0} />
                     <DashboardCard title="Class" value={classNames || '—'} subtitle="Current class" color="emerald" delay={70} />
-                    <DashboardCard title="Session" value={sessionNames || activeSession || '—'} subtitle="Active session" color="sky" delay={140} />
+                    <DashboardCard title="Session" value={sessionNames || activeSession || '—'} subtitle="Current session" color="sky" delay={140} />
                 </div>
             </div>
 
@@ -665,7 +665,12 @@ function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher
                             {assignments.length > 0 ? assignments.map((a) => (
                                 <tr key={a.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-indigo-50/40 dark:border-gray-700/50 dark:hover:bg-gray-700/30">
                                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-                                        <Link href="/classes/60">{a.school_class?.name ?? '—'}</Link>
+                                        <Link
+                                            href={route('classes.show', a.school_class?.id)}
+                                            className="font-medium text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200"
+                                        >
+                                            {a.school_class?.name ?? '—'}
+                                        </Link>
                                     </td>
                                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                                         {formatTimeRange(a.start_time, a.end_time)}
@@ -750,10 +755,6 @@ export default function Dashboard(props) {
         testResults,
     } = props;
 
-    const sessionLabel = dashboardType === 'staff'
-        ? stats?.active_session
-        : activeSession;
-
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
@@ -813,18 +814,6 @@ export default function Dashboard(props) {
                             </p>
                         </div>
 
-                        {sessionLabel && (
-                            <div
-                                className="animate-fade-in inline-flex items-center gap-2 self-start rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-medium text-indigo-100 backdrop-blur-sm lg:self-auto"
-                                style={{ animationDelay: '450ms' }}
-                            >
-                                <span className="relative flex h-2 w-2" aria-hidden="true">
-                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                                </span>
-                                Active session:&nbsp;<span className="font-semibold text-white">{sessionLabel}</span>
-                            </div>
-                        )}
                     </div>
                 </div>
 
