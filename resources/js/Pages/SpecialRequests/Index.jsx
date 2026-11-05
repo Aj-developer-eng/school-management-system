@@ -45,7 +45,7 @@ export default function Index({ requests, stats, filters, role }) {
                         <StatCard label="Resolved" value={stats.resolved} color="emerald" />
                         <StatCard label="Closed" value={stats.closed} color="gray" />
                     </div>
-                    {role === 'parent' && (
+                   {(role === 'parent' || role === 'Teacher') && (
                         <Link
                             href={route('special-requests.create')}
                             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"

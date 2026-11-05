@@ -197,16 +197,7 @@ function TimetableSection({ timetable }) {
     return (
         <div className="animate-fade-in">
             <SectionHeading
-                action={
-                    can('teacher-assignments.view') && (
-                        <Link
-                            href={route('teacher-assignments.index')}
-                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300"
-                        >
-                            View Full Timetable
-                        </Link>
-                    )
-                }
+               
             >
                 Weekly Timetable
             </SectionHeading>
