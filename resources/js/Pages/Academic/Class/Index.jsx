@@ -28,7 +28,7 @@ const formatSize = (bytes) => {
 };
 
 export default function Index({ classes, filters, stats = {}, classTimeOptions = [] }) {
-    const { can, canAny } = useAuth();
+    const { can, canAny, hasRole } = useAuth();
     const [studentsClassId, setStudentsClassId] = useState(null);
     // Track the modal by id (not by object) so it always renders the fresh
     // row from the refreshed `classes` props after an upload/delete.
@@ -286,7 +286,11 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
                         />
                         <DashboardCard
                             title="Total Classes"
-                            value={stats.total_classes ?? 0}
+                            value={
+                                hasRole('Teacher')
+                                    ? classes?.total ?? 0
+                                    : stats.total_classes ?? 0
+                            }
                             subtitle="grade levels"
                             color="sky"
                             delay={400}
