@@ -269,11 +269,34 @@ class SchoolClassController extends Controller
             // counts the papers of each class. Papers attached to a
             // soft-deleted class are excluded because that class no longer
             // appears in the table.
-            'total_papers' => (int) DB::table('class_papers as cp')
-                ->join('school_classes as sc', 'sc.id', '=', 'cp.school_class_id')
-                ->whereNull('cp.deleted_at')
-                ->whereNull('sc.deleted_at')
-                ->count('cp.id'),
+            'total_papers' => (int) (function () use ($request): int {
+                // Matches the semantics of the table's "Papers" column, which
+                // counts the papers of each class. Papers attached to a
+                // soft-deleted class are excluded because that class no longer
+                // appears in the table.
+                $query = DB::table('class_papers as cp')
+                    ->join('school_classes as sc', 'sc.id', '=', 'cp.school_class_id')
+                    ->whereNull('cp.deleted_at')
+                    ->whereNull('sc.deleted_at');
+
+                // Teachers only see papers of classes assigned to them.
+                if ($request->user() !== null
+                    && $request->user()->hasRole(RoleEnum::Teacher->value)) {
+                    $teacherId = Teacher::where('user_id', $request->user()->id)->value('id');
+
+                    if ($teacherId) {
+                        $query->whereExists(function ($q) use ($teacherId): void {
+                            $q->select(DB::raw(1))
+                                ->from('teacher_subject_assignments as tsa')
+                                ->whereColumn('tsa.school_class_id', 'sc.id')
+                                ->where('tsa.teacher_id', $teacherId)
+                                ->whereNull('tsa.deleted_at');
+                        });
+                    }
+                }
+
+                return $query->count('cp.id');
+            })(),
         ];
 
         return Inertia::render('Academic/Class/Index', [
