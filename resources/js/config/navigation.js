@@ -18,6 +18,7 @@ import {
     MessageSquareText,
     ScrollText,
     StickyNote,
+    Bot,
 } from 'lucide-react';
 
 /**
@@ -77,6 +78,12 @@ export const navigation = [
                 routeName: 'online-classes.index',
                 icon: Video,
                 permission: 'online-classes.view',
+            },
+            {
+                label: 'AI Chatbot',
+                routeName: 'chatbot',
+                icon: Bot,
+                permission: null,
             },
             {
                 label: 'Special Requests',

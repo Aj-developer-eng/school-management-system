@@ -28,6 +28,7 @@ use App\Http\Controllers\StudentParentController;
 use App\Http\Controllers\TeacherAssignmentController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\TeacherReportController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -281,6 +282,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('notifications.read');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])
         ->name('notifications.read-all');
+
+    // AI Chatbot
+    Route::get('chatbot', [ChatbotController::class, 'index'])->name('chatbot');
+    Route::post('chatbot', [ChatbotController::class, 'store'])->name('chatbot.store');
 });
 
 require __DIR__.'/auth.php';
