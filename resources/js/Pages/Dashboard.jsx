@@ -440,12 +440,12 @@ function ParentDashboard({ children, invoices, feeSummary, todayAttendance, test
                                             {classNames || 'Not enrolled'}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between">
+                                    {/* <div className="flex justify-between">
                                         <span className="text-gray-500 dark:text-gray-400">Session</span>
                                         <span className="font-medium text-gray-700 dark:text-gray-300">
                                             {sessionNames || '—'}
                                         </span>
-                                    </div>
+                                    </div> */}
                                     <div className="flex justify-between">
                                         <span className="text-gray-500 dark:text-gray-400">Status</span>
                                         <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
