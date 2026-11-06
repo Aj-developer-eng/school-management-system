@@ -436,7 +436,7 @@ function ParentDashboard({ children, invoices, feeSummary, todayAttendance, test
                                 <div className="mt-4 space-y-2.5 border-t border-gray-100 pt-3 text-sm dark:border-gray-700/60">
                                     <div className="flex justify-between">
                                         <span className="text-gray-500 dark:text-gray-400">Class</span>
-                                        <span className="font-medium text-gray-700 dark:text-gray-300">
+                                        <span className="font-medium text-gray-700 dark:text-gray-300 ml-1">
                                             {classNames || 'Not enrolled'}
                                         </span>
                                     </div>
