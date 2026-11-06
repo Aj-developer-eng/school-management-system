@@ -3,7 +3,7 @@ import Card from '@/Components/Ui/Card';
 import { Link } from '@inertiajs/react';
 import { ClipboardCheck, ArrowRight } from 'lucide-react';
 
-export default function Index({ assignments, activeSession, isSuperAdmin }) {
+export default function Index({ assignments, isSuperAdmin }) {
     return (
         <AuthenticatedLayout
             title="Record Attendance"
@@ -18,7 +18,7 @@ export default function Index({ assignments, activeSession, isSuperAdmin }) {
                                 {isSuperAdmin ? 'All Class Assignments' : 'My Class Assignments'}
                             </h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {activeSession ? `Session: ${activeSession}` : 'Select a class to record attendance'}
+                                'Select a class to record attendance'
                             </p>
                         </div>
                     </div>

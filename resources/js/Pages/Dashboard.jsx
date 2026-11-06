@@ -253,7 +253,7 @@ function TimetableSection({ timetable }) {
     );
 }
 
-function ParentDashboard({ children, invoices, feeSummary, activeSession, todayAttendance, testResults, timetable }) {
+function ParentDashboard({ children, invoices, feeSummary, todayAttendance, testResults, timetable }) {
     const { can } = useAuth();
 
     return (
@@ -443,7 +443,7 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
                                     <div className="flex justify-between">
                                         <span className="text-gray-500 dark:text-gray-400">Session</span>
                                         <span className="font-medium text-gray-700 dark:text-gray-300">
-                                            {sessionNames || activeSession || '—'}
+                                            {sessionNames || '—'}
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
@@ -525,7 +525,7 @@ function ParentDashboard({ children, invoices, feeSummary, activeSession, todayA
     );
 }
 
-function StudentDashboard({ enrollments, invoices, activeSession, student, timetable }) {
+function StudentDashboard({ enrollments, invoices, student, timetable }) {
     const classNames = [
         ...new Set((enrollments ?? []).map((e) => e.school_class?.name).filter(Boolean)),
     ].join(', ');
@@ -541,7 +541,7 @@ function StudentDashboard({ enrollments, invoices, activeSession, student, timet
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <DashboardCard title="Admission #" value={student?.admission_number ?? '—'} subtitle="Your ID" color="indigo" delay={0} />
                     <DashboardCard title="Class" value={classNames || '—'} subtitle="Current class" color="emerald" delay={70} />
-                    <DashboardCard title="Session" value={sessionNames || activeSession || '—'} subtitle="Current session" color="sky" delay={140} />
+                    <DashboardCard title="Session" value={sessionNames || '—'} subtitle="Current session" color="sky" delay={140} />
                 </div>
             </div>
 
@@ -604,7 +604,7 @@ function StudentDashboard({ enrollments, invoices, activeSession, student, timet
     );
 }
 
-function TeacherDashboard({ assignments, assignmentStats, activeSession, teacher, timetable }) {
+function TeacherDashboard({ assignments, assignmentStats, teacher, timetable }) {
     const { can } = useAuth();
 
     return (
@@ -729,7 +729,6 @@ export default function Dashboard(props) {
         children,
         invoices,
         feeSummary,
-        activeSession,
         enrollments,
         student,
         assignments,
@@ -806,7 +805,6 @@ export default function Dashboard(props) {
                         children={children ?? []}
                         invoices={invoices ?? []}
                         feeSummary={feeSummary}
-                        activeSession={activeSession}
                         todayAttendance={todayAttendance ?? []}
                         testResults={testResults ?? []}
                         timetable={props.timetable ?? []}
@@ -817,7 +815,6 @@ export default function Dashboard(props) {
                     <StudentDashboard
                         enrollments={enrollments ?? []}
                         invoices={invoices ?? []}
-                        activeSession={activeSession}
                         student={student}
                         timetable={props.timetable ?? []}
                     />
@@ -827,7 +824,6 @@ export default function Dashboard(props) {
                     <TeacherDashboard
                         assignments={assignments ?? []}
                         assignmentStats={assignmentStats}
-                        activeSession={activeSession}
                         teacher={teacher}
                         timetable={props.timetable ?? []}
                     />

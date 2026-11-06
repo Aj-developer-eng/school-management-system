@@ -15,7 +15,7 @@ const statusStyles = {
 
 const statusIcons = { present: Check, absent: X, late: Clock, excused: FileText };
 
-export default function Report({ records, summary, classes, filters, activeSession, isScoped, scopedToTeacher }) {
+export default function Report({ records, summary, classes, filters, isScoped, scopedToTeacher }) {
     const [form, setForm] = useState({
         class_id: filters.class_id ?? '',
         date_from: filters.date_from ?? '',

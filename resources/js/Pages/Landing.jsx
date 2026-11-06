@@ -49,7 +49,7 @@ const truncateMeta = (text, limit = 140) => {
     return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).replace(/[ ,.;:-]+$/, '')}…`;
 };
 
-export default function Landing({ school, cms, activeSession }) {
+export default function Landing({ school, cms }) {
     const schoolName = school?.school_name ?? 'EdSkills Global';
     const address = school ? `${school.address ?? ''}, ${school.city ?? ''}`.trim().replace(/,$/, '') : '';
     const email = school?.email ?? 'admissions@edskillsglobal.edu';
@@ -59,7 +59,7 @@ export default function Landing({ school, cms, activeSession }) {
     const c = cms ?? {};
 
     // Hero
-    const heroBadge = c.hero_badge_text || (activeSession ? `Admissions Open for Professional & International Education` : 'Online & on-site · Pakistan · Dubai · UK');
+    const heroBadge = c.hero_badge_text || 'Online & on-site · Pakistan · Dubai · UK';
     const heroTitle = c.hero_title || 'Global pathways to';
     const heroHighlight = c.hero_title_highlight || 'world-class';
     const heroTitleSuffix = c.hero_title_suffix || 'degrees.';

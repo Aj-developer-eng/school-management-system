@@ -20,7 +20,7 @@ const statusBg = {
 
 const statusIcons = { present: Check, absent: X, late: Clock, excused: FileText };
 
-export default function StudentDetail({ student, records, summary, filters, activeSession }) {
+export default function StudentDetail({ student, records, summary, filters }) {
     const [dateFrom, setDateFrom] = useState(filters.date_from ?? '');
     const [dateTo, setDateTo] = useState(filters.date_to ?? '');
 
@@ -75,7 +75,7 @@ export default function StudentDetail({ student, records, summary, filters, acti
                                     </h2>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">
                                         Admission #: {student.admission_number ?? '—'}
-                                        {activeSession ? ` · ${activeSession}` : ''}
+                                        ''
                                     </p>
                                 </div>
                             </div>

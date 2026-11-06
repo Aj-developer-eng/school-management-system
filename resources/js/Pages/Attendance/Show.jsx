@@ -12,7 +12,7 @@ const statusConfig = {
     excused: { label: 'Excused', color: 'sky', icon: FileText, bg: 'bg-sky-500', text: 'text-sky-700', ring: 'ring-sky-500' },
 };
 
-export default function Show({ assignment, students, date, activeSession }) {
+export default function Show({ assignment, students, date }) {
     const [selectedDate, setSelectedDate] = useState(date);
     const [records, setRecords] = useState(() => {
         const map = {};
@@ -102,7 +102,7 @@ export default function Show({ assignment, students, date, activeSession }) {
                                 {assignment.school_class?.name}
                             </h2>
                             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                {activeSession ?? 'Current Session'}
+                                'Current Session'
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
