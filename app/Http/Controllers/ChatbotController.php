@@ -20,7 +20,7 @@ class ChatbotController extends Controller
     public function index(): Response
     {
         $messages = auth()->user()
-            ? ChatMessage::forUser(auth()->id())->take(50)->get()->sortBy('created_at')
+            ? ChatMessage::forUser(auth()->id())->take(50)->get()->sortBy('created_at')->values()
             : collect();
 
         return Inertia::render('Chatbot', [
