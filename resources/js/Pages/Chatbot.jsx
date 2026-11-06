@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useState, useEffect, useRef } from 'react';
-import { router, usePage } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
+import axios from 'axios';
 import { Plus, Send, Bot, Copy } from 'lucide-react';
 
 export default function Chatbot() {
@@ -29,7 +30,12 @@ export default function Chatbot() {
         return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    const handleSubmit = (e) => {
+    const getCsrfToken = () => {
+        const match = document.cookie.match('(^|; )XSRF-TOKEN=([^;]+)');
+        return match ? decodeURIComponent(match[2]) : '';
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!input.trim() || sending) return;
         setSending(true);
@@ -44,29 +50,50 @@ export default function Chatbot() {
             created_at: new Date().toISOString(),
         }]);
 
-        router.post(route('chatbot.store'), { message: input }, {
-            onSuccess: (data) => {
-                setInput('');
-                setSending(false);
-                setNewMessageId(null);
-                // Append assistant reply from server response (no page reload needed)
-                if (data?.reply) {
-                    setMessages(prev => [...prev, {
-                        id: 'reply-' + Date.now(),
-                        role: data.reply.role || 'assistant',
-                        content: data.reply.content,
-                        created_at: new Date().toISOString(),
-                    }]);
+        try {
+            const response = await axios.post(
+                '/chatbot',
+                { message: input },
+                {
+                    headers: {
+                        'X-XSRF-TOKEN': getCsrfToken(),
+                        'Accept': 'application/json',
+                    },
                 }
-            },
-            onError: () => {
-                setSending(false);
-                setNewMessageId(null);
-                // Remove optimistic message on error
-                setMessages(prev => prev.filter(m => m.id !== tempId));
-            },
-            preserveState: true,
-        });
+            );
+
+            const data = response.data;
+
+            setInput('');
+            setSending(false);
+            setNewMessageId(null);
+
+            // Remove optimistic message, add real messages from server response
+            setMessages(prev => prev.filter(m => m.id !== tempId));
+
+            if (data.message) {
+                setMessages(prev => [...prev, {
+                    id: data.message.id,
+                    role: data.message.role,
+                    content: data.message.content,
+                    created_at: data.message.created_at,
+                }]);
+            }
+
+            if (data.reply) {
+                setMessages(prev => [...prev, {
+                    id: 'reply-' + Date.now(),
+                    role: data.reply.role || 'assistant',
+                    content: data.reply.content,
+                    created_at: new Date().toISOString(),
+                }]);
+            }
+        } catch (error) {
+            setSending(false);
+            setNewMessageId(null);
+            // Remove optimistic message on error
+            setMessages(prev => prev.filter(m => m.id !== tempId));
+        }
     };
 
     const handleKeyDown = (e) => {
