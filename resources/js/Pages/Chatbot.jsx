@@ -35,12 +35,19 @@ export default function Chatbot() {
         }]);
 
         router.post(route('chatbot.store'), { message: input }, {
-            onSuccess: () => {
+            onSuccess: (data) => {
                 setInput('');
                 setSending(false);
                 setNewMessageId(null);
-                // Refresh page data from server so assistant reply appears
-                router.reload();
+                // Append assistant reply from server response (no page reload needed)
+                if (data?.reply) {
+                    setMessages(prev => [...prev, {
+                        id: 'reply-' + Date.now(),
+                        role: data.reply.role || 'assistant',
+                        content: data.reply.content,
+                        created_at: new Date().toISOString(),
+                    }]);
+                }
             },
             onError: () => {
                 setSending(false);
