@@ -5,7 +5,17 @@ import { Plus, Send, Bot, Copy } from 'lucide-react';
 
 export default function Chatbot() {
     const { messages: initialMessages, model } = usePage().props;
-    const [messages, setMessages] = useState(initialMessages ?? []);
+
+    // Ensure messages is always a valid array (guards against null/undefined/raw JSON)
+    const safeInitial = Array.isArray(initialMessages) ? initialMessages : [];
+    const [messages, setMessages] = useState(safeInitial);
+
+    // Re-sync local state when Inertia page props change (e.g., after navigation/refresh)
+    useEffect(() => {
+        if (Array.isArray(initialMessages)) {
+            setMessages(initialMessages);
+        }
+    }, [initialMessages]);
     const [input, setInput] = useState('');
     const [sending, setSending] = useState(false);
     const [newMessageId, setNewMessageId] = useState(null);
@@ -86,7 +96,7 @@ export default function Chatbot() {
 
                 <div className="rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800 overflow-hidden flex flex-col h-[600px]">
                     <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 focus:outline-none" tabIndex={0}>
-                        {messages.length === 0 && (
+                        {(messages ?? []).length === 0 && (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
                                 <Bot size={48} className="mb-3 text-gray-400 dark:text-gray-500" />
                                 <p className="text-gray-500 dark:text-gray-400">
@@ -94,7 +104,7 @@ export default function Chatbot() {
                                 </p>
                             </div>
                         )}
-                        {messages.map((msg) => (
+                        {(messages ?? []).map((msg) => (
                             <div
                                 key={msg.id}
                                 className={`flex gap-3 ${
