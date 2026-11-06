@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useState, useEffect, useRef } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { Plus, Send, Bot, Copy } from 'lucide-react';
 
 export default function Chatbot() {
