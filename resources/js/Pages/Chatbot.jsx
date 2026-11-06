@@ -4,7 +4,8 @@ import { router, usePage } from '@inertiajs/react';
 import { Plus, Send, Bot, Copy } from 'lucide-react';
 
 export default function Chatbot() {
-    const { messages, model } = usePage().props;
+    const { messages: initialMessages, model } = usePage().props;
+    const [messages, setMessages] = useState(initialMessages ?? []);
     const [input, setInput] = useState('');
     const [sending, setSending] = useState(false);
     const [newMessageId, setNewMessageId] = useState(null);
@@ -24,14 +25,28 @@ export default function Chatbot() {
         setSending(true);
         const tempId = 'temp-' + Date.now();
         setNewMessageId(tempId);
+
+        // Optimistically add user message so it appears instantly
+        setMessages(prev => [...prev, {
+            id: tempId,
+            role: 'user',
+            content: input,
+            created_at: new Date().toISOString(),
+        }]);
+
         router.post(route('chatbot.store'), { message: input }, {
             onSuccess: () => {
                 setInput('');
                 setSending(false);
                 setNewMessageId(null);
+                // Refresh page data from server so assistant reply appears
+                router.reload();
             },
             onError: () => {
                 setSending(false);
+                setNewMessageId(null);
+                // Remove optimistic message on error
+                setMessages(prev => prev.filter(m => m.id !== tempId));
             },
             preserveState: true,
         });
