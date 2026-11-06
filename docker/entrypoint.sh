@@ -60,6 +60,8 @@ AWS_BUCKET=${AWS_BUCKET}
 AWS_USE_PATH_STYLE_ENDPOINT=${AWS_USE_PATH_STYLE_ENDPOINT:-false}
 
 VITE_APP_NAME="${APP_NAME:-Laravel}"
+OLLAMA_HOST="${OLLAMA_HOST:-http://localhost:11434}"
+OLLAMA_MODEL="${OLLAMA_MODEL:-llama3.2}"
 ENVFILE
 
 echo "==> .env written successfully"
@@ -108,5 +110,22 @@ chown -h www-data:www-data /var/www/public/storage 2>/dev/null || true
 # container start just adds unnecessary delay before nginx/php-fpm come up,
 # which is what causes the brief Bad Gateway window on Coolify redeploys.
 
-echo "==> All done! Starting nginx + php-fpm..."
+echo "==> Starting Ollama in the background..."
+ollama serve &
+OLLAMA_PID=$!
+
+echo "==> Waiting for Ollama to be ready..."
+for i in $(seq 1 30); do
+    if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+        echo "==> Ollama is ready!"
+        break
+    fi
+    echo "    Attempt $i/30 - Ollama not ready yet, waiting 2s..."
+    sleep 2
+done
+
+echo "==> Pulling llama3.2 model (may take a few minutes on first run)..."
+ollama pull llama3.2 || echo "==> Warning: ollama pull failed, will retry on first request"
+
+echo "==> All done! Starting nginx + php-fpm + Ollama..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

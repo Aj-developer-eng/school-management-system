@@ -25,6 +25,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
     git \
     curl \
+    zstd \
     libpng-dev \
     libjpeg62-turbo-dev \
     libwebp-dev \
@@ -38,6 +39,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq \
     supervisor \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Ollama (required by AI Chatbot feature)
+RUN curl -fsSL https://ollama.com/install.sh | sh
 
 # Install PHP extensions. gd needs to be explicitly configured with WebP
 # support (--with-webp) — without it, docker-php-ext-install builds GD
@@ -137,7 +141,7 @@ COPY --from=assets /app/public/build ./public/build
 
 RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
-EXPOSE 80
+EXPOSE 80 11434
 
 # Lets Coolify (and Docker itself) know when the container is actually
 # ready to serve traffic — entrypoint.sh runs migrations/cache-warming
