@@ -14,6 +14,7 @@ use App\Models\ClassPaper;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Models\StudentParent;
 use App\Enums\RoleEnum;
 use App\Models\Teacher;
 use App\Models\TeacherSubjectAssignment;
@@ -59,6 +60,29 @@ class SchoolClassController extends Controller
                             $q->where('teacher_id', $teacherId)
                                 ->whereNull('deleted_at');
                         });
+                    }
+                },
+            )
+            ->when(
+                // Parents only see classes their children are enrolled in.
+                $request->user() !== null && $request->user()->hasRole(RoleEnum::Parent->value),
+                function ($query) use ($request): void {
+                    $parent = StudentParent::where('user_id', $request->user()->id)->first();
+                    $studentIds = $parent?->students()
+                        ->whereNull('students.deleted_at')
+                        ->pluck('students.id');
+
+                    if ($studentIds && $studentIds->isNotEmpty()) {
+                        $query->whereExists(function ($q) use ($studentIds): void {
+                            $q->select(DB::raw(1))
+                                ->from('student_enrollments as se')
+                                ->whereColumn('se.school_class_id', 'school_classes.id')
+                                ->whereIn('se.student_id', $studentIds)
+                                ->whereNull('se.deleted_at');
+                        });
+                    } else {
+                        // Parent has no linked children: show no classes.
+                        $query->whereRaw('0 = 1');
                     }
                 },
             )
