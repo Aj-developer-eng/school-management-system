@@ -254,7 +254,36 @@ class SchoolClassController extends Controller
         // Overview tiles for the classes index. These are computed against the
         // whole table (not just the current page) so the tiles show true totals.
         $stats = [
-            'total_classes' => SchoolClass::query()->count(),
+            'total_classes' => (int) (function () use ($request): int {
+                // Parents only see classes their children are enrolled in —
+                // the same scope as the classes table — so the tile count
+                // agrees with the listed rows instead of counting every
+                // class in the school.
+                $query = SchoolClass::query();
+
+                if ($request->user() !== null
+                    && $request->user()->hasRole(RoleEnum::Parent->value)) {
+                    $parent = StudentParent::where('user_id', $request->user()->id)->first();
+                    $studentIds = $parent?->students()
+                        ->whereNull('students.deleted_at')
+                        ->pluck('students.id');
+
+                    if ($studentIds && $studentIds->isNotEmpty()) {
+                        $query->whereExists(function ($q) use ($studentIds): void {
+                            $q->select(DB::raw(1))
+                                ->from('student_enrollments as se')
+                                ->whereColumn('se.school_class_id', 'school_classes.id')
+                                ->whereIn('se.student_id', $studentIds)
+                                ->whereNull('se.deleted_at');
+                        });
+                    } else {
+                        // Parent has no linked children: no classes to show.
+                        return 0;
+                    }
+                }
+
+                return $query->count();
+            })(),
             // Matches the semantics of the table's "Students" column, which
             // counts the distinct students of each class. Summing that
             // per-class count means a student enrolled in several classes is
