@@ -142,12 +142,12 @@ export const navigation = [
                 icon: Wallet,
                 permission: 'fee-invoices.view',
             },
-            {
-                label: 'Concessions',
-                routeName: 'fee-concessions.index',
-                icon: Users,
-                permission: 'fee-concessions.view',
-            },
+            // {
+            //     label: 'Concessions',
+            //     routeName: 'fee-concessions.index',
+            //     icon: Users,
+            //     permission: 'fee-concessions.view',
+            // },
             {
                 label: 'Reports',
                 routeName: 'fee-reports.index',
