@@ -59,13 +59,13 @@ export const navigation = [
                 icon: StickyNote,
                 permission: 'classes.view-notes',
             },
-            {
-                label: 'Attendance',
-                routeName: 'attendance.index',
-                icon: ClipboardCheck,
-                permission: 'attendances.view',
-                excludeRoles: ['Parent', 'Student'],
-            },
+            // {
+            //     label: 'Attendance',
+            //     routeName: 'attendance.index',
+            //     icon: ClipboardCheck,
+            //     permission: 'attendances.view',
+            //     excludeRoles: ['Parent', 'Student'],
+            // },
             // {
             //     label: 'Tests',
             //     routeName: 'tests.index',
