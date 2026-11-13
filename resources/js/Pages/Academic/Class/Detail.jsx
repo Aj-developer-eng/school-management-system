@@ -68,6 +68,8 @@ export default function Detail({
         'classes.delete-papers',
     ]);
 
+    const canViewAttendance = can('attendances.view');
+
     const notesClass =
         notesClassId === schoolClass?.id ? schoolClass : null;
 
@@ -490,6 +492,22 @@ export default function Detail({
                     {notes.length}
                 </p>
             </button>
+
+            {/* Class Attendance */}
+            {canViewAttendance && (
+                <Link
+                    href={route('attendance.show', schoolClass?.id)}
+                    className="flex min-h-[90px] flex-col items-center justify-center rounded-lg bg-indigo-50 p-3 text-center transition-colors hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/50"
+                >
+                    <ClipboardCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
+                    <p className="mt-1 text-xs font-medium uppercase text-indigo-600 dark:text-indigo-300">
+                        Attendance
+                    </p>
+                    <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        {students.length}
+                    </p>
+                </Link>
+            )}
 
             {/* Notes / Papers */}
             <button
