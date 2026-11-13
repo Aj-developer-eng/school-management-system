@@ -6,6 +6,8 @@ use App\Enums\RoleEnum;
 use App\Models\ClassNote;
 use App\Models\SchoolClass;
 use App\Models\StudentParent;
+use App\Models\Teacher;
+use App\Models\TeacherSubjectAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -17,8 +19,9 @@ class ClassNoteController extends Controller
      * List class notes for the current user ("classes.view-notes").
      *
      * Parents only see the notes of the classes their children are enrolled
-     * in; every other role holding the permission sees all notes. The route
-     * itself is gated by the can:classes.view-notes middleware.
+     * in; teachers only see the notes of the classes they are assigned to
+     * teach; every other role holding the permission sees all notes. The
+     * route itself is gated by the can:classes.view-notes middleware.
      */
     public function index(Request $request): Response
     {
@@ -30,10 +33,10 @@ class ClassNoteController extends Controller
 
         $emptyClasses = collect();
 
-        // For non-parent users (including super admins), find classes with no notes.
-        // Parents are scoped to their children's classes, so we don't flag
-        // their non-enrolled classes as empty.
-        if (!$user?->hasRole(RoleEnum::Parent->value)) {
+        // For non-parent, non-teacher users (including super admins), find classes
+        // with no notes. Teachers are scoped to their assigned classes below, and
+        // parents are scoped to their children's classes.
+        if (!$user?->hasRole(RoleEnum::Parent->value) && !$user?->hasRole(RoleEnum::Teacher->value)) {
             $allClassIds = SchoolClass::orderBy('level')->pluck('id');
             $classesWithNotes = ClassNote::whereIn('school_class_id', $allClassIds)
                 ->distinct()
@@ -86,6 +89,43 @@ class ClassNoteController extends Controller
                     ->pluck('school_class_id');
 
                 $emptyClasses = $enrolledClassIds->diff($classesWithNotes)
+                    ->mapWithKeys(function (string $classId) {
+                        $class = SchoolClass::find($classId);
+
+                        if (!$class) {
+                            return [];
+                        }
+
+                        return [$classId => [
+                            'id' => $classId,
+                            'name' => $class->name,
+                        ]];
+                    });
+            }
+        }
+
+        // Teachers only see notes attached to the classes they are assigned to teach.
+        // A teacher without a linked Teacher record (or without any assignments) is
+        // scoped to nothing rather than falling back to every class.
+        if ($user?->hasRole(RoleEnum::Teacher->value)) {
+            $teacherId = Teacher::where('user_id', $user->id)->value('id');
+
+            $classIds = $teacherId
+                ? TeacherSubjectAssignment::where('teacher_id', $teacherId)
+                    ->whereNotNull('school_class_id')
+                    ->distinct()
+                    ->pluck('school_class_id')
+                : collect();
+
+            $query->whereIn('school_class_id', $classIds);
+
+            // Compute empty classes only within the classes the teacher is assigned to.
+            if ($teacherId) {
+                $classesWithNotes = ClassNote::whereIn('school_class_id', $classIds)
+                    ->distinct()
+                    ->pluck('school_class_id');
+
+                $emptyClasses = $classIds->diff($classesWithNotes)
                     ->mapWithKeys(function (string $classId) {
                         $class = SchoolClass::find($classId);
 

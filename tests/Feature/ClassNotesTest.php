@@ -8,6 +8,8 @@ use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudentParent;
+use App\Models\Teacher;
+use App\Models\TeacherSubjectAssignment;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -189,6 +191,69 @@ class ClassNotesTest extends TestCase
     public function test_the_parent_role_holds_the_view_notes_permission(): void
     {
         $this->assertTrue($this->parentUser->can('classes.view-notes'));
+    }
+
+    public function test_a_teacher_sees_only_notes_from_their_assigned_classes(): void
+    {
+        $teacherUser = User::factory()->create();
+        $teacherUser->assignRole(Role::findOrCreate(RoleEnum::Teacher->value, 'web'));
+        $teacherUser->givePermissionTo('classes.view-notes');
+
+        $teacher = Teacher::create([
+            'user_id' => $teacherUser->id,
+            'employee_code' => 'T-001',
+        ]);
+
+        // Note on a class the teacher is assigned to.
+        $this->class->notes()->create(['body' => 'Grade 5 note.']);
+
+        // Note on a class the teacher is NOT assigned to.
+        $otherClass = SchoolClass::create([
+            'name' => 'Grade 6',
+            'code' => 'G6',
+            'level' => 6,
+            'is_active' => true,
+        ]);
+        $otherClass->notes()->create(['body' => 'Grade 6 note.']);
+
+        TeacherSubjectAssignment::create([
+            'teacher_id' => $teacher->id,
+            'academic_session_id' => $this->session->id,
+            'school_class_id' => $this->class->id,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->get(route('class-notes.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('ClassNote/Index')
+                ->has('notes.data', 1)
+                ->where('notes.data.0.body', 'Grade 5 note.')
+                ->where('notes.data.0.school_class.name', 'Grade 5')
+            );
+    }
+
+    public function test_a_teacher_without_class_assignments_sees_no_notes(): void
+    {
+        $teacherUser = User::factory()->create();
+        $teacherUser->assignRole(Role::findOrCreate(RoleEnum::Teacher->value, 'web'));
+        $teacherUser->givePermissionTo('classes.view-notes');
+
+        Teacher::create([
+            'user_id' => $teacherUser->id,
+            'employee_code' => 'T-002',
+        ]);
+
+        $this->class->notes()->create(['body' => 'Grade 5 note.']);
+
+        $this->actingAs($teacherUser)
+            ->get(route('class-notes.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('ClassNote/Index')
+                ->has('notes.data', 0)
+            );
     }
 
     private function enrollChild(): void
