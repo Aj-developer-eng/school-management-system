@@ -103,6 +103,7 @@ class FeeReportController extends Controller
 
         $isScoped = $scopedStudentIds !== null;
         $isSuperAdmin = $request->user()->hasRole(RoleEnum::SuperAdmin->value);
+        $isParent = $request->user()->hasRole(RoleEnum::Parent->value);
 
         return Inertia::render('Fee/Report/Index', [
             'summary' => [
@@ -121,6 +122,7 @@ class FeeReportController extends Controller
             'classes' => SchoolClass::where('is_active', true)->orderBy('level')->pluck('name', 'id'),
             'isScoped' => $isScoped,
             'isSuperAdmin' => $isSuperAdmin,
+            'isParent' => $isParent,
         ]);
     }
 
