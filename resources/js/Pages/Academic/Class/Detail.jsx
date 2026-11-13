@@ -440,93 +440,94 @@ export default function Detail({
         >
             <div className="space-y-6">
                 {/* Class Information */}
-                <Card className="p-6">
-    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                
+<Card className="p-4">
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
         {/* Class Information */}
         <div className="min-w-0 lg:flex-1">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 {schoolClass?.name}
             </h3>
 
-            <p className="text-sm text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
                 Code: {schoolClass?.code || '—'}
             </p>
         </div>
 
-        {/* Statistics Boxes */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:w-[65%]">
+        {/* Compact Responsive Tiles */}
+        <div className="flex flex-wrap items-center gap-2 lg:flex-1 lg:justify-end">
+
             {/* Level */}
-            <div className="flex min-h-[90px] flex-col items-center justify-center rounded-lg bg-indigo-50 p-3 text-center dark:bg-indigo-900/30">
-                <p className="text-xs font-medium uppercase text-indigo-600 dark:text-indigo-300">
+            <div className="flex min-w-[85px] flex-1 flex-col items-center justify-center rounded-lg bg-indigo-50 px-3 py-2 dark:bg-indigo-900/30">
+                <p className="text-[10px] font-semibold uppercase text-indigo-600 dark:text-indigo-300">
                     Level
                 </p>
-
-                <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <p className="text-base font-bold text-gray-900 dark:text-gray-100">
                     {schoolClass?.level ?? '—'}
                 </p>
             </div>
 
             {/* Students */}
-            <div className="flex min-h-[90px] flex-col items-center justify-center rounded-lg bg-emerald-50 p-3 text-center dark:bg-emerald-900/30">
-                <p className="text-xs font-medium uppercase text-emerald-600 dark:text-emerald-300">
+            <div className="flex min-w-[85px] flex-1 flex-col items-center justify-center rounded-lg bg-emerald-50 px-3 py-2 dark:bg-emerald-900/30">
+                <p className="text-[10px] font-semibold uppercase text-emerald-600 dark:text-emerald-300">
                     Students
                 </p>
-
-                <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <p className="text-base font-bold text-gray-900 dark:text-gray-100">
                     {students.length}
                 </p>
             </div>
 
-            {/* New Announcement */}
+            {/* Announcements */}
             <button
                 type="button"
                 disabled={!canManageNotes}
                 onClick={() => setNotesClassId(schoolClass?.id)}
-                className="flex min-h-[90px] flex-col items-center justify-center rounded-lg bg-indigo-50 p-3 text-center transition-colors hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/50"
+                className="flex min-w-[85px] flex-1 flex-col items-center justify-center rounded-lg bg-indigo-50 px-3 py-2 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/50"
             >
-                <p className="text-xs font-medium uppercase text-indigo-600 dark:text-indigo-300">
-                    New Announcement
+                <p className="text-[10px] font-semibold uppercase text-indigo-600 dark:text-indigo-300">
+                    Announcements
                 </p>
-
-                <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <p className="text-base font-bold text-gray-900 dark:text-gray-100">
                     {notes.length}
                 </p>
             </button>
 
-            {/* Class Attendance */}
+            {/* Attendance */}
             {canViewAttendance && (
                 <Link
                     href={route('attendance.show', schoolClass?.id)}
-                    className="flex min-h-[90px] flex-col items-center justify-center rounded-lg bg-indigo-50 p-3 text-center transition-colors hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/50"
+                    className="flex min-w-[85px] flex-1 flex-col items-center justify-center rounded-lg bg-indigo-50 px-3 py-2 transition hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/50"
                 >
                     <ClipboardCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
-                    <p className="mt-1 text-xs font-medium uppercase text-indigo-600 dark:text-indigo-300">
+                    <p className="text-[10px] font-semibold uppercase text-indigo-600 dark:text-indigo-300">
                         Attendance
                     </p>
-                    <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    <p className="text-base font-bold text-gray-900 dark:text-gray-100">
                         {students.length}
                     </p>
                 </Link>
             )}
 
-            {/* Notes / Papers */}
+            {/* Papers */}
             <button
                 type="button"
                 disabled={!canManagePapers}
                 onClick={() => setPapersClassId(schoolClass?.id)}
-                className="flex min-h-[90px] flex-col items-center justify-center rounded-lg bg-emerald-50 p-3 text-center transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-emerald-900/30 dark:hover:bg-emerald-800/50"
+                className="flex min-w-[85px] flex-1 flex-col items-center justify-center rounded-lg bg-emerald-50 px-3 py-2 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-emerald-900/30 dark:hover:bg-emerald-800/50"
             >
-                <p className="text-xs font-medium uppercase text-emerald-600 dark:text-emerald-300">
+                <p className="text-[10px] font-semibold uppercase text-emerald-600 dark:text-emerald-300">
                     Papers
                 </p>
-
-                <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <p className="text-base font-bold text-gray-900 dark:text-gray-100">
                     {papers.length}
                 </p>
             </button>
+
         </div>
     </div>
 </Card>
+
 
                    
 
