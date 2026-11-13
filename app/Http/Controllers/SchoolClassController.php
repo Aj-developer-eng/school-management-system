@@ -451,6 +451,7 @@ class SchoolClassController extends Controller
             'students' => $students,
             'classworks' => $classworks,
             'onlineClass' => $onlineClass,
+            'teacherSubjectAssignmentId' => $assignments->first()?->id,
         ]);
     }
 

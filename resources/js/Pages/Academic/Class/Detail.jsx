@@ -42,6 +42,7 @@ export default function Detail({
     students = [],
     classworks = [],
     onlineClass = null,
+    teacherSubjectAssignmentId = null,
 }) {
     const { can, canAny } = useAuth();
 
@@ -495,12 +496,9 @@ export default function Detail({
 
             {/* Attendance */}
             {canViewAttendance &&
-                schoolClass?.teacherSubjectAssignments?.length > 0 && (
+                teacherSubjectAssignmentId && (
                 <Link
-                    href={route(
-                        'attendance.show',
-                        schoolClass.teacherSubjectAssignments[0]?.id
-                    )}
+                    href={route('attendance.show', teacherSubjectAssignmentId)}
                     className="flex min-w-[85px] flex-1 flex-col items-center justify-center rounded-lg bg-indigo-50 px-3 py-2 transition hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/50"
                 >
                     <ClipboardCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
