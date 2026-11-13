@@ -494,9 +494,13 @@ export default function Detail({
             </button>
 
             {/* Attendance */}
-            {canViewAttendance && (
+            {canViewAttendance &&
+                schoolClass?.teacherSubjectAssignments?.length > 0 && (
                 <Link
-                    href={route('attendance.show', schoolClass?.id)}
+                    href={route(
+                        'attendance.show',
+                        schoolClass.teacherSubjectAssignments[0]?.id
+                    )}
                     className="flex min-w-[85px] flex-1 flex-col items-center justify-center rounded-lg bg-indigo-50 px-3 py-2 transition hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/50"
                 >
                     <ClipboardCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />

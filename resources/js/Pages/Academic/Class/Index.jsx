@@ -260,7 +260,7 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
                     )}
                     {can('classes.update') && <EditLink routeName="classes.edit" params={row.id} />}
                     {can('classes.delete') && <DeleteButton routeName="classes.destroy" params={row.id} />}
-                    {canViewAttendance && (
+                    {/* {canViewAttendance && (
                         <Link
                             href={route('attendance.show', row.id)}
                             className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
@@ -269,7 +269,7 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
                             <ClipboardCheck className="h-3.5 w-3.5" />
                             Attendance
                         </Link>
-                    )}
+                    )} */}
                 </div>
             ),
         },
