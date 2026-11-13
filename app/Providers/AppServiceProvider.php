@@ -7,7 +7,9 @@ use App\Models\FeeConcession;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
 use App\Models\FeeStructure;
+use App\Models\TeacherSubjectAssignment;
 use App\Models\User;
+use App\Policies\AttendancePolicy;
 use App\Policies\FeeConcessionPolicy;
 use App\Policies\FeeInvoicePolicy;
 use App\Policies\FeePaymentPolicy;
@@ -51,6 +53,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(FeeConcession::class, FeeConcessionPolicy::class);
 
         Gate::policy(RegistrationRequest::class, RegistrationRequestPolicy::class);
+        Gate::policy(TeacherSubjectAssignment::class, AttendancePolicy::class);
 
         Gate::before(function (User $user): ?bool {
             return $user->hasRole(RoleEnum::SuperAdmin->value) ? true : null;

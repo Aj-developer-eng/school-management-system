@@ -49,13 +49,7 @@ class AttendanceController extends Controller
 
     public function show(Request $request, TeacherSubjectAssignment $assignment)
     {
-        $user = $request->user();
-        $isSuperAdmin = $user->hasRole(RoleEnum::SuperAdmin->value);
-        $teacher = Teacher::where('user_id', $user->id)->first();
-
-        if (! $isSuperAdmin && $assignment->teacher_id !== $teacher?->id) {
-            abort(403);
-        }
+        $this->authorize('view', $assignment);
 
         $date = $request->input('date', today()->toDateString());
         // The model's date cast stores full datetimes (Y-m-d H:i:s), so the

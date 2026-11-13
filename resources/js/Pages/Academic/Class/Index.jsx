@@ -18,7 +18,7 @@ import { useAuth } from '@/utils/authorization';
 import { formatDate, formatTime, formatTimeRange } from '@/utils/format';
 import { confirmAction } from '@/utils/swal';
 import { Link, router, useForm } from '@inertiajs/react';
-import { Clock, Download, FileText, Paperclip, Search, StickyNote, Trash2, Upload, UserPlus, X } from 'lucide-react';
+import { Clock, ClipboardCheck, Download, FileText, Paperclip, Search, StickyNote, Trash2, Upload, UserPlus, X } from 'lucide-react';
 
 const formatSize = (bytes) => {
     if (!bytes) return '—';
@@ -94,6 +94,10 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
     // Attach/detach students against a class from the Students modal
     // (server-side gated by SchoolClassPolicy::manageStudents — students.update).
     const canManageStudents = can('students.update');
+
+    // View attendance detail for a class (server-side gated by
+    // AttendancePolicy::view — "attendances.view", like /roles).
+    const canViewAttendance = can('attendances.view');
 
     const papersClass =
         (classes?.data ?? []).find((row) => row.id === papersClassId) ?? null;
@@ -256,6 +260,16 @@ export default function Index({ classes, filters, stats = {}, classTimeOptions =
                     )}
                     {can('classes.update') && <EditLink routeName="classes.edit" params={row.id} />}
                     {can('classes.delete') && <DeleteButton routeName="classes.destroy" params={row.id} />}
+                    {canViewAttendance && (
+                        <Link
+                            href={route('attendance.show', row.id)}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
+                            title="View class attendance"
+                        >
+                            <ClipboardCheck className="h-3.5 w-3.5" />
+                            Attendance
+                        </Link>
+                    )}
                 </div>
             ),
         },

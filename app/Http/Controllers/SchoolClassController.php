@@ -249,6 +249,12 @@ class SchoolClassController extends Controller
                 ->filter(fn (array $time) => $time['start_time'] !== null || $time['end_time'] !== null)
                 ->unique()
                 ->values();
+            // The first (earliest) teacher-subject assignment of this class —
+            // used to link to that class's attendance detail page
+            // ("attendance.show", gated by AttendancePolicy::view).
+            $class->attendance_assignment_id = $timesByClass->get($class->id, collect())
+                ->first()
+                ?->id;
         });
 
         // Overview tiles for the classes index. These are computed against the
