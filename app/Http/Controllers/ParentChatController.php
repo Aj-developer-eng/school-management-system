@@ -107,11 +107,8 @@ class ParentChatController extends Controller
      */
     private function primaryParent(Student $student): ?StudentParent
     {
-        $parents = StudentParent::with('user:id,name,email,phone')
-            ->whereHas('students', function ($query) use ($student): void {
-                $query->where('students.id', $student->id)
-                    ->whereNull('students.deleted_at');
-            })
+        $parents = $student->parents()
+            ->with('user:id,name,email,phone')
             ->get();
 
         return $parents->first(fn ($parent) => (bool) $parent->pivot->is_primary_contact)
