@@ -16,6 +16,7 @@ use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OnlineClassController;
 use App\Http\Controllers\ParentChatController;
+use App\Http\Controllers\ParentMessagesController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RegisterStudentController;
 use App\Http\Controllers\RegistrationRequestController;
@@ -111,6 +112,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('classes/{school_class}/students/{student}/chat',
         [ParentChatController::class, 'store'])
         ->name('classes.students.chat.store');
+
+    // Parent-facing messages — conversation list and per-teacher chat.
+    Route::get('parent/messages', [ParentMessagesController::class, 'index'])
+        ->name('parent.messages');
+    Route::get('parent/messages/{teacher}', [ParentMessagesController::class, 'show'])
+        ->name('parent.messages.teacher');
+    Route::post('parent/messages/{teacher}', [ParentMessagesController::class, 'store'])
+        ->name('parent.messages.teacher.store');
 
     Route::get('registration-requests', [RegistrationRequestController::class, 'index'])->name('registration-requests.index')->middleware('can:registration-requests.view');
     Route::patch('registration-requests/{registrationRequest}/approve', [RegistrationRequestController::class, 'approve'])->name('registration-requests.approve')->middleware('can:registration-requests.approve');
@@ -290,6 +299,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('notifications.read');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])
         ->name('notifications.read-all');
+
+    // Parent messages — view conversations with teachers
+    Route::get('parent/messages', [ParentChatController::class, 'parentIndex'])
+        ->name('parent.messages');
 });
 
 require __DIR__.'/auth.php';

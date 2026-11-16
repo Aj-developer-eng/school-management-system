@@ -16,6 +16,7 @@ use App\Models\StudentParent;
 use App\Models\Teacher;
 use App\Models\TeacherAssignmentLog;
 use App\Models\TeacherSubjectAssignment;
+use App\Models\Message;
 use App\Models\TestResult;
 use App\Models\User;
 use App\Services\ActivityLogService;
@@ -216,6 +217,51 @@ class DashboardController extends Controller
             ->values()
             ->all();
 
+        // Unread messages and recent conversations for the parent
+        $unreadMessageCount = 0;
+        $recentConversations = [];
+        if ($parent) {
+            $unreadMessageCount = Message::where('recipient_id', $parent->user->id)
+                ->whereNull('read_at')
+                ->whereNull('deleted_at')
+                ->count();
+
+            $teacherIds = Message::where('recipient_id', $parent->user->id)
+                ->whereNull('deleted_at')
+                ->distinct()
+                ->pluck('sender_id');
+
+            $recentConversations = $teacherIds->map(function ($teacherId) use ($parent): array {
+                $teacher = User::with('teacher')->find($teacherId);
+                if (!$teacher) return [];
+
+                $lastMessage = Message::where(function ($q) use ($teacherId, $parent) {
+                    $q->where('sender_id', $teacherId)->where('recipient_id', $parent->user->id);
+                })->orWhere(function ($q) use ($teacherId, $parent) {
+                    $q->where('sender_id', $parent->user->id)->where('recipient_id', $teacherId);
+                })
+                    ->whereNull('deleted_at')
+                    ->latest('created_at')
+                    ->first();
+
+                return [
+                    'teacher_id' => $teacherId,
+                    'teacher_name' => $teacher->name,
+                    'last_message' => $lastMessage ? [
+                        'body' => $lastMessage->body,
+                        'created_at' => $lastMessage->created_at,
+                        'is_mine' => $lastMessage->sender_id === $parent->user->id,
+                    ] : null,
+                    'unread_count' => Message::where('sender_id', $teacherId)
+                        ->where('recipient_id', $parent->user->id)
+                        ->whereNull('read_at')
+                        ->whereNull('deleted_at')
+                        ->count(),
+                ];
+            })->filter()->sortByDesc(fn ($c) => $c['last_message']?->created_at ?? '1970-01-01')
+             ->values()->all();
+        }
+
         return Inertia::render('Dashboard', [
             'dashboardType' => 'parent',
             'parent' => $parent ? ['id' => $parent->id, 'occupation' => $parent->occupation] : null,
@@ -225,6 +271,8 @@ class DashboardController extends Controller
             'todayAttendance' => $todayAttendance,
             'testResults' => $testResults,
             'activeSession' => $activeSession?->name,
+            'unreadMessageCount' => $unreadMessageCount,
+            'recentConversations' => $recentConversations,
             // No enrolled children means no scope: an empty timetable is safer
             // than falling back to the whole school's assignments.
             'timetable' => $classIds === []

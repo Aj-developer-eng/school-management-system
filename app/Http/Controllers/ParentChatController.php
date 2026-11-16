@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleEnum;
 use App\Http\Requests\ParentChat\StoreMessageRequest;
 use App\Models\Message;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudentParent;
+use App\Models\Teacher;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,26 +19,53 @@ use Inertia\Response;
 class ParentChatController extends Controller
 {
     /**
-     * Show the WhatsApp-like conversation between the logged-in teacher and the
-     * primary parent of the given student (who must be enrolled in the class).
+     * Show the conversation between the logged-in user and the other party.
+     *
+     * When accessed by a teacher: shows chat with the primary parent of the
+     * given student (who must be enrolled in the class).
+     *
+     * When accessed by a parent: shows chat with the teacher for their child
+     * in the given class.
      *
      * Gated by the `teacher-parent.chat` permission.
      */
     public function index(Request $request, SchoolClass $schoolClass, Student $student): Response
     {
-        abort_unless($request->user()->can('teacher-parent.chat'), 403);
+        $user = $request->user();
+        abort_unless($user->can('teacher-parent.chat'), 403);
 
         $this->verifyStudentInClass($schoolClass, $student);
 
-        $parent = $this->primaryParent($student);
-        abort_unless($parent?->user, 404);
+        if ($user->hasRole(RoleEnum::Parent->value)) {
+            $parent = StudentParent::where('user_id', $user->id)
+                ->whereHas('students', fn ($q) => $q->where('students.id', $student->id))
+                ->first();
+            abort_unless($parent, 403);
 
-        $teacherId = $request->user()->id;
-        $parentId = $parent->user->id;
+            $parentId = $user->id;
 
-        // Mark parent -> teacher messages as read when the teacher opens the chat.
+            $teacher = Teacher::whereHas('teacherSubjectAssignments', fn ($q) => $q
+                ->where('school_class_id', $schoolClass->id)
+                ->whereNull('deleted_at')
+            )->first();
+            abort_unless($teacher?->user, 404);
+
+            $teacherId = $teacher->user->id;
+        } else {
+            $parent = $this->primaryParent($student);
+            abort_unless($parent?->user, 404);
+
+            $teacherId = $user->id;
+            $parentId = $parent->user->id;
+        }
+
         Message::where('sender_id', $parentId)
             ->where('recipient_id', $teacherId)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        Message::where('sender_id', $teacherId)
+            ->where('recipient_id', $parentId)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
@@ -52,6 +82,8 @@ class ParentChatController extends Controller
                 'read_at' => $message->read_at,
             ])->values()->all();
 
+        $isParent = $user->hasRole(RoleEnum::Parent->value);
+
         return Inertia::render('ParentChat/Index', [
             'schoolClass' => $schoolClass,
             'student' => [
@@ -60,30 +92,56 @@ class ParentChatController extends Controller
                 'admission_number' => $student->admission_number,
             ],
             'parent' => [
-                'id' => $parent->id,
-                'name' => $parent->user?->name,
-                'phone' => $parent->user?->phone,
-                'email' => $parent->user?->email,
+                'id' => $parentId,
+                'name' => $isParent ? $user->name : ($parent?->user?->name ?? ''),
+                'phone' => $isParent ? $user->phone : ($parent?->user?->phone ?? ''),
+                'email' => $isParent ? $user->email : ($parent?->user?->email ?? ''),
             ],
+            'teacher' => [
+                'id' => $teacherId,
+                'name' => User::find($teacherId)?->name ?? '',
+            ],
+            'isParent' => $isParent,
             'messages' => $messages,
         ]);
     }
 
     /**
-     * Send a message from the logged-in teacher to the student's parent.
+     * Send a message between the logged-in user and the other party.
      */
     public function store(StoreMessageRequest $request, SchoolClass $schoolClass, Student $student): RedirectResponse
     {
-        abort_unless($request->user()->can('teacher-parent.chat'), 403);
+        $user = $request->user();
+        abort_unless($user->can('teacher-parent.chat'), 403);
 
         $this->verifyStudentInClass($schoolClass, $student);
 
-        $parent = $this->primaryParent($student);
-        abort_unless($parent?->user, 404);
+        if ($user->hasRole(RoleEnum::Parent->value)) {
+            $parent = StudentParent::where('user_id', $user->id)
+                ->whereHas('students', fn ($q) => $q->where('students.id', $student->id))
+                ->first();
+            abort_unless($parent, 403);
+
+            $senderId = $user->id;
+
+            $teacher = Teacher::whereHas('teacherSubjectAssignments', fn ($q) => $q
+                ->where('school_class_id', $schoolClass->id)
+                ->whereNull('deleted_at')
+            )->first();
+            abort_unless($teacher?->user, 404);
+
+            $recipientId = $teacher->user->id;
+        } else {
+            $parent = $this->primaryParent($student);
+            abort_unless($parent?->user, 404);
+
+            $senderId = $user->id;
+            $recipientId = $parent->user->id;
+        }
 
         Message::create([
-            'sender_id' => $request->user()->id,
-            'recipient_id' => $parent->user->id,
+            'sender_id' => $senderId,
+            'recipient_id' => $recipientId,
             'body' => $request->validated()['body'],
         ]);
 
@@ -113,5 +171,111 @@ class ParentChatController extends Controller
 
         return $parents->first(fn ($parent) => (bool) $parent->pivot->is_primary_contact)
             ?? $parents->first();
+    }
+
+    /**
+     * Show the parent's conversations with teachers of their children.
+     * Gated by the `parent.chat` permission (or simply parent role).
+     */
+    public function parentIndex(Request $request): Response
+    {
+        abort_unless($request->user()->can('parent.chat'), 403);
+
+        $parent = StudentParent::where('user_id', $request->user()->id)->first();
+        abort_unless($parent, 404);
+
+        $children = $parent->students()
+            ->with(['user:id,name', 'enrollments' => function ($q): void {
+                $q->whereNull('deleted_at')->latest('enrolled_on');
+            }])
+            ->whereNull('students.deleted_at')
+            ->get();
+
+        $studentIds = $children->pluck('id');
+
+        if ($studentIds->isEmpty()) {
+            return Inertia::render('ParentMessages/Index', [
+                'conversations' => [],
+                'unreadCount' => 0,
+            ]);
+        }
+
+        // Get distinct teachers the parent has messaged with (as recipient)
+        $teacherIds = Message::whereIn('recipient_id', $parent->user->id)
+            ->whereNull('deleted_at')
+            ->distinct()
+            ->pluck('sender_id');
+
+        // Also include teachers who messaged the parent (as sender)
+        $teacherIds = $teacherIds->concat(
+            Message::whereIn('sender_id', $parent->user->id)
+                ->whereNull('deleted_at')
+                ->distinct()
+                ->pluck('recipient_id')
+        )->unique();
+
+        $conversations = collect();
+
+        foreach ($teacherIds as $teacherId) {
+            $teacher = \App\Models\User::with('teacher')->find($teacherId);
+            if (!$teacher || !$teacher->teacher) continue;
+
+            // Find which child connects this teacher to the parent
+            $connectedChild = null;
+            foreach ($children as $child) {
+                $enrollment = $child->enrollments->first();
+                if ($enrollment && $enrollment->schoolClass) {
+                    $assignment = \App\Models\TeacherSubjectAssignment::where('school_class_id', $enrollment->schoolClass->id)
+                        ->where('teacher_id', $teacher->teacher->id)
+                        ->whereNull('deleted_at')
+                        ->first();
+                    if ($assignment) {
+                        $connectedChild = $child;
+                        break;
+                    }
+                }
+            }
+
+            $lastMessage = Message::where(function ($q) use ($teacherId, $parent) {
+                $q->where('sender_id', $teacherId)->where('recipient_id', $parent->user->id);
+            })->orWhere(function ($q) use ($teacherId, $parent) {
+                $q->where('sender_id', $parent->user->id)->where('recipient_id', $teacherId);
+            })
+                ->whereNull('deleted_at')
+                ->latest('created_at')
+                ->first();
+
+            $unreadCount = Message::where('sender_id', $teacherId)
+                ->where('recipient_id', $parent->user->id)
+                ->whereNull('read_at')
+                ->whereNull('deleted_at')
+                ->count();
+
+            $conversations->push([
+                'teacher_id' => $teacherId,
+                'teacher_name' => $teacher->name,
+                'child' => $connectedChild ? [
+                    'id' => $connectedChild->id,
+                    'name' => $connectedChild->user->name,
+                    'admission_number' => $connectedChild->admission_number,
+                ] : null,
+                'last_message' => $lastMessage ? [
+                    'body' => $lastMessage->body,
+                    'created_at' => $lastMessage->created_at,
+                    'is_mine' => $lastMessage->sender_id === $parent->user->id,
+                ] : null,
+                'unread_count' => $unreadCount,
+            ]);
+        }
+
+        $conversations = $conversations->sortByDesc(fn ($c) => $c['last_message']?->created_at ?? '1970-01-01')
+            ->values();
+
+        $totalUnread = $conversations->sum('unread_count');
+
+        return Inertia::render('ParentMessages/Index', [
+            'conversations' => $conversations,
+            'unreadCount' => $totalUnread,
+        ]);
     }
 }

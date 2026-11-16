@@ -5,7 +5,7 @@ import StatusDonutChart from '@/Components/Dashboard/StatusDonutChart';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useAuth } from '@/utils/authorization';
 import { formatDate, formatTimeRange } from '@/utils/format';
-import { Download, GraduationCap, Sparkles } from 'lucide-react';
+import { Download, GraduationCap, MessageCircle, Sparkles } from 'lucide-react';
 import { Link, router } from '@inertiajs/react';
 
 const statusColors = {
@@ -253,7 +253,7 @@ function TimetableSection({ timetable }) {
     );
 }
 
-function ParentDashboard({ children, invoices, feeSummary, todayAttendance, testResults, timetable }) {
+function ParentDashboard({ children, invoices, feeSummary, todayAttendance, testResults, timetable, unreadMessageCount = 0, recentConversations = [] }) {
     const { can } = useAuth();
 
     return (
@@ -276,6 +276,83 @@ function ParentDashboard({ children, invoices, feeSummary, todayAttendance, test
                     <DashboardCard title="Total Paid" value={formatRs(feeSummary.total_paid)} subtitle="Payments received" color="emerald" delay={70} />
                     <DashboardCard title="Outstanding" value={formatRs(feeSummary.total_outstanding)} subtitle="Amount due" color="rose" delay={140} />
                     <DashboardCard title="Pending Invoices" value={feeSummary.unpaid_count} subtitle="Unpaid / partial" color="amber" delay={210} />
+                </div>
+            </div>
+
+            {/* Messages */}
+            <div className="animate-fade-in">
+                <SectionHeading
+                    action={
+                        <Link
+                            href={route('parent.messages')}
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300"
+                        >
+                            {unreadMessageCount > 0 ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 text-xs font-semibold text-white">
+                                    <MessageCircle size={12} /> {unreadMessageCount} Unread
+                                </span>
+                            ) : (
+                                'View Messages'
+                            )}
+                        </Link>
+                    }
+                >
+                    Messages
+                </SectionHeading>
+                <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
+                    {recentConversations.length > 0 ? (
+                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {recentConversations.map((conv) => (
+                                <div
+                                    key={conv.teacher_id}
+                                    className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-shrink-0">
+                                                <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-sm font-medium">
+                                                    {conv.teacher_name?.charAt(0) ?? '?'}
+                                                </div>
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                                    {conv.teacher_name}
+                                                </p>
+                                                {conv.child && (
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                        {conv.child.name} • {conv.child.admission_number ?? ''}
+                                                    </p>
+                                                )}
+                                                {conv.unread_count > 0 && (
+                                                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 text-[10px] font-semibold">
+                                        {conv.unread_count} new
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="text-right hidden sm:block">
+                                            {conv.last_message ? (
+                                                <>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
+                                                        {conv.last_message.body}
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                                                        {new Date(conv.last_message.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                    </p>
+                                                </>
+                                            ) : (
+                                                <p className="text-xs text-gray-400 dark:text-gray-500">No messages yet</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                            No messages yet.
+                        </div>
+                    )}
                 </div>
             </div>
 

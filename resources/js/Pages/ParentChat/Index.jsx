@@ -7,7 +7,7 @@ import InputLabel from '@/Components/InputLabel';
 import { useAuth } from '@/utils/authorization';
 import { Send, Check, CheckCheck as Check2Icon } from 'lucide-react';
 
-export default function Index({ schoolClass, student, parent, messages }) {
+export default function Index({ schoolClass, student, parent, messages, teacher, isParent }) {
     const { user } = useAuth();
     const teacherId = user?.id;
     const page = usePage();
@@ -28,15 +28,25 @@ export default function Index({ schoolClass, student, parent, messages }) {
 
     const sendMessage = (event) => {
         event.preventDefault();
-        post(route('classes.students.chat.store', [schoolClass.id, student.id]), {
+        const routeName = isParent
+            ? route('parent.messages.teacher.store', teacher?.id)
+            : route('classes.students.chat.store', [schoolClass.id, student.id]);
+        post(routeName, {
             preserveScroll: true,
             onSuccess: () => reset(),
         });
     };
 
+    const otherPartyName = isParent ? (teacher?.name ?? 'Teacher') : (parent?.name ?? student.name);
+    const pageTitle = isParent ? `Chat with ${otherPartyName}` : `Chat with ${parent?.name ?? student.name}`;
+    const headerTitle = isParent ? 'Chat with Teacher' : 'Chat with Parent';
+    const headerSubtitle = isParent
+        ? `${teacher?.name ?? 'Teacher'} &middot; ${student.admission_number ?? ''}`
+        : `${parent?.name ?? 'No parent linked'} &middot; ${student.admission_number ?? ''}`;
+
     return (
         <AuthenticatedLayout
-            title={`Chat with ${parent?.name ?? student.name}`}
+            title={pageTitle}
             breadcrumbs={[
                 { label: 'Classes', href: route('dashboard') },
                 {
@@ -44,7 +54,7 @@ export default function Index({ schoolClass, student, parent, messages }) {
                     href: route('classes.show', schoolClass.id),
                 },
                 { label: student.name },
-                { label: 'Chat with Parent' },
+                { label: headerTitle },
             ]}
         >
             <div className="max-w-3xl mx-auto space-y-4 p-4 sm:p-6">
@@ -60,11 +70,10 @@ export default function Index({ schoolClass, student, parent, messages }) {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div>
                                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                    Chat with Parent
+                                    {headerTitle}
                                 </h2>
                                 <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">
-                                    {parent?.name ?? 'No parent linked'} &middot;
-                                    {student.admission_number ?? ''}
+                                    {headerSubtitle}
                                 </p>
                             </div>
                             <div className="flex flex-col sm:flex-row gap-2 text-right sm:text-left">
