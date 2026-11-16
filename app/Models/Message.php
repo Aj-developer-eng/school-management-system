@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Builder;
 
 class Message extends Model
 {
@@ -39,7 +40,7 @@ class Message extends Model
     /**
      * Scope messages to the conversation between two users.
      */
-    public function scopeBetween($query, int $userOne, int $userTwo): self
+    public function scopeBetween(Builder $query, int $userOne, int $userTwo): Builder
     {
         return $query->where(function ($q) use ($userOne, $userTwo): void {
             $q->where('sender_id', $userOne)
