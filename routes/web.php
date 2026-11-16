@@ -15,6 +15,7 @@ use App\Http\Controllers\FeeStructureController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OnlineClassController;
+use App\Http\Controllers\ParentChatController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RegisterStudentController;
 use App\Http\Controllers\RegistrationRequestController;
@@ -102,6 +103,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('classes.students.attach');
     Route::delete('classes/{school_class}/students/{student}', [SchoolClassController::class, 'detachStudent'])
         ->name('classes.students.detach');
+
+    // Parent-teacher chat — gated by the "teacher-parent.chat" permission.
+    Route::get('classes/{school_class}/students/{student}/chat',
+        [ParentChatController::class, 'index'])
+        ->name('classes.students.chat');
+    Route::post('classes/{school_class}/students/{student}/chat',
+        [ParentChatController::class, 'store'])
+        ->name('classes.students.chat.store');
 
     Route::get('registration-requests', [RegistrationRequestController::class, 'index'])->name('registration-requests.index')->middleware('can:registration-requests.view');
     Route::patch('registration-requests/{registrationRequest}/approve', [RegistrationRequestController::class, 'approve'])->name('registration-requests.approve')->middleware('can:registration-requests.approve');

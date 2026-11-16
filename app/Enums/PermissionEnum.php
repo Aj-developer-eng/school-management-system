@@ -39,6 +39,9 @@ enum PermissionEnum: string
     case UpdateStudents = 'students.update';
     case DeleteStudents = 'students.delete';
 
+    // Parent-Teacher Chat
+    case TeacherParentChat = 'teacher-parent.chat';
+
     // Parents
     case ViewParents = 'parents.view';
     case CreateParents = 'parents.create';

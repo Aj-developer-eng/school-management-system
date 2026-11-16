@@ -88,6 +88,7 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::CreateClassworks->value,
             PermissionEnum::UpdateClassworks->value,
             PermissionEnum::DeleteClassworks->value,
+            PermissionEnum::TeacherParentChat->value,
         ]);
 
         $this->syncRolePermissions(RoleEnum::Teacher, [
@@ -106,6 +107,7 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionEnum::CreateClassworks->value,
             PermissionEnum::UpdateClassworks->value,
             PermissionEnum::DeleteClassworks->value,
+            PermissionEnum::TeacherParentChat->value,
         ]);
 
         $this->syncRolePermissions(RoleEnum::Accountant, [

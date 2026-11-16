@@ -15,6 +15,7 @@ import {
     X,
     Download,
     FileText,
+    MessageCircle,
 } from 'lucide-react';
 import { formatDate, formatDateTime, formatTimeRange } from '@/utils/format';
 import { useAuth } from '@/utils/authorization';
@@ -70,6 +71,8 @@ export default function Detail({
     ]);
 
     const canViewAttendance = can('attendances.view');
+
+    const canChatParent = can('teacher-parent.chat');
 
     const notesClass =
         notesClassId === schoolClass?.id ? schoolClass : null;
@@ -677,6 +680,9 @@ export default function Detail({
                                         <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
                                             Admission No.
                                         </th>
+                 <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
+                     Chat
+                 </th>
                                     </tr>
                                 </thead>
 
@@ -695,6 +701,19 @@ export default function Detail({
                                             <td className="px-4 py-2 text-sm">
                                                 {student.admission_number}
                                             </td>
+                     <td className="px-4 py-2 text-sm">
+                         {canChatParent && (
+                             <Link
+                                 href={route('classes.students.chat', [schoolClass.id, student.id])}
+                                 className="inline-flex items-center gap-1 rounded-lg bg-green-50 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-800/30"
+                                 title="Chat with parent"
+                                 aria-label="Chat with parent"
+                             >
+                                 <MessageCircle size={14} />
+                                 Chat
+                             </Link>
+                         )}
+                     </td>
                                         </tr>
                                     ))}
                                 </tbody>
