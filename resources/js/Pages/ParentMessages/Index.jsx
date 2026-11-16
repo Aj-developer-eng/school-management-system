@@ -76,7 +76,7 @@ export default function Index({ conversations, unreadCount }) {
                                             </p>
                                             {conv.child && (
                                                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                                    {conv.child.name} &bull; {conv.child.admission_number ?? ''}
+                                                    {conv.child.name} • {conv.child.admission_number ?? ''}
                                                 </p>
                                             )}
                                             {conv.unread_count > 0 && (
@@ -106,3 +106,7 @@ export default function Index({ conversations, unreadCount }) {
                         </div>
                     </div>
                 )}
+            </div>
+                </AuthenticatedLayout>
+    );
+}
