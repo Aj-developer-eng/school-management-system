@@ -25,6 +25,7 @@ use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolSettingController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\SpecialRequestController;
+use App\Http\Controllers\StaffMessagesController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentParentController;
 use App\Http\Controllers\TeacherAssignmentController;
@@ -299,6 +300,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('notifications.read');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])
         ->name('notifications.read-all');
+
+    // Staff messages — view any parent-teacher conversation in the school
+    Route::get('staff/messages', [StaffMessagesController::class, 'index'])
+        ->name('staff.messages');
+    Route::get('staff/messages/{user}', [StaffMessagesController::class, 'show'])
+        ->name('staff.messages.thread');
+    Route::post('staff/messages/{user}', [StaffMessagesController::class, 'store'])
+        ->name('staff.messages.thread.store');
 
 });
 

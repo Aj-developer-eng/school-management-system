@@ -100,6 +100,56 @@ class DashboardController extends Controller
 
         $quickActions = $this->quickActions($user);
 
+        // Unread messages and recent conversations for staff (school-wide).
+        $unreadMessageCount = Message::where('recipient_id', $user->id)
+            ->whereNull('read_at')
+            ->whereNull('deleted_at')
+            ->count();
+
+        $userIds = Message::where('recipient_id', $user->id)
+            ->whereNull('deleted_at')
+            ->distinct()
+            ->pluck('sender_id')
+            ->merge(
+                Message::where('sender_id', $user->id)
+                    ->whereNull('deleted_at')
+                    ->distinct()
+                    ->pluck('recipient_id')
+            )->unique();
+
+        $recentConversations = $userIds->map(function ($otherUserId) use ($user): array {
+            $otherUser = User::with('teacher')->find($otherUserId);
+            if (!$otherUser) {
+                return [];
+            }
+
+            $lastMessage = Message::where(function ($q) use ($otherUserId, $user) {
+                $q->where('sender_id', $otherUserId)->where('recipient_id', $user->id);
+            })->orWhere(function ($q) use ($otherUserId, $user) {
+                $q->where('sender_id', $user->id)->where('recipient_id', $otherUserId);
+            })
+                ->whereNull('deleted_at')
+                ->latest('created_at')
+                ->first();
+
+            return [
+                'user_id' => $otherUserId,
+                'user_name' => $otherUser->name,
+                'user_role' => $otherUser->roles->first()?->name ?? 'User',
+                'last_message' => $lastMessage ? [
+                    'body' => $lastMessage->body,
+                    'created_at' => $lastMessage->created_at,
+                    'is_mine' => $lastMessage->sender_id === $user->id,
+                ] : null,
+                'unread_count' => Message::where('sender_id', $otherUserId)
+                    ->where('recipient_id', $user->id)
+                    ->whereNull('read_at')
+                    ->whereNull('deleted_at')
+                    ->count(),
+            ];
+        })->filter()->sortByDesc(fn ($c) => $c['last_message']?->created_at ?? '1970-01-01')
+         ->values()->all();
+
         return Inertia::render('Dashboard', [
             'stats' => $stats,
             'enrollmentsByClass' => $enrollmentsByClass,
@@ -108,6 +158,8 @@ class DashboardController extends Controller
             'invoiceReferences' => $invoiceReferences,
             'timetable' => $timetable,
             'dashboardType' => 'staff',
+            'unreadMessageCount' => $unreadMessageCount,
+            'recentConversations' => $recentConversations,
         ]);
     }
 
