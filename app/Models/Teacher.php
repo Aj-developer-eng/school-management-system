@@ -47,6 +47,11 @@ class Teacher extends Model implements HasMedia
         return $this->hasMany(TeacherSubjectAssignment::class);
     }
 
+    public function teacherSubjectAssignments(): HasMany
+    {
+        return $this->hasMany(TeacherSubjectAssignment::class);
+    }
+
     protected static function booted(): void
     {
         // MediaLibrary only removes media files when a model is force-deleted,

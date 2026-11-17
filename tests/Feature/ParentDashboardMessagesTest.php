@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudentParent;
 use App\Models\Teacher;
+use App\Models\TeacherSubjectAssignment;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -127,6 +128,48 @@ class ParentDashboardMessagesTest extends TestCase
         $this->assertNotNull($user);
         $this->assertNotNull($user->teacher);
         $this->assertEquals($this->teacher->id, $user->teacher->id);
+    }
+
+    public function test_teacher_can_access_chat_page_without_undefined_method_error(): void
+    {
+        // Teacher must have a subject assignment to the class for the chat page
+        TeacherSubjectAssignment::create([
+            'teacher_id' => $this->teacher->id,
+            'academic_session_id' => $this->session->id,
+            'school_class_id' => $this->class->id,
+            'start_time' => '08:00',
+            'end_time' => '09:00',
+            'days_of_week' => [1],
+        ]);
+
+        $this->actingAs($this->teacherUser)
+            ->get(route('classes.students.chat', [$this->class->id, $this->student->id]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('ParentChat/Index')
+                ->where('isParent', false)
+            );
+    }
+
+    public function test_parent_can_access_chat_page(): void
+    {
+        // Teacher must have a subject assignment to the class for the chat page
+        TeacherSubjectAssignment::create([
+            'teacher_id' => $this->teacher->id,
+            'academic_session_id' => $this->session->id,
+            'school_class_id' => $this->class->id,
+            'start_time' => '08:00',
+            'end_time' => '09:00',
+            'days_of_week' => [1],
+        ]);
+
+        $this->actingAs($this->parentUser)
+            ->get(route('classes.students.chat', [$this->class->id, $this->student->id]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('ParentChat/Index')
+                ->where('isParent', true)
+            );
     }
 
     private function enrollStudent(): void
