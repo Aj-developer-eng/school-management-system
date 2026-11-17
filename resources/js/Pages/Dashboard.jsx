@@ -814,6 +814,8 @@ export default function Dashboard(props) {
         teacher,
         todayAttendance,
         testResults,
+        unreadMessageCount,
+        recentConversations,
     } = props;
 
     const hour = new Date().getHours();
@@ -886,6 +888,8 @@ export default function Dashboard(props) {
                         todayAttendance={todayAttendance ?? []}
                         testResults={testResults ?? []}
                         timetable={props.timetable ?? []}
+                        unreadMessageCount={unreadMessageCount ?? 0}
+                        recentConversations={recentConversations ?? []}
                     />
                 )}
 
