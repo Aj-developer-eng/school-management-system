@@ -177,6 +177,85 @@ function StaffDashboard({ stats, quickActions, enrollmentsByClass, invoiceStats,
 
             {/* Weekly timetable */}
             <TimetableSection timetable={timetable} />
+
+            {/* Staff messages — recent conversations across the school */}
+            <div className="animate-fade-in">
+                <SectionHeading
+                    action={
+                        <Link
+                            href={route('staff.messages')}
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300"
+                        >
+                            {unreadMessageCount > 0 ? (
+                                <>
+                                    <MessageCircle size={14} /> {unreadMessageCount} Unread
+                                </>
+                            ) : (
+                                'View Messages'
+                            )}
+                        </Link>
+                    }
+                >
+                    Recent Conversations
+                </SectionHeading>
+                <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
+                    {recentConversations.length > 0 ? (
+                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {recentConversations.map((conv) => (
+                                <Link
+                                    key={conv.user_id}
+                                    href={route('staff.messages.thread', conv.user_id)}
+                                    className="group flex items-center justify-between px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                                >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <div className="flex-shrink-0">
+                                            <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-base font-medium">
+                                                {conv.user_name?.charAt(0) ?? '?'}
+                                            </div>
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                                {conv.user_name}
+                                            </p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                {conv.user_role}
+                                            </p>
+                                            {conv.unread_count > 0 && (
+                                                <span className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 text-[10px] font-semibold">
+                                                    {conv.unread_count} new
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex-shrink-0 ml-4 hidden sm:block">
+                                        {conv.last_message ? (
+                                            <div className="text-right">
+                                                <p className="text-sm text-gray-900 dark:text-gray-100 font-medium truncate max-w-[200px]">
+                                                    {conv.last_message.is_mine ? 'You: ' : ''}{conv.last_message.body}
+                                                </p>
+                                                <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                                                    {formatDate(conv.last_message.created_at)}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-gray-400 dark:text-gray-500">No messages</p>
+                                        )}
+                                    </div>
+                                    <ChevronRight size={14} className="text-gray-400 group-hover:text-indigo-500 ml-2 shrink-0" />
+                                </Link>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="px-8 py-12 text-center">
+                            <MessageCircle size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">No messages yet</h3>
+                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                You haven&rsquo;t exchanged any messages with parents or teachers yet.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
         </>
     );
 }
@@ -249,85 +328,6 @@ function TimetableSection({ timetable }) {
                 ))}
                 </div>
             )}
-        </div>
-
-        {/* Staff messages — recent conversations across the school */}
-        <div className="animate-fade-in">
-            <SectionHeading
-                action={
-                    <Link
-                        href={route('staff.messages')}
-                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/60 dark:hover:text-indigo-300"
-                    >
-                        {unreadMessageCount > 0 ? (
-                            <>
-                                <MessageCircle size={14} /> {unreadMessageCount} Unread
-                            </>
-                        ) : (
-                            'View Messages'
-                        )}
-                    </Link>
-                }
-            >
-                Recent Conversations
-            </SectionHeading>
-            <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
-                {recentConversations.length > 0 ? (
-                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {recentConversations.map((conv) => (
-                            <Link
-                                key={conv.user_id}
-                                href={route('staff.messages.thread', conv.user_id)}
-                                className="group flex items-center justify-between px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                            >
-                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <div className="flex-shrink-0">
-                                        <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-base font-medium">
-                                            {conv.user_name?.charAt(0) ?? '?'}
-                                        </div>
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                                            {conv.user_name}
-                                        </p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                            {conv.user_role}
-                                        </p>
-                                        {conv.unread_count > 0 && (
-                                            <span className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 text-[10px] font-semibold">
-                                                {conv.unread_count} new
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="flex-shrink-0 ml-4 hidden sm:block">
-                                    {conv.last_message ? (
-                                        <div className="text-right">
-                                            <p className="text-sm text-gray-900 dark:text-gray-100 font-medium truncate max-w-[200px]">
-                                                {conv.last_message.is_mine ? 'You: ' : ''}{conv.last_message.body}
-                                            </p>
-                                            <p className="text-[10px] text-gray-400 dark:text-gray-500">
-                                                {formatDate(conv.last_message.created_at)}
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-gray-400 dark:text-gray-500">No messages</p>
-                                    )}
-                                </div>
-                                <ChevronRight size={14} className="text-gray-400 group-hover:text-indigo-500 ml-2 shrink-0" />
-                            </Link>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="px-8 py-12 text-center">
-                        <MessageCircle size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">No messages yet</h3>
-                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            You haven&rsquo;t exchanged any messages with parents or teachers yet.
-                        </p>
-                    </div>
-                )}
-            </div>
         </div>
     );
 }

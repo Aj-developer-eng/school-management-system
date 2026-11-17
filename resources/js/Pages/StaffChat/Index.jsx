@@ -6,6 +6,54 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import { useAuth } from '@/utils/authorization';
 import { Send, Check, CheckCheck as Check2Icon } from 'lucide-react';
+
+export default function Index({ otherUser, messages }) {
+    const { user } = useAuth();
+    const staffId = user?.id;
+    const page = usePage();
+    const flash = page.props.session?.success ?? page.props.flash?.success;
+
+    const { data, setData, post, processing, errors, reset } = useForm({
+        body: '',
+    });
+
+    const isMine = (message) => message.sender_id === staffId;
+    const formatTime = (timestamp) => {
+        if (!timestamp) return '';
+        return new Date(timestamp).toLocaleTimeString(undefined, {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
+    const sendMessage = (event) => {
+        event.preventDefault();
+        post(route('staff.messages.thread.store', otherUser.id), {
+            preserveScroll: true,
+            onSuccess: () => reset(),
+        });
+    };
+
+    const pageTitle = `Chat with ${otherUser.name}`;
+    const headerTitle = `Chat with ${otherUser.role}`;
+
+    return (
+        <AuthenticatedLayout
+            title={pageTitle}
+            breadcrumbs={[
+                { label: 'Dashboard', href: route('dashboard') },
+                { label: 'Messages', href: route('staff.messages') },
+                { label: otherUser.name },
+                { label: headerTitle },
+            ]}
+        >
+            <div className="max-w-3xl mx-auto space-y-4 p-4 sm:p-6">
+                {flash && (
+                    <div className="rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                        {flash}
+                    </div>
+                )}
+
                 <Card>
                     <div className="p-4 sm:p-6">
                         <form onSubmit={sendMessage} className="flex gap-2">
@@ -35,10 +83,7 @@ import { Send, Check, CheckCheck as Check2Icon } from 'lucide-react';
                         </form>
                     </div>
                 </Card>
-            </div>
-        </AuthenticatedLayout>
-    );
-}
+
                 <Card>
                     <div className="p-4 sm:p-6">
                         <div className="flex flex-col-reverse">
@@ -105,49 +150,7 @@ import { Send, Check, CheckCheck as Check2Icon } from 'lucide-react';
                         </div>
                     </div>
                 </Card>
-    return (
-        <AuthenticatedLayout
-            title={pageTitle}
-            breadcrumbs={[
-                { label: 'Dashboard', href: route('dashboard') },
-                { label: 'Messages', href: route('staff.messages') },
-                { label: otherUser.name },
-                { label: headerTitle },
-            ]}
-        >
-            <div className="max-w-3xl mx-auto space-y-4 p-4 sm:p-6">
-                {flash && (
-                    <div className="rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-300">
-                        {flash}
-                    </div>
-                )}
-
-export default function Index({ otherUser, messages }) {
-    const { user } = useAuth();
-    const staffId = user?.id;
-    const page = usePage();
-    const flash = page.props.session?.success ?? page.props.flash?.success;
-
-    const { data, setData, post, processing, errors, reset } = useForm({
-        body: '',
-    });
-
-    const isMine = (message) => message.sender_id === staffId;
-    const formatTime = (timestamp) => {
-        if (!timestamp) return '';
-        return new Date(timestamp).toLocaleTimeString(undefined, {
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
-
-    const sendMessage = (event) => {
-        event.preventDefault();
-        post(route('staff.messages.thread.store', otherUser.id), {
-            preserveScroll: true,
-            onSuccess: () => reset(),
-        });
-    };
-
-    const pageTitle = `Chat with ${otherUser.name}`;
-    const headerTitle = `Chat with ${otherUser.role}`;
+            </div>
+        </AuthenticatedLayout>
+    );
+}

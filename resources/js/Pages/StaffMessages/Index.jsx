@@ -6,6 +6,37 @@ import { formatDate } from '@/utils/format';
 
 export default function Index({ conversations, unreadCount }) {
     const { user } = useAuth();
+    const page = usePage();
+    const flash = page.props.session?.success ?? page.props.flash?.success;
+
+    return (
+        <AuthenticatedLayout
+            title="Messages"
+            breadcrumbs={[
+                { label: 'Dashboard', href: route('dashboard') },
+                { label: 'Messages' },
+            ]}
+        >
+            <div className="max-w-4xl mx-auto space-y-6 p-4 sm:p-6">
+                {flash && (
+                    <div className="rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                        {flash}
+                    </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Messages</h1>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Conversations with parents and teachers
+                        </p>
+                    </div>
+                    {unreadCount > 0 && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-sm font-semibold text-white shadow-sm shadow-rose-500/30">
+                            <MessageCircle size={14} /> {unreadCount} unread
+                        </span>
+                    )}
+                </div>
                 {conversations.length > 0 && (
                     <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
                         <div className="border-b border-gray-100 dark:border-gray-700 px-4 py-3">
@@ -60,10 +91,7 @@ export default function Index({ conversations, unreadCount }) {
                         </div>
                     </div>
                 )}
-            </div>
-        </AuthenticatedLayout>
-    );
-}
+
                 {conversations.length === 0 && (
                     <div className="animate-fade-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-700 dark:bg-gray-800">
                         <div className="px-8 py-12 text-center">
@@ -75,34 +103,7 @@ export default function Index({ conversations, unreadCount }) {
                         </div>
                     </div>
                 )}
-    const page = usePage();
-    const flash = page.props.session?.success ?? page.props.flash?.success;
-
-    return (
-        <AuthenticatedLayout
-            title="Messages"
-            breadcrumbs={[
-                { label: 'Dashboard', href: route('dashboard') },
-                { label: 'Messages' },
-            ]}
-        >
-            <div className="max-w-4xl mx-auto space-y-6 p-4 sm:p-6">
-                {flash && (
-                    <div className="rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-300">
-                        {flash}
-                    </div>
-                )}
-
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Messages</h1>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Conversations with parents and teachers
-                        </p>
-                    </div>
-                    {unreadCount > 0 && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-sm font-semibold text-white shadow-sm shadow-rose-500/30">
-                            <MessageCircle size={14} /> {unreadCount} unread
-                        </span>
-                    )}
-                </div>
+            </div>
+        </AuthenticatedLayout>
+    );
+}
