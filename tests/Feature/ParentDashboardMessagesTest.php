@@ -172,6 +172,29 @@ class ParentDashboardMessagesTest extends TestCase
             );
     }
 
+    public function test_parent_can_access_per_teacher_chat_page(): void
+    {
+        // Teacher must have a subject assignment to the class for the chat page
+        TeacherSubjectAssignment::create([
+            'teacher_id' => $this->teacher->id,
+            'academic_session_id' => $this->session->id,
+            'school_class_id' => $this->class->id,
+            'start_time' => '08:00',
+            'end_time' => '09:00',
+            'days_of_week' => [1],
+        ]);
+
+        // Parent accessing the per-teacher chat page exercises
+        // StudentEnrollment::teacherSubjectAssignments() via ParentMessagesController::show
+        $this->actingAs($this->parentUser)
+            ->get(route('parent.messages.teacher', $this->teacherUser->id))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('ParentChat/Index')
+                ->where('isParent', true)
+            );
+    }
+
     private function enrollStudent(): void
     {
         $this->student = Student::create([

@@ -6,6 +6,7 @@ use App\Traits\HasAuditFields;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StudentEnrollment extends Model
@@ -43,5 +44,14 @@ class StudentEnrollment extends Model
     public function schoolClass(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class);
+    }
+
+    public function teacherSubjectAssignments(): HasMany
+    {
+        return $this->hasMany(
+            TeacherSubjectAssignment::class,
+            'school_class_id',
+            'school_class_id'
+        );
     }
 }
