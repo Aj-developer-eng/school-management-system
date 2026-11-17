@@ -8,6 +8,7 @@ use App\Models\AcademicSession;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Models\StudentParent;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -260,6 +261,65 @@ class ClassStudentRosterTest extends TestCase
             ->assertForbidden();
 
         $this->assertSame(1, StudentEnrollment::count());
+    }
+
+    public function test_parent_sees_only_own_children_on_class_detail(): void
+    {
+        $myChild = $this->makeStudent('Alice Child');
+        $otherChild = $this->makeStudent('Other Child');
+        $this->makeEnrollment($myChild);
+        $this->makeEnrollment($otherChild);
+
+        $parentUser = User::factory()->create(['name' => 'Parent User']);
+        $parentUser->assignRole(Role::findOrCreate(RoleEnum::Parent->value, 'web'));
+        $parentUser->givePermissionTo('classes.view');
+        $parent = StudentParent::create(['user_id' => $parentUser->id, 'is_active' => true]);
+        $parent->students()->attach($myChild->id, ['guardian_type' => 'Father', 'is_primary_contact' => true]);
+
+        $this->actingAs($parentUser)
+            ->get(route('classes.show', $this->class->id))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Academic/Class/Detail')
+                ->where('students.0.id', $myChild->id)
+                ->where('students.0.name', 'Alice Child')
+                ->missing('students.1')
+            );
+    }
+
+    public function test_parent_with_no_linked_children_sees_no_students_on_class_detail(): void
+    {
+        $child = $this->makeStudent('Alice Child');
+        $this->makeEnrollment($child);
+
+        $parentUser = User::factory()->create(['name' => 'Lonely Parent']);
+        $parentUser->assignRole(Role::findOrCreate(RoleEnum::Parent->value, 'web'));
+        $parentUser->givePermissionTo('classes.view');
+        StudentParent::create(['user_id' => $parentUser->id, 'is_active' => true]);
+
+        $this->actingAs($parentUser)
+            ->get(route('classes.show', $this->class->id))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Academic/Class/Detail')
+                ->where('students', [])
+            );
+    }
+
+    public function test_super_admin_sees_all_students_on_class_detail(): void
+    {
+        $child1 = $this->makeStudent('Alice');
+        $child2 = $this->makeStudent('Bob');
+        $this->makeEnrollment($child1);
+        $this->makeEnrollment($child2);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('classes.show', $this->class->id))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Academic/Class/Detail')
+                ->has('students', 2)
+            );
     }
 
     private function makeUserWithPermissions(array $permissions): User

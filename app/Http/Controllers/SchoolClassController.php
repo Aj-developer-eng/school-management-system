@@ -411,25 +411,41 @@ class SchoolClassController extends Controller
         // Build the student roster from enrollments (same approach as index).
         $students = collect();
         if ($pageClassIds = collect([$schoolClass->id])) {
-            $students = DB::table('student_enrollments as se')
+            $studentQuery = DB::table('student_enrollments as se')
                 ->join('students as st', 'st.id', '=', 'se.student_id')
                 ->join('users as u', 'u.id', '=', 'st.user_id')
                 ->where('se.school_class_id', $schoolClass->id)
                 ->whereNull('se.deleted_at')
                 ->whereNull('st.deleted_at')
-                ->orderBy('u.name')
-                ->get([
-                    'se.school_class_id',
-                    'st.id as student_id',
-                    'u.name as student_name',
-                    'st.admission_number',
-                ])
-                ->map(fn ($row) => [
-                    'id' => (int) $row->student_id,
-                    'name' => $row->student_name,
-                    'admission_number' => $row->admission_number ?? '—',
-                ])
-                ->values();
+                ->orderBy('u.name');
+
+            // Parents only see their own children enrolled in this class.
+            if ($request->user() !== null && $request->user()->hasRole(RoleEnum::Parent->value)) {
+                $parent = StudentParent::where('user_id', $request->user()->id)->first();
+                $parentStudentIds = $parent?->students()
+                    ->whereNull('students.deleted_at')
+                    ->pluck('students.id');
+
+                if ($parentStudentIds && $parentStudentIds->isNotEmpty()) {
+                    $studentQuery->whereIn('se.student_id', $parentStudentIds);
+                } else {
+                    // Parent has no linked children: show no students.
+                    $studentQuery->whereRaw('0 = 1');
+                }
+            }
+
+            $students = $studentQuery->get([
+                'se.school_class_id',
+                'st.id as student_id',
+                'u.name as student_name',
+                'st.admission_number',
+            ])
+            ->map(fn ($row) => [
+                'id' => (int) $row->student_id,
+                'name' => $row->student_name,
+                'admission_number' => $row->admission_number ?? '—',
+            ])
+            ->values();
         }
 
         // Classwork attached to this class (list view).
