@@ -300,9 +300,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])
         ->name('notifications.read-all');
 
-    // Parent messages — view conversations with teachers
-    Route::get('parent/messages', [ParentChatController::class, 'parentIndex'])
-        ->name('parent.messages');
 });
 
 require __DIR__.'/auth.php';
