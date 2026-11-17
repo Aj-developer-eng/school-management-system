@@ -229,7 +229,13 @@ class DashboardController extends Controller
             $teacherIds = Message::where('recipient_id', $parent->user->id)
                 ->whereNull('deleted_at')
                 ->distinct()
-                ->pluck('sender_id');
+                ->pluck('sender_id')
+                ->merge(
+                    Message::where('sender_id', $parent->user->id)
+                        ->whereNull('deleted_at')
+                        ->distinct()
+                        ->pluck('recipient_id')
+                )->unique();
 
             $recentConversations = $teacherIds->map(function ($teacherId) use ($parent): array {
                 $teacher = User::with('teacher')->find($teacherId);
