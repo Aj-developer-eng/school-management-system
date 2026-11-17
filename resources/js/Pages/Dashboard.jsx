@@ -303,9 +303,10 @@ function ParentDashboard({ children, invoices, feeSummary, todayAttendance, test
                     {recentConversations.length > 0 ? (
                         <div className="divide-y divide-gray-100 dark:divide-gray-700">
                             {recentConversations.map((conv) => (
-                                <div
+                                <Link
                                     key={conv.teacher_id}
-                                    className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                                    href={route('parent.messages.teacher', conv.teacher_id)}
+                                    className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
@@ -345,7 +346,7 @@ function ParentDashboard({ children, invoices, feeSummary, todayAttendance, test
                                             )}
                                         </div>
                                     </div>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     ) : (
