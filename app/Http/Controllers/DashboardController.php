@@ -100,55 +100,117 @@ class DashboardController extends Controller
 
         $quickActions = $this->quickActions($user);
 
-        // Unread messages and recent conversations for staff (school-wide).
+        // Unread messages for the current user.
         $unreadMessageCount = Message::where('recipient_id', $user->id)
             ->whereNull('read_at')
             ->whereNull('deleted_at')
             ->count();
 
-        $userIds = Message::where('recipient_id', $user->id)
-            ->whereNull('deleted_at')
-            ->distinct()
-            ->pluck('sender_id')
-            ->merge(
-                Message::where('sender_id', $user->id)
+        if ($user->can('teacher-parent.chat')) {
+            // School-wide parent-teacher conversations (super admin, principal, etc.)
+            $parentIds = User::role(RoleEnum::Parent->value)->pluck('id')->toArray();
+            $teacherIds = User::role(RoleEnum::Teacher->value)->pluck('id')->toArray();
+
+            $pairs = Message::whereNull('deleted_at')
+                ->where(function ($q) use ($parentIds, $teacherIds) {
+                    $q->whereIn('sender_id', $parentIds)
+                        ->whereIn('recipient_id', $teacherIds);
+                })
+                ->orWhere(function ($q) use ($parentIds, $teacherIds) {
+                    $q->whereIn('sender_id', $teacherIds)
+                        ->whereIn('recipient_id', $parentIds);
+                })
+                ->selectRaw('LEAST(sender_id, recipient_id) as user_one, GREATEST(sender_id, recipient_id) as user_two, MAX(created_at) as last_message_at')
+                ->groupBy('user_one', 'user_two')
+                ->get();
+
+            $recentConversations = $pairs->map(function ($pair) use ($user, $parentIds, $teacherIds): array {
+                $userOne = User::with('roles')->find($pair->user_one);
+                $userTwo = User::with('roles')->find($pair->user_two);
+
+                if (!$userOne || !$userTwo) {
+                    return [];
+                }
+
+                $parent = in_array($userOne->id, $parentIds) ? $userOne : $userTwo;
+                $teacher = in_array($userOne->id, $teacherIds) ? $userOne : $userTwo;
+
+                if (!$parent || !$teacher) {
+                    return [];
+                }
+
+                $lastMessage = Message::between($parent->id, $teacher->id)
                     ->whereNull('deleted_at')
-                    ->distinct()
-                    ->pluck('recipient_id')
-            )->unique();
+                    ->latest('created_at')
+                    ->first();
 
-        $recentConversations = $userIds->map(function ($otherUserId) use ($user): array {
-            $otherUser = User::with('teacher')->find($otherUserId);
-            if (!$otherUser) {
-                return [];
-            }
-
-            $lastMessage = Message::where(function ($q) use ($otherUserId, $user) {
-                $q->where('sender_id', $otherUserId)->where('recipient_id', $user->id);
-            })->orWhere(function ($q) use ($otherUserId, $user) {
-                $q->where('sender_id', $user->id)->where('recipient_id', $otherUserId);
-            })
+                return [
+                    'user_id' => $teacher->id,
+                    'teacher_id' => $teacher->id,
+                    'parent_id' => $parent->id,
+                    'user_name' => $teacher->name . ' ↔ ' . $parent->name,
+                    'user_role' => 'Teacher ↔ Parent',
+                    'teacher_name' => $teacher->name,
+                    'parent_name' => $parent->name,
+                    'last_message' => $lastMessage ? [
+                        'body' => $lastMessage->body,
+                        'created_at' => $lastMessage->created_at,
+                        'is_mine' => $lastMessage->sender_id === $user->id,
+                    ] : null,
+                    'unread_count' => Message::where('recipient_id', $user->id)
+                        ->whereNull('read_at')
+                        ->whereNull('deleted_at')
+                        ->whereIn('sender_id', [$parent->id, $teacher->id])
+                        ->count(),
+                ];
+            })->filter()->sortByDesc(fn ($c) => $c['last_message']?->created_at ?? '1970-01-01')
+             ->values()->all();
+        } else {
+            // Personal conversations only (teachers, accountants, etc. without chat permission)
+            $userIds = Message::where('recipient_id', $user->id)
                 ->whereNull('deleted_at')
-                ->latest('created_at')
-                ->first();
+                ->distinct()
+                ->pluck('sender_id')
+                ->merge(
+                    Message::where('sender_id', $user->id)
+                        ->whereNull('deleted_at')
+                        ->distinct()
+                        ->pluck('recipient_id')
+                )->unique();
 
-            return [
-                'user_id' => $otherUserId,
-                'user_name' => $otherUser->name,
-                'user_role' => $otherUser->roles->first()?->name ?? 'User',
-                'last_message' => $lastMessage ? [
-                    'body' => $lastMessage->body,
-                    'created_at' => $lastMessage->created_at,
-                    'is_mine' => $lastMessage->sender_id === $user->id,
-                ] : null,
-                'unread_count' => Message::where('sender_id', $otherUserId)
-                    ->where('recipient_id', $user->id)
-                    ->whereNull('read_at')
+            $recentConversations = $userIds->map(function ($otherUserId) use ($user): array {
+                $otherUser = User::with('teacher')->find($otherUserId);
+                if (!$otherUser) {
+                    return [];
+                }
+
+                $lastMessage = Message::where(function ($q) use ($otherUserId, $user) {
+                    $q->where('sender_id', $otherUserId)->where('recipient_id', $user->id);
+                })->orWhere(function ($q) use ($otherUserId, $user) {
+                    $q->where('sender_id', $user->id)->where('recipient_id', $otherUserId);
+                })
                     ->whereNull('deleted_at')
-                    ->count(),
-            ];
-        })->filter()->sortByDesc(fn ($c) => $c['last_message']?->created_at ?? '1970-01-01')
-         ->values()->all();
+                    ->latest('created_at')
+                    ->first();
+
+                return [
+                    'user_id' => $otherUserId,
+                    'user_name' => $otherUser->name,
+                    'user_role' => $otherUser->roles->first()?->name ?? 'User',
+                    'last_message' => $lastMessage ? [
+                        'body' => $lastMessage->body,
+                        'created_at' => $lastMessage->created_at,
+                        'is_mine' => $lastMessage->sender_id === $user->id,
+                    ] : null,
+                    'unread_count' => Message::where('sender_id', $otherUserId)
+                        ->where('recipient_id', $user->id)
+                        ->whereNull('read_at')
+                        ->whereNull('deleted_at')
+                        ->count(),
+                ];
+            })->filter()->sortByDesc(fn ($c) => $c['last_message']?->created_at ?? '1970-01-01')
+             ->values()->all();
+        }
 
         return Inertia::render('Dashboard', [
             'stats' => $stats,
