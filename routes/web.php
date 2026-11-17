@@ -304,9 +304,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Staff messages — view any parent-teacher conversation in the school
     Route::get('staff/messages', [StaffMessagesController::class, 'index'])
         ->name('staff.messages');
-    Route::get('staff/messages/{user}', [StaffMessagesController::class, 'show'])
+    Route::get('staff/messages/{user}/{parent?}', [StaffMessagesController::class, 'show'])
         ->name('staff.messages.thread');
-    Route::post('staff/messages/{user}', [StaffMessagesController::class, 'store'])
+    Route::post('staff/messages/{user}/{parent?}', [StaffMessagesController::class, 'store'])
         ->name('staff.messages.thread.store');
 
 });

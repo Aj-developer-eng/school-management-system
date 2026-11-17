@@ -7,7 +7,7 @@ import InputLabel from '@/Components/InputLabel';
 import { useAuth } from '@/utils/authorization';
 import { Send, Check, CheckCheck as Check2Icon } from 'lucide-react';
 
-export default function Index({ otherUser, messages }) {
+export default function Index({ otherUser, messages, viewOnly = false }) {
     const { user } = useAuth();
     const staffId = user?.id;
     const page = usePage();
@@ -28,7 +28,10 @@ export default function Index({ otherUser, messages }) {
 
     const sendMessage = (event) => {
         event.preventDefault();
-        post(route('staff.messages.thread.store', otherUser.id), {
+        const storeParams = otherUser.parentId
+            ? { user: otherUser.id, parent: otherUser.parentId }
+            : otherUser.id;
+        post(route('staff.messages.thread.store', storeParams), {
             preserveScroll: true,
             onSuccess: () => reset(),
         });
@@ -54,35 +57,46 @@ export default function Index({ otherUser, messages }) {
                     </div>
                 )}
 
-                <Card>
-                    <div className="p-4 sm:p-6">
-                        <form onSubmit={sendMessage} className="flex gap-2">
-                            <InputLabel value="Message" />
-                            <div className="flex-1 relative">
-                                <textarea
-                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 ring-1 ring-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-green-400"
-                                    value={data.body}
-                                    onChange={(event) => setData('body', event.target.value)}
-                                    placeholder="Type a message…"
-                                    rows={1}
-                                    disabled={processing}
-                                />
-                                <InputError message={errors.body} className="mt-1" />
-                            </div>
-                            <PrimaryButton
-                                disabled={processing || !data.body.trim()}
-                                className="ml-1"
-                            >
-                                {processing ? 'Sending…' : (
-                                    <>
-                                        <Send size={17} />{' '}
-                                        Send
-                                    </>
-                                )}
-                            </PrimaryButton>
-                        </form>
-                    </div>
-                </Card>
+                {!viewOnly && (
+                    <Card>
+                        <div className="p-4 sm:p-6">
+                            <form onSubmit={sendMessage} className="flex gap-2">
+                                <InputLabel value="Message" />
+                                <div className="flex-1 relative">
+                                    <textarea
+                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 ring-1 ring-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-green-400"
+                                        value={data.body}
+                                        onChange={(event) => setData('body', event.target.value)}
+                                        placeholder="Type a message…"
+                                        rows={1}
+                                        disabled={processing}
+                                    />
+                                    <InputError message={errors.body} className="mt-1" />
+                                </div>
+                                <PrimaryButton
+                                    disabled={processing || !data.body.trim()}
+                                    className="ml-1"
+                                >
+                                    {processing ? 'Sending…' : (
+                                        <>
+                                            <Send size={17} />{' '}
+                                            Send
+                                        </>
+                                    )}
+                                </PrimaryButton>
+                            </form>
+                        </div>
+                    </Card>
+                )}
+                {viewOnly && (
+                    <Card>
+                        <div className="p-4 sm:p-6">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                View-only: you are not a participant in this conversation.
+                            </p>
+                        </div>
+                    </Card>
+                )}
 
                 <Card>
                     <div className="p-4 sm:p-6">
