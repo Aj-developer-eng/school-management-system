@@ -83,6 +83,8 @@ class ParentChatController extends Controller
             ])->values()->all();
 
         $isParent = $user->hasRole(RoleEnum::Parent->value);
+        // Staff (incl. Super Admin) can always send in parent-teacher chat
+        $canSend = true;
 
         return Inertia::render('ParentChat/Index', [
             'schoolClass' => $schoolClass,
@@ -102,6 +104,7 @@ class ParentChatController extends Controller
                 'name' => User::find($teacherId)?->name ?? '',
             ],
             'isParent' => $isParent,
+            'canSend' => $canSend,
             'messages' => $messages,
         ]);
     }
