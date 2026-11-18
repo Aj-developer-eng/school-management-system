@@ -80,7 +80,7 @@ class ParentMessagesController extends Controller
     }
 
     /**
-     * Show the chat between the parent and a specific teacher.
+     * Show the chat between the parent and another user (teacher, super admin, etc.).
      */
     public function show(Request $request, User $teacher): Response
     {
@@ -91,28 +91,30 @@ class ParentMessagesController extends Controller
         $parent = StudentParent::where('user_id', $user->id)->first();
         abort_unless($parent, 404);
 
-        $teacherRecord = \App\Models\Teacher::where('user_id', $teacher->id)->first();
-        abort_unless($teacherRecord, 404);
+        // The other party may be a teacher or another role (e.g. super admin).
+        // Only parent-teacher conversations have a student/class context.
+        $teacherRecord = \App\Models\Teacher::where('user_id', $teacher->id)->whereNull('deleted_at')->first();
 
-        $child = $parent->students()
-            ->whereHas('enrollments', function ($q) use ($teacherRecord): void {
-                $q->whereHas('teacherSubjectAssignments', function ($sq) use ($teacherRecord): void {
-                    $sq->where('teacher_id', $teacherRecord->id)
-                        ->whereNull('deleted_at');
+        $schoolClass = null;
+        $child = null;
+
+        if ($teacherRecord) {
+            $child = $parent->students()
+                ->whereHas('enrollments', function ($q) use ($teacherRecord): void {
+                    $q->whereHas('teacherSubjectAssignments', function ($sq) use ($teacherRecord): void {
+                        $sq->where('teacher_id', $teacherRecord->id)
+                            ->whereNull('deleted_at');
+                    })
+                    ->whereNull('deleted_at');
                 })
-                ->whereNull('deleted_at');
-            })
-            ->with('user:id,name', 'enrollments.schoolClass:id,name')
-            ->first();
+                ->with('user:id,name', 'enrollments.schoolClass:id,name')
+                ->first();
 
-        abort_unless($child, 404);
-
-        $schoolClass = $child->enrollments
-            ->filter(fn ($e) => $e->schoolClass)
-            ->first()
-            ?->schoolClass;
-
-        abort_unless($schoolClass, 404);
+            $schoolClass = $child?->enrollments
+                ->filter(fn ($e) => $e->schoolClass)
+                ->first()
+                ?->schoolClass;
+        }
 
         $teacherId = $teacher->id;
         $parentId = $user->id;
@@ -142,11 +144,11 @@ class ParentMessagesController extends Controller
 
         return Inertia::render('ParentChat/Index', [
             'schoolClass' => $schoolClass,
-            'student' => [
+            'student' => $child ? [
                 'id' => $child->id,
                 'name' => $child->name,
                 'admission_number' => $child->admission_number,
-            ],
+            ] : null,
             'parent' => [
                 'id' => $parentId,
                 'name' => $user->name,

@@ -37,23 +37,23 @@ export default function Index({ schoolClass, student, parent, messages, teacher,
         });
     };
 
-    const otherPartyName = isParent ? (teacher?.name ?? 'Teacher') : (parent?.name ?? student.name);
-    const pageTitle = isParent ? `Chat with ${otherPartyName}` : `Chat with ${parent?.name ?? student.name}`;
+    const otherPartyName = isParent ? (teacher?.name ?? 'Teacher') : (parent?.name ?? student?.name);
+    const pageTitle = isParent ? `Chat with ${otherPartyName}` : `Chat with ${parent?.name ?? student?.name}`;
     const headerTitle = isParent ? 'Chat with Teacher' : 'Chat with Parent';
     const headerSubtitle = isParent
-        ? `${teacher?.name ?? 'Teacher'} &middot; ${student.admission_number ?? ''}`
-        : `${parent?.name ?? 'No parent linked'} &middot; ${student.admission_number ?? ''}`;
+        ? `${teacher?.name ?? 'Teacher'} &middot; ${student?.admission_number ?? ''}`
+        : `${parent?.name ?? 'No parent linked'} &middot; ${student?.admission_number ?? ''}`;
 
     return (
         <AuthenticatedLayout
             title={pageTitle}
             breadcrumbs={[
                 { label: 'Classes', href: route('dashboard') },
-                {
+                ...(schoolClass ? [{
                     label: schoolClass?.name ?? 'Class',
                     href: route('classes.show', schoolClass.id),
-                },
-                { label: student.name },
+                }] : []),
+                ...(student ? [{ label: student.name }] : []),
                 { label: headerTitle },
             ]}
         >
