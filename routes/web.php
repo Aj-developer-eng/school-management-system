@@ -227,6 +227,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('can:attendances.view');
     Route::get('attendance/report', [AttendanceController::class, 'report'])
         ->name('attendance.report');
+    Route::get('attendance/report/export', [AttendanceController::class, 'export'])
+        ->name('attendance.report.export')
+        ->middleware('can:attendances.view');
     Route::get('attendance/student/{student}', [AttendanceController::class, 'studentDetail'])
         ->name('attendance.student');
     Route::get('attendance/{assignment}', [AttendanceController::class, 'show'])

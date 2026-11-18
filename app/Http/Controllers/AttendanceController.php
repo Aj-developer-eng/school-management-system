@@ -231,6 +231,97 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Export the attendance report (with current filters) as a CSV file
+     * that opens natively in Excel.
+     */
+    public function export(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->can('attendances.view')) {
+            abort(403);
+        }
+
+        $scopedStudentIds = $this->scopedStudentIds($user);
+        $scopedAssignments = $this->scopedAssignments($user);
+
+        $scopedAssignmentIds = null;
+        $scopedClassIds = null;
+
+        if ($scopedAssignments !== null) {
+            $scopedAssignmentIds = $scopedAssignments->pluck('id');
+            $scopedClassIds = $scopedAssignments->reject->trashed()->pluck('school_class_id')->unique()->values();
+        }
+
+        $query = Attendance::query()
+            ->with([
+                'student.user:id,name',
+                'schoolClass:id,name',
+                'assignment.teacher.user:id,name',
+            ])
+            ->when($scopedStudentIds, function ($q) use ($scopedStudentIds): void {
+                $q->whereIn('student_id', $scopedStudentIds);
+            })
+            ->when($scopedAssignmentIds, function ($q) use ($scopedAssignmentIds): void {
+                $q->whereIn('teacher_subject_assignment_id', $scopedAssignmentIds);
+            });
+
+        if ($request->filled('class_id')) {
+            $query->where('school_class_id', $request->input('class_id'));
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('attendance_date', '>=', $request->input('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('attendance_date', '<=', $request->input('date_to'));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $records = $query->orderBy('attendance_date', 'desc')
+            ->orderBy('student_id')
+            ->get();
+
+        $filename = 'attendance_report_' . now()->format('Ymd_His') . '.csv';
+
+        return response()->streamDownload(function () use ($records) {
+            $handle = fopen('php://output', 'w');
+
+            // UTF-8 BOM so Excel opens special characters correctly
+            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            fputcsv($handle, [
+                'Date',
+                'Student',
+                'Class',
+                'Teacher',
+                'Status',
+                'Remarks',
+            ]);
+
+            foreach ($records as $record) {
+                fputcsv($handle, [
+                    $record->attendance_date?->format('Y-m-d') ?? '',
+                    $record->student->user->name ?? '',
+                    $record->schoolClass->name ?? '',
+                    $record->assignment?->teacher->user->name ?? '',
+                    ucfirst($record->status ?? ''),
+                    $record->remarks ?? '',
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
      * Return the assignments the current user is allowed to view attendance for.
      * Teachers are scoped to their own assignments — soft-deleted ones included
      * so attendance they recorded earlier stays visible. Other staff roles are

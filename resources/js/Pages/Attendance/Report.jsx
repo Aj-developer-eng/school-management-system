@@ -4,7 +4,7 @@ import Pagination from '@/Components/Ui/Pagination';
 import { formatDate } from '@/utils/format';
 import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { ClipboardCheck, Filter, Check, X, Clock, FileText, Eye } from 'lucide-react';
+import { ClipboardCheck, Filter, Check, X, Clock, FileText, Eye, Download } from 'lucide-react';
 
 const statusStyles = {
     present: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
@@ -33,6 +33,16 @@ export default function Report({ records, summary, classes, filters, isScoped, s
         router.get(route('attendance.report'), {}, { preserveScroll: true });
     };
 
+    const downloadExcel = () => {
+        const params = new URLSearchParams({
+            class_id: form.class_id,
+            date_from: form.date_from,
+            date_to: form.date_to,
+            status: form.status,
+        }).toString();
+        window.location.href = `${route('attendance.report.export')}?${params}`;
+    };
+
     return (
         <AuthenticatedLayout
             title="Attendance Report"
@@ -46,6 +56,18 @@ export default function Report({ records, summary, classes, filters, isScoped, s
                     <SummaryCard label="Absent" value={summary.absent} color="red" />
                     <SummaryCard label="Late" value={summary.late} color="amber" />
                     <SummaryCard label="Excused" value={summary.excused} color="sky" />
+                </div>
+
+                {/* Export action */}
+                <div className="flex justify-end">
+                    <button
+                        type="button"
+                        onClick={downloadExcel}
+                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        <Download className="h-4 w-4" />
+                        Download Excel
+                    </button>
                 </div>
 
                 {/* Filters */}
