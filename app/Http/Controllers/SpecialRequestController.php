@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Enums\RoleEnum;
 use App\Models\SpecialRequest;
+use App\Models\StudentEnrollment;
 use App\Models\StudentParent;
 use App\Models\Teacher;
+use App\Models\TeacherSubjectAssignment;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
@@ -56,7 +58,10 @@ class SpecialRequestController extends Controller
                 'student.user:id,name',
                 'assignee:id,name',
             ])
-                ->where('assigned_to', $user->id)
+                ->where(function ($q) use ($user): void {
+                    $q->where('assigned_to', $user->id)
+                        ->orWhere('created_by', $user->id);
+                })
                 ->when($request->filled('status'), function ($q) use ($request): void {
                     $q->where('status', $request->input('status'));
                 })
@@ -64,12 +69,17 @@ class SpecialRequestController extends Controller
                 ->paginate(20)
                 ->withQueryString();
 
+            $base = SpecialRequest::where(function ($q) use ($user): void {
+                $q->where('assigned_to', $user->id)
+                    ->orWhere('created_by', $user->id);
+            });
+
             $stats = [
-                'total' => SpecialRequest::where('assigned_to', $user->id)->count(),
-                'pending' => SpecialRequest::where('assigned_to', $user->id)->where('status', 'pending')->count(),
-                'in_progress' => SpecialRequest::where('assigned_to', $user->id)->where('status', 'in_progress')->count(),
-                'resolved' => SpecialRequest::where('assigned_to', $user->id)->where('status', 'resolved')->count(),
-                'closed' => SpecialRequest::where('assigned_to', $user->id)->where('status', 'closed')->count(),
+                'total' => $base->count(),
+                'pending' => $base->where('status', 'pending')->count(),
+                'in_progress' => $base->where('status', 'in_progress')->count(),
+                'resolved' => $base->where('status', 'resolved')->count(),
+                'closed' => $base->where('status', 'closed')->count(),
             ];
 
             return Inertia::render('SpecialRequests/Index', [
@@ -114,6 +124,11 @@ class SpecialRequestController extends Controller
     public function create(Request $request): Response
     {
         $user = $request->user();
+
+        if ($user->hasRole(RoleEnum::Teacher->value)) {
+            return $this->createForTeacher($user);
+        }
+
         $parent = StudentParent::where('user_id', $user->id)->first();
 
         $children = $parent?->students()
@@ -145,9 +160,53 @@ class SpecialRequestController extends Controller
         ]);
     }
 
+    private function createForTeacher(User $user): Response
+    {
+        $teacher = Teacher::where('user_id', $user->id)->first();
+
+        $children = collect();
+        if ($teacher) {
+            $classIds = TeacherSubjectAssignment::where('teacher_id', $teacher->id)
+                ->whereNull('deleted_at')
+                ->pluck('school_class_id');
+
+            $children = StudentEnrollment::whereIn('school_class_id', $classIds)
+                ->whereNull('deleted_at')
+                ->with('student.user:id,name')
+                ->get()
+                ->map(function ($e) {
+                    return ['id' => $e->student_id, 'name' => $e->student->user?->name];
+                })
+                ->unique('id')
+                ->values();
+        }
+
+        $recipients = StudentParent::with('user:id,name')
+            ->whereNull('deleted_at')
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'name' => $p->user?->name ?? 'Parent',
+                    'type' => 'parent',
+                ];
+            });
+
+        return Inertia::render('SpecialRequests/Create', [
+            'children' => $children,
+            'recipients' => $recipients,
+            'role' => 'teacher',
+        ]);
+    }
+
     public function store(Request $request)
     {
         $user = $request->user();
+
+        if ($user->hasRole(RoleEnum::Teacher->value)) {
+            return $this->storeForTeacher($request, $user);
+        }
+
         $parent = StudentParent::where('user_id', $user->id)->first();
 
         $validated = $request->validate([
@@ -173,6 +232,50 @@ class SpecialRequestController extends Controller
         ActivityLogService::custom('Special Requests', 'submitted', "Submitted request: {$validated['subject']}");
 
         return redirect()->route('special-requests.index')->with('success', 'Request submitted successfully.');
+    }
+
+    private function storeForTeacher(Request $request, User $user)
+    {
+        $teacher = Teacher::where('user_id', $user->id)->first();
+        $teacherClassIds = $teacher
+            ? TeacherSubjectAssignment::where('teacher_id', $teacher->id)
+                ->whereNull('deleted_at')
+                ->pluck('school_class_id')
+            : collect();
+
+        $validated = $request->validate([
+            'parent_id' => ['required', 'exists:parents,id'],
+            'student_id' => ['nullable', 'exists:students,id'],
+            'subject' => ['required', 'string', 'max:255'],
+            'body' => ['required', 'string', 'max:5000'],
+            'request_type' => ['required', 'in:general,leave,complaint,meeting,fee,other'],
+            'priority' => ['required', 'in:low,normal,high,urgent'],
+        ]);
+
+        if ($validated['student_id'] && $teacherClassIds->isNotEmpty()) {
+            $enrolled = StudentEnrollment::where('student_id', $validated['student_id'])
+                ->whereIn('school_class_id', $teacherClassIds)
+                ->whereNull('deleted_at')
+                ->exists();
+            if (!$enrolled) {
+                $validated['student_id'] = null;
+            }
+        }
+
+        SpecialRequest::create([
+            'parent_id' => $validated['parent_id'],
+            'student_id' => $validated['student_id'] ?? null,
+            'assigned_to' => null,
+            'subject' => $validated['subject'],
+            'body' => $validated['body'],
+            'request_type' => $validated['request_type'],
+            'priority' => $validated['priority'],
+            'status' => 'pending',
+        ]);
+
+        ActivityLogService::custom('Special Requests', 'submitted', "Submitted request to parent: {$validated['subject']}");
+
+        return redirect()->route('special-requests.index')->with('success', 'Request sent to parent successfully.');
     }
 
     public function show(Request $request, SpecialRequest $special_request): Response

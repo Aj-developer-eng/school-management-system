@@ -4,8 +4,11 @@ import { useForm } from '@inertiajs/react';
 import { ArrowLeft, Send } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 
-export default function Create({ children, recipients }) {
+export default function Create({ children, recipients, role = 'parent' }) {
+    const isTeacher = role === 'teacher';
+
     const { data, setData, post, processing, errors } = useForm({
+        parent_id: '',
         student_id: '',
         assigned_to: '',
         subject: '',
@@ -42,7 +45,9 @@ export default function Create({ children, recipients }) {
                             Submit a Special Request
                         </h2>
                         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Send a request to the school administration or teachers.
+                            {isTeacher
+                                ? 'Send a request to a parent.'
+                                : 'Send a request to the school administration or teachers.'}
                         </p>
                     </div>
 
@@ -64,7 +69,11 @@ export default function Create({ children, recipients }) {
                                     ))}
                                 </select>
                             ) : (
-                                <p className="text-sm text-gray-400">No children linked to your account.</p>
+                                <p className="text-sm text-gray-400">
+                                    {isTeacher
+                                        ? 'No students found in your assigned classes.'
+                                        : 'No children linked to your account.'}
+                                </p>
                             )}
                             {errors.student_id && <p className="mt-1 text-xs text-red-500">{errors.student_id}</p>}
                         </div>
@@ -72,22 +81,40 @@ export default function Create({ children, recipients }) {
                         {/* Recipient selection */}
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Direct To
+                                {isTeacher ? 'Send To' : 'Direct To'}
                             </label>
                             <select
-                                value={data.assigned_to}
-                                onChange={(e) => setData('assigned_to', e.target.value)}
+                                value={isTeacher ? data.parent_id : data.assigned_to}
+                                onChange={(e) =>
+                                    isTeacher
+                                        ? setData('parent_id', e.target.value)
+                                        : setData('assigned_to', e.target.value)
+                                }
                                 className="w-full rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
                             >
-                                <option value="">— Anyone (General) —</option>
+                                <option value="">
+                                    {isTeacher ? '— Select a parent —' : '— Anyone (General) —'}
+                                </option>
                                 {recipients.map((r) => (
                                     <option key={`${r.type}-${r.id}`} value={r.id}>
-                                        {r.name} ({r.type === 'admin' ? 'Super Admin' : 'Teacher'})
+                                        {r.name} (
+                                        {r.type === 'admin'
+                                            ? 'Super Admin'
+                                            : r.type === 'teacher'
+                                            ? 'Teacher'
+                                            : 'Parent'}
+                                        )
                                     </option>
                                 ))}
                             </select>
-                            <p className="mt-1 text-xs text-gray-400">Choose a specific teacher or admin, or leave open for general submission.</p>
-                            {errors.assigned_to && <p className="mt-1 text-xs text-red-500">{errors.assigned_to}</p>}
+                            <p className="mt-1 text-xs text-gray-400">
+                                {isTeacher
+                                    ? 'Choose the parent you want to send this request to.'
+                                    : 'Choose a specific teacher or admin, or leave open for general submission.'}
+                            </p>
+                            {isTeacher
+                                ? errors.parent_id && <p className="mt-1 text-xs text-red-500">{errors.parent_id}</p>
+                                : errors.assigned_to && <p className="mt-1 text-xs text-red-500">{errors.assigned_to}</p>}
                         </div>
 
                         {/* Request type */}

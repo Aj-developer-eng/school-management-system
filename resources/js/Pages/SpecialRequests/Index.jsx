@@ -45,7 +45,7 @@ export default function Index({ requests, stats, filters, role }) {
                         <StatCard label="Resolved" value={stats.resolved} color="emerald" />
                         <StatCard label="Closed" value={stats.closed} color="gray" />
                     </div>
-                   {(role === 'parent' || role === 'Teacher') && (
+                   {(role === 'parent' || role === 'teacher') && (
                         <Link
                             href={route('special-requests.create')}
                             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
@@ -132,7 +132,7 @@ export default function Index({ requests, stats, filters, role }) {
                             <p className="mt-4 text-gray-500 dark:text-gray-400">
                                 No requests found.
                             </p>
-                            {role === 'parent' && (
+                            {(role === 'parent' || role === 'teacher') && (
                                 <Link
                                     href={route('special-requests.create')}
                                     className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700"
