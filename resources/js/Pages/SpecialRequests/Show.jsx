@@ -3,6 +3,7 @@ import Card from '@/Components/Ui/Card';
 import FlashMessages from '@/Components/FlashMessages';
 import { Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, Clock, CheckCircle2, XCircle, Loader2, User, Calendar, MessageSquare, Reply } from 'lucide-react';
+import { formatDateTime } from '@/utils/format';
 
 const statusConfig = {
     pending: { label: 'Pending', icon: Clock, badge: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400', dot: 'bg-amber-500' },
@@ -83,7 +84,7 @@ export default function Show({ specialRequest, canRespond }) {
                         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <MetaItem icon={User} label="From" value={specialRequest.parent?.user?.name ?? '—'} />
                             <MetaItem icon={User} label="Student" value={specialRequest.student?.user?.name ?? 'General'} />
-                            <MetaItem icon={Calendar} label="Submitted" value={specialRequest.created_at} />
+                            <MetaItem icon={Calendar} label="Submitted" value={formatDateTime(specialRequest.created_at)} />
                             <MetaItem icon={MessageSquare} label="Directed to" value={specialRequest.assignee?.name ?? 'General (Anyone)'} />
                         </div>
 
@@ -109,7 +110,7 @@ export default function Show({ specialRequest, canRespond }) {
                                 </p>
                                 {specialRequest.responded_at && (
                                     <p className="mt-2 text-xs text-indigo-400">
-                                        {specialRequest.responded_at}
+                                        {formatDateTime(specialRequest.responded_at)}
                                     </p>
                                 )}
                             </div>

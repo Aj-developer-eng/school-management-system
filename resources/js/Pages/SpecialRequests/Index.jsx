@@ -4,6 +4,7 @@ import Pagination from '@/Components/Ui/Pagination';
 import FlashMessages from '@/Components/FlashMessages';
 import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
+import { formatDateTime } from '@/utils/format';
 import { MessageSquarePlus, Eye, Edit, Clock, CheckCircle2, XCircle, Loader2, Inbox } from 'lucide-react';
 
 const statusConfig = {
@@ -103,7 +104,7 @@ export default function Index({ requests, stats, filters, role }) {
                                                 {r.assignee?.name && (
                                                     <span>Directed to: {r.assignee.name}</span>
                                                 )}
-                                                <span>{r.created_at}</span>
+                                                <span>{formatDateTime(r.created_at)}</span>
                                             </div>
                                         </div>
                                         <div className="flex flex-shrink-0 items-center gap-2">
