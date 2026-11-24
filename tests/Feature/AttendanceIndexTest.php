@@ -68,23 +68,23 @@ class AttendanceIndexTest extends TestCase
         $this->superAdmin->assignRole(Role::findOrCreate(RoleEnum::SuperAdmin->value, 'web'));
     }
 
-    public function test_attendance_index_hides_assignments_of_deleted_classes(): void
+    public function test_attendance_index_shows_assignments_of_deleted_classes_to_super_admin(): void
     {
         $this->makeAssignment($this->class);
         $this->makeAssignment($this->otherClass);
 
-        // Orphaned assignment: the class is soft-deleted while its assignment
-        // row survives (data written before the cascade existed). It must not
-        // reach the attendance index.
         $this->otherClass->delete();
 
+        // A soft-deleted class still renders on the attendance index for a
+        // super admin so it can be reviewed or re-attended.
         $this->actingAs($this->superAdmin)
             ->get(route('attendance.index'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Attendance/Index')
-                ->has('assignments', 1)
+                ->has('assignments', 2)
                 ->where('assignments.0.school_class.name', 'Grade 5')
+                ->where('assignments.1.school_class.name', 'Grade 6')
                 ->where('isSuperAdmin', true)
             );
     }
@@ -125,7 +125,7 @@ class AttendanceIndexTest extends TestCase
             );
     }
 
-    public function test_deleting_a_class_removes_it_from_the_attendance_index(): void
+    public function test_deleting_a_class_still_renders_on_attendance_index_for_super_admin(): void
     {
         $this->makeAssignment($this->class);
         $this->makeAssignment($this->otherClass);
@@ -139,14 +139,15 @@ class AttendanceIndexTest extends TestCase
             'school_class_id' => $this->otherClass->id,
         ]);
 
-        // … so the attendance index keeps only the class that still exists.
+        // … but super admins still see both classes on the attendance index.
         $this->actingAs($this->superAdmin)
             ->get(route('attendance.index'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Attendance/Index')
-                ->has('assignments', 1)
+                ->has('assignments', 2)
                 ->where('assignments.0.school_class.name', 'Grade 5')
+                ->where('assignments.1.school_class.name', 'Grade 6')
             );
     }
 

@@ -10,7 +10,7 @@ import StatusBadge from '@/Components/Ui/StatusBadge';
 import useFilter from '@/hooks/useFilter';
 import { useAuth } from '@/utils/authorization';
 
-export default function Index({ teachers, filters }) {
+export default function Index({ teachers, filters, isSuperAdmin }) {
     const { can } = useAuth();
     const handleSearch = useFilter('teachers.index');
 
@@ -32,7 +32,11 @@ export default function Index({ teachers, filters }) {
             ),
         },
         { key: 'email', label: 'Email', render: (row) => row.user?.email },
-        { key: 'employee_code', label: 'Employee Code' },
+        {
+            key: isSuperAdmin ? 'phone' : 'employee_code',
+            label: isSuperAdmin ? 'Phone' : 'Employee Code',
+            render: (row) => isSuperAdmin ? row.user?.phone ?? '—' : row.employee_code,
+        },
         { key: 'qualification', label: 'Qualification' },
         {
             key: 'is_active',
@@ -60,7 +64,7 @@ export default function Index({ teachers, filters }) {
         >
             <Card>
                 <div className="p-4">
-                    <SearchInput value={filters.search} onChange={handleSearch} placeholder="Search by name, email or code…" />
+                    <SearchInput value={filters.search} onChange={handleSearch} placeholder={isSuperAdmin ? 'Search by name, email, code or phone…' : 'Search by name, email or code…'} />
                 </div>
                 <DataTable columns={columns} rows={teachers} />
                 <Pagination {...teachers} />

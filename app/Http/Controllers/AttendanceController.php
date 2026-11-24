@@ -26,18 +26,25 @@ class AttendanceController extends Controller
         $isSuperAdmin = $user->hasRole(RoleEnum::SuperAdmin->value);
         $teacher = Teacher::where('user_id', $user->id)->first();
 
-        $assignments = TeacherSubjectAssignment::with([
-            'schoolClass:id,name',
-            'teacher.user:id,name',
-        ])
-            ->when(! $isSuperAdmin, function ($q) use ($teacher): void {
-                $q->where('teacher_id', $teacher?->id);
+        $assignments = TeacherSubjectAssignment::with('teacher.user:id,name')
+            ->when($isSuperAdmin, function ($q): void {
+                // Super admins see every assignment, including those whose
+                // class has been soft-deleted (removed from /classes). The
+                // class is eager-loaded with trashed rows so its name still
+                // resolves on the attendance index.
+                $q->withTrashed()
+                    ->with(['schoolClass' => function ($sub): void {
+                        $sub->withTrashed()->select('id', 'name');
+                    }]);
+            }, function ($q): void {
+                $q->with('schoolClass:id,name');
             })
-            ->whereNull('deleted_at')
-            // A deleted class is gone from /classes — its assignments (including
-            // orphaned rows written before the class-delete cascade existed)
-            // must not render here either.
-            ->whereHas('schoolClass')
+            ->when(! $isSuperAdmin, function ($q) use ($teacher): void {
+                // Teachers only see their own live assignments for live classes.
+                $q->where('teacher_id', $teacher?->id)
+                    ->whereNull('deleted_at')
+                    ->whereHas('schoolClass');
+            })
             ->orderBy('school_class_id')
             ->get();
 
