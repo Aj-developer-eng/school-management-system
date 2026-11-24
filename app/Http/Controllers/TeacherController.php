@@ -24,24 +24,15 @@ class TeacherController extends Controller
 
     public function index(Request $request): Response
     {
-        $user = $request->user();
-        $isSuperAdmin = $user->hasRole(RoleEnum::SuperAdmin->value);
-
         $teachers = Teacher::query()
             ->with('user')
-            ->when($request->search, function ($query, $search) use ($isSuperAdmin): void {
+            ->when($request->search, function ($query, $search): void {
                 $query->whereHas('user', function ($q) use ($search): void {
                     $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
                 })
-                    ->orWhere('employee_code', 'like', "%{$search}%")
-                    // Super admins search by phone number as well since that is
-                    // the identifier shown on the teachers index.
-                    ->when($isSuperAdmin, function ($q) use ($search): void {
-                        $q->orWhereHas('user', function ($qq) use ($search): void {
-                            $qq->where('phone', 'like', "%{$search}%");
-                        });
-                    });
+                    ->orWhere('employee_code', 'like', "%{$search}%");
             })
             ->orderBy('employee_code')
             ->paginate(15)
@@ -53,7 +44,6 @@ class TeacherController extends Controller
 
         return Inertia::render('Teacher/Index', [
             'teachers' => $teachers,
-            'isSuperAdmin' => $isSuperAdmin,
             'filters' => $request->only(['search']),
         ]);
     }
