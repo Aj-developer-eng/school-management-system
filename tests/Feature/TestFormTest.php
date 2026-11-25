@@ -13,6 +13,7 @@ use App\Models\Test;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -76,6 +77,24 @@ class TestFormTest extends TestCase
                 ->component('Test/Form')
                 ->has('assignments', 1)
                 ->where('assignments.0.label', 'Grade 5')
+            );
+    }
+
+    public function test_create_form_lists_assignments_for_non_teacher_staff(): void
+    {
+        $receptionist = User::factory()->create();
+        $receptionist->assignRole(Role::findOrCreate(RoleEnum::Receptionist->value, 'web'));
+        $receptionist->givePermissionTo(Permission::findOrCreate('tests.create', 'web'));
+
+        $this->makeAssignment('Grade 5');
+        $this->makeAssignment('Grade 8');
+
+        $this->actingAs($receptionist)
+            ->get(route('tests.create'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Test/Form')
+                ->has('assignments', 2)
             );
     }
 

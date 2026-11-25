@@ -309,7 +309,7 @@ class TestController extends Controller
     private function assignmentOptions(?Teacher $teacher, ?AcademicSession $activeSession): Collection
     {
         return TeacherSubjectAssignment::with(['schoolClass:id,name', 'academicSession:id,name'])
-            ->where('teacher_id', $teacher?->id)
+            ->when($teacher, fn ($q) => $q->where('teacher_id', $teacher->id))
             ->whereNull('deleted_at')
             ->when($activeSession, fn ($q) => $q->where('academic_session_id', $activeSession->id))
             ->get()
