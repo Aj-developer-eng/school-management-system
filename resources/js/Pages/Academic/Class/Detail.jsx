@@ -504,7 +504,7 @@ export default function Detail({
                     href={route('attendance.show', teacherSubjectAssignmentId)}
                     className="flex min-w-[85px] flex-1 flex-col items-center justify-center rounded-lg bg-indigo-50 px-3 py-2 transition hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/50"
                 >
-                    <ClipboardCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
+                    {/* <ClipboardCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-300" /> */}
                     <p className="text-[10px] font-semibold uppercase text-indigo-600 dark:text-indigo-300">
                         Attendance
                     </p>
@@ -522,7 +522,7 @@ export default function Detail({
                 className="flex min-w-[85px] flex-1 flex-col items-center justify-center rounded-lg bg-emerald-50 px-3 py-2 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-emerald-900/30 dark:hover:bg-emerald-800/50"
             >
                 <p className="text-[10px] font-semibold uppercase text-emerald-600 dark:text-emerald-300">
-                    Papers
+                    Notes
                 </p>
                 <p className="text-base font-bold text-gray-900 dark:text-gray-100">
                     {papers.length}
