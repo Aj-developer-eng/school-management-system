@@ -99,7 +99,13 @@ export default function Index({ tests, filters, classes }) {
         <AuthenticatedLayout
             title="Tests"
             breadcrumbs={[{ label: 'Academics' }, { label: 'Tests' }]}
-            actions={can('tests.create') && <CreateButton routeName="tests.create" label="New Test" />}
+            actions={can('tests.create') && (
+            <CreateButton
+                routeName="tests.create"
+                label="New Test"
+                query={filters.school_class_id ? { school_class_id: filters.school_class_id } : undefined}
+            />
+        )}
         >
             <Card>
                 <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">

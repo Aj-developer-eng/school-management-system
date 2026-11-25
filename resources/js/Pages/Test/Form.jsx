@@ -7,10 +7,18 @@ import SearchableSelect from '@/Components/Ui/SearchableSelect';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
 
-export default function Form({ test, assignments, testTypes }) {
+export default function Form({ test, assignments, testTypes, school_class_id }) {
     const isEdit = Boolean(test);
+
+    // Preselect the assignment matching the class carried over from the tests index
+    // filter (e.g. /tests?school_class_id=66 -> /tests/create?school_class_id=66).
+    const defaultAssignmentId = test?.teacher_subject_assignment_id
+        ?? (school_class_id
+            ? (assignments ?? []).find((a) => String(a.school_class_id) === String(school_class_id))?.id
+            : '');
+
     const { data, setData, post, put, processing, errors } = useForm({
-        teacher_subject_assignment_id: test?.teacher_subject_assignment_id ?? '',
+        teacher_subject_assignment_id: defaultAssignmentId,
         title: test?.title ?? '',
         test_type: test?.test_type?.value ?? test?.test_type ?? '',
         test_date: test?.test_date ?? '',

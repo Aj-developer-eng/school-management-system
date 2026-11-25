@@ -107,6 +107,7 @@ class TestController extends Controller
         return Inertia::render('Test/Form', [
             'assignments' => $this->assignmentOptions($teacher, $activeSession),
             'testTypes' => collect(TestTypeEnum::cases())->map(fn ($t) => ['value' => $t->value, 'label' => $t->label()])->values(),
+            'school_class_id' => request()->input('school_class_id'),
         ]);
     }
 
