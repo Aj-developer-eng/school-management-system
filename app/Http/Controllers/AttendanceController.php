@@ -220,6 +220,13 @@ class AttendanceController extends Controller
                 ->where('users.name', 'like', '%' . $request->input('student_name') . '%');
         }
 
+        if ($request->filled('teacher_name')) {
+            $query->join('teacher_subject_assignments', 'teacher_subject_assignments.id', '=', 'attendances.teacher_subject_assignment_id')
+                ->join('teachers', 'teachers.id', '=', 'teacher_subject_assignments.teacher_id')
+                ->join('users as teacher_users', 'teacher_users.id', '=', 'teachers.user_id')
+                ->where('teacher_users.name', 'like', '%' . $request->input('teacher_name') . '%');
+        }
+
         $records = $query->orderBy('attendance_date', 'desc')
             ->orderBy('student_id')
             ->paginate(50)
@@ -237,7 +244,7 @@ class AttendanceController extends Controller
             'records' => $records,
             'summary' => $summary,
             'classes' => $classes,
-            'filters' => $request->only(['class_id', 'date_from', 'date_to', 'status', 'student_name']),
+            'filters' => $request->only(['class_id', 'date_from', 'date_to', 'status', 'student_name', 'teacher_name']),
             'isScoped' => $scopedStudentIds !== null,
             'scopedToTeacher' => $scopedAssignments !== null,
         ]);
@@ -299,6 +306,13 @@ class AttendanceController extends Controller
             $query->join('students', 'students.id', '=', 'attendances.student_id')
                 ->join('users', 'users.id', '=', 'students.user_id')
                 ->where('users.name', 'like', '%' . $request->input('student_name') . '%');
+        }
+
+        if ($request->filled('teacher_name')) {
+            $query->join('teacher_subject_assignments', 'teacher_subject_assignments.id', '=', 'attendances.teacher_subject_assignment_id')
+                ->join('teachers', 'teachers.id', '=', 'teacher_subject_assignments.teacher_id')
+                ->join('users as teacher_users', 'teacher_users.id', '=', 'teachers.user_id')
+                ->where('teacher_users.name', 'like', '%' . $request->input('teacher_name') . '%');
         }
 
         $records = $query->orderBy('attendance_date', 'desc')

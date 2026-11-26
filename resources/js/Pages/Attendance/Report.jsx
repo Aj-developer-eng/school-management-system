@@ -22,6 +22,7 @@ export default function Report({ records, summary, classes, filters, isScoped, s
         date_to: filters.date_to ?? '',
         status: filters.status ?? '',
         student_name: filters.student_name ?? '',
+        teacher_name: filters.teacher_name ?? '',
     });
 
     const applyFilter = (e) => {
@@ -30,7 +31,7 @@ export default function Report({ records, summary, classes, filters, isScoped, s
     };
 
     const resetFilter = () => {
-        setForm({ class_id: '', date_from: '', date_to: '', status: '', student_name: '' });
+        setForm({ class_id: '', date_from: '', date_to: '', status: '', student_name: '', teacher_name: '' });
         router.get(route('attendance.report'), {}, { preserveScroll: true });
     };
 
@@ -41,6 +42,7 @@ export default function Report({ records, summary, classes, filters, isScoped, s
             date_to: form.date_to,
             status: form.status,
             student_name: form.student_name,
+            teacher_name: form.teacher_name,
         }).toString();
         window.location.href = `${route('attendance.report.export')}?${params}`;
     };
@@ -138,6 +140,16 @@ export default function Report({ records, summary, classes, filters, isScoped, s
                                     value={form.student_name}
                                     onChange={(e) => setForm({ ...form, student_name: e.target.value })}
                                     placeholder="Filter by student name"
+                                    className="rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-medium text-gray-500">Teacher Name</label>
+                                <input
+                                    type="text"
+                                    value={form.teacher_name}
+                                    onChange={(e) => setForm({ ...form, teacher_name: e.target.value })}
+                                    placeholder="Filter by teacher name"
                                     className="rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
                                 />
                             </div>
