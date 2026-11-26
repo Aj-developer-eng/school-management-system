@@ -87,7 +87,6 @@
                 <h2>Fee Invoice</h2>
                 <p><strong>{{ $invoice->invoice_number }}</strong></p>
                 <p>Issue Date: {{ $invoice->issue_date->format('d M Y') }}</p>
-                <p>Due Date: {{ $invoice->due_date->format('d M Y') }}</p>
                 <span class="badge badge-{{ $invoice->status->value }}">{{ $invoice->status->label() }}</span>
             </div>
         </div>
@@ -98,14 +97,6 @@
                 <div>
                     <p class="label">Name</p>
                     <p class="value">{{ $invoice->student->user->name }}</p>
-                </div>
-                <div>
-                    <p class="label">Class</p>
-                    <p class="value">{{ $invoice->schoolClass?->name ?? '—' }}</p>
-                </div>
-                <div>
-                    <p class="label">Session</p>
-                    <p class="value">{{ $invoice->academicSession?->name ?? '—' }}</p>
                 </div>
                 <div>
                     <p class="label">Admission No.</p>
@@ -123,7 +114,7 @@
                     @endforeach
                 </p>
             @else
-                <p style="font-size: 14px; margin-bottom: 12px;">{{ $invoice->feeStructure?->name ?? 'Custom Amount' }}</p>
+                <p style="font-size: 14px; margin-bottom: 12px;">{{ $invoice->feeStructure?->name ?? ' ' }}</p>
             @endif
 
             <table class="amounts-table">
