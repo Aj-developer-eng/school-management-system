@@ -65,6 +65,9 @@ export const navigation = [
                 icon: ClipboardCheck,
                 permission: 'attendances.view',
                 excludeRoles: ['Parent', 'Student'],
+                // Hidden when the current user has no classes/assignments to
+                // take attendance for (e.g. a receptionist with no classes).
+                hideWhenNoClasses: true,
             },
             // {
             //     label: 'Tests',
@@ -217,7 +220,7 @@ export const navigation = [
     },
 ];
 
-export function visibleNavigation(can, roles = []) {
+export function visibleNavigation(can, roles = [], { hasClasses = true } = {}) {
     return navigation
         .map((group) => ({
             ...group,
@@ -226,6 +229,7 @@ export function visibleNavigation(can, roles = []) {
                     (item.permission === null || can(item.permission)) &&
                     (!item.roles || item.roles.some((r) => roles.includes(r))) &&
                     (!item.excludeRoles || !item.excludeRoles.some((r) => roles.includes(r))) &&
+                    (!item.hideWhenNoClasses || hasClasses) &&
                     route().has(item.routeName),
             ),
         }))

@@ -2,8 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\RoleEnum;
+use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Teacher;
+use App\Models\TeacherSubjectAssignment;
 use App\Services\NotificationService;
 use App\Services\SchoolSettingsService;
 use Illuminate\Http\Request;
@@ -37,12 +40,31 @@ class HandleInertiaRequests extends Middleware
 
         $school = app(SchoolSettingsService::class)->get();
 
+        // Whether the current user has any class/assignment to take attendance
+        // for. Mirrors the scoping used by AttendanceController@index so the
+        // sidebar can hide the Attendance link when there is nothing to view.
+        $hasClasses = false;
+        if ($user) {
+            if ($user->hasRole(RoleEnum::SuperAdmin->value)) {
+                $hasClasses = SchoolClass::withTrashed()->exists();
+            } else {
+                $teacher = Teacher::where('user_id', $user->id)->first();
+                if ($teacher) {
+                    $hasClasses = TeacherSubjectAssignment::where('teacher_id', $teacher->id)
+                        ->whereNull('deleted_at')
+                        ->whereHas('schoolClass')
+                        ->exists();
+                }
+            }
+        }
+
         return [
             ...parent::share($request),
             'school' => [
                 'name' => $school->school_name,
                 'logo_url' => $school->logoUrl(),
             ],
+            'hasClasses' => $hasClasses,
             'auth' => [
                 'user' => $user ? [
                     'id' => $user->id,

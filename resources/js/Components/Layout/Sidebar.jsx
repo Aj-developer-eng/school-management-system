@@ -6,7 +6,9 @@ import { useAuth } from '@/utils/authorization';
 export default function Sidebar({ open, onClose }) {
     const { can, roles } = useAuth();
     const { url, props } = usePage();
-    const groups = visibleNavigation(can, roles);
+    const groups = visibleNavigation(can, roles, {
+        hasClasses: props.hasClasses ?? true,
+    });
     const school = props.school ?? {};
     const logoUrl = school.logo_url;
 
