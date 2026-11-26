@@ -214,6 +214,12 @@ class AttendanceController extends Controller
             $query->where('status', $request->input('status'));
         }
 
+        if ($request->filled('student_name')) {
+            $query->join('students', 'students.id', '=', 'attendances.student_id')
+                ->join('users', 'users.id', '=', 'students.user_id')
+                ->where('users.name', 'like', '%' . $request->input('student_name') . '%');
+        }
+
         $records = $query->orderBy('attendance_date', 'desc')
             ->orderBy('student_id')
             ->paginate(50)
@@ -231,7 +237,7 @@ class AttendanceController extends Controller
             'records' => $records,
             'summary' => $summary,
             'classes' => $classes,
-            'filters' => $request->only(['class_id', 'date_from', 'date_to', 'status']),
+            'filters' => $request->only(['class_id', 'date_from', 'date_to', 'status', 'student_name']),
             'isScoped' => $scopedStudentIds !== null,
             'scopedToTeacher' => $scopedAssignments !== null,
         ]);
@@ -287,6 +293,12 @@ class AttendanceController extends Controller
 
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('student_name')) {
+            $query->join('students', 'students.id', '=', 'attendances.student_id')
+                ->join('users', 'users.id', '=', 'students.user_id')
+                ->where('users.name', 'like', '%' . $request->input('student_name') . '%');
         }
 
         $records = $query->orderBy('attendance_date', 'desc')

@@ -21,6 +21,7 @@ export default function Report({ records, summary, classes, filters, isScoped, s
         date_from: filters.date_from ?? '',
         date_to: filters.date_to ?? '',
         status: filters.status ?? '',
+        student_name: filters.student_name ?? '',
     });
 
     const applyFilter = (e) => {
@@ -29,7 +30,7 @@ export default function Report({ records, summary, classes, filters, isScoped, s
     };
 
     const resetFilter = () => {
-        setForm({ class_id: '', date_from: '', date_to: '', status: '' });
+        setForm({ class_id: '', date_from: '', date_to: '', status: '', student_name: '' });
         router.get(route('attendance.report'), {}, { preserveScroll: true });
     };
 
@@ -39,6 +40,7 @@ export default function Report({ records, summary, classes, filters, isScoped, s
             date_from: form.date_from,
             date_to: form.date_to,
             status: form.status,
+            student_name: form.student_name,
         }).toString();
         window.location.href = `${route('attendance.report.export')}?${params}`;
     };
@@ -128,6 +130,16 @@ export default function Report({ records, summary, classes, filters, isScoped, s
                                     <option value="late">Late</option>
                                     <option value="excused">Excused</option>
                                 </select>
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-medium text-gray-500">Student Name</label>
+                                <input
+                                    type="text"
+                                    value={form.student_name}
+                                    onChange={(e) => setForm({ ...form, student_name: e.target.value })}
+                                    placeholder="Filter by student name"
+                                    className="rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                                />
                             </div>
                             <div className="flex gap-2">
                                 <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
