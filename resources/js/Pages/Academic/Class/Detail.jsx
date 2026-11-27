@@ -247,6 +247,7 @@ export default function Detail({
     }) {
         const { data, setData, post, processing, errors, reset } = useForm({
             papers: [],
+            date_of_upload: new Date().toISOString().slice(0, 10),
         });
 
         const [formKey, setFormKey] = useState(0);
@@ -405,8 +406,40 @@ export default function Detail({
                                             className="mt-1"
                                         />
                                     ))}
+                                {Object.entries(errors)
+                                    .filter(([key]) =>
+                                        key.startsWith('date_of_upload')
+                                    )
+                                    .map(([key, message]) => (
+                                        <InputError
+                                            key={key}
+                                            message={message}
+                                            className="mt-1"
+                                        />
+                                    ))}
                             </div>
-
+                            <div>
+                                <InputLabel
+                                    htmlFor="date_of_upload"
+                                    value="Date of Upload"
+                                />
+                                <input
+                                    id="date_of_upload"
+                                    type="date"
+                                    value={data.date_of_upload}
+                                    onChange={(e) =>
+                                        setData(
+                                            'date_of_upload',
+                                            e.target.value
+                                        )
+                                    }
+                                    className="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                                />
+                                <InputError
+                                    message={errors.date_of_upload}
+                                    className="mt-1"
+                                />
+                            </div>
                             <div className="flex justify-end">
                                 <PrimaryButton
                                     disabled={

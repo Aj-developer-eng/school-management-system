@@ -18,6 +18,7 @@ class UploadPapersRequest extends FormRequest
             // PDF and Word documents only — the extension is derived from the
             // file's actual content, not from the uploaded file name.
             'papers.*' => ['file', 'mimes:pdf,doc,docx', 'max:20480'],
+            'date_of_upload' => ['nullable', 'date'],
         ];
     }
 

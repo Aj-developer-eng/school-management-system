@@ -20,12 +20,14 @@ class ClassPaper extends Model
         'original_name',
         'mime_type',
         'size',
+        'date_of_upload',
     ];
 
     protected function casts(): array
     {
         return [
             'size' => 'integer',
+            'date_of_upload' => 'date',
         ];
     }
 
