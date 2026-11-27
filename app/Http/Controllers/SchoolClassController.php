@@ -814,7 +814,8 @@ class SchoolClassController extends Controller
      */
     public function uploadPapers(UploadPapersRequest $request, SchoolClass $schoolClass): RedirectResponse
     {
-        $dateOfUpload = $request->validated('date_of_upload') ?? now()->toDateString();
+        $validated = $request->validated();
+        $dateOfUpload = $validated['date_of_upload'] ?? now()->toDateString();
 
         foreach ($request->file('papers') as $file) {
             $schoolClass->papers()->create([
