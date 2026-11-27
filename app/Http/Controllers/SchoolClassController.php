@@ -91,7 +91,7 @@ class SchoolClassController extends Controller
                 // The papers list shown in the Papers modal; the files live on
                 // the private local disk and are only served by the
                 // permission-gated classes.papers.download route.
-                'papers:id,school_class_id,original_name,mime_type,size,created_at',
+                'papers:id,school_class_id,original_name,mime_type,size,date_of_upload,created_at',
             ])
             ->select('school_classes.*')
             ->withCount('tests')
