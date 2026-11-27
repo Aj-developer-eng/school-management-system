@@ -326,7 +326,7 @@ export default function Detail({
                                             <p className="truncate text-xs text-gray-400">
                                                 {formatPaperSize(paper.size)}
                                                 {' · Uploaded '}
-                                                {formatDate(paper.created_at)}
+                                                {formatDate(paper.date_of_upload)}
                                             </p>
                                         </div>
 

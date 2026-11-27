@@ -571,7 +571,7 @@ function PapersModal({ classItem, onClose, canUpload, canDownload, canDelete }) 
                                             {paper.original_name}
                                         </p>
                                         <p className="truncate text-xs text-gray-400">
-                                            {formatSize(paper.size)} · Uploaded {formatDate(paper.created_at)}
+                                            {formatSize(paper.size)} · Uploaded {formatDate(paper.date_of_upload)}
                                         </p>
                                     </div>
                                     <div className="flex shrink-0 items-center gap-2">
